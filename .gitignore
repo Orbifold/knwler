@@ -12,5 +12,4 @@ model/
 cache/
 results/
 uv.lock
-examples/
 .DS_Store

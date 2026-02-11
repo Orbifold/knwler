@@ -1,0 +1,222 @@
+{
+  "en": {
+    "name": "English",
+    "prompts": {
+      "language_detection": "Detect the language of the following text. Return only a JSON object with the ISO 639-1 language code.\n\nTEXT:\n\"\"\"{sample}\"\"\"\n\nReturn JSON:\n{{\n  \"language\": \"en\"\n}}",
+      "schema_discovery": "Analyze this text and identify the best entity types and relation types for a knowledge graph.\n\nTEXT SAMPLE:\n\"\"\"{sample}\"\"\"\n\nGuidelines:\n- Use snake_case for all type names\n- Be specific but not too narrow (e.g., \"person\" not \"male_scientist\")\n- Focus on types that appear multiple times or are central to the text\n- Entity types: what kinds of things are mentioned?\n- Relation types: what relationships exist between them?\n\nReturn JSON:\n{{\n  \"entity_types\": [\"type1\", \"type2\", ...],\n  \"relation_types\": [\"rel1\", \"rel2\", ...],\n  \"reasoning\": \"Brief explanation\"\n}}\n\nMax {max_entity_types} entity types and {max_relation_types} relation types.",
+      "extract_graph": "Extract a knowledge graph from the text below.\n\nENTITY TYPES: {entity_types}\nRELATION TYPES: {relation_types}\n\nRULES:\n- Only extract entities and relations clearly stated in the text\n- Each entity: name, type, 1-2 sentence description\n- Each relation: source, target, type, brief description, strength (1-10)\n\nTEXT:\n\"\"\"{text}\"\"\"\n\nReturn JSON:\n{{\n  \"entities\": [{{\"name\": \"...\", \"type\": \"...\", \"description\": \"...\"}}],\n  \"relations\": [{{\"source\": \"...\", \"target\": \"...\", \"type\": \"...\", \"description\": \"...\", \"strength\": 8}}]\n}}",
+      "summarize_descriptions": "Summarize multiple descriptions for each item into ONE concise description (1-2 sentences).\n\nITEMS:\n{items_text}\n\nReturn JSON:\n{{\n  \"summaries\": {{\n    \"<id>\": \"<merged description>\",\n    ...\n  }}\n}}",
+      "rephrase_chunk": "Rewrite the following text so that it is easy to understand. Keep all the key facts and names. Convey the information clearly and concisely.\n\nTEXT:\n\"\"\"{chunk}\"\"\"\n\nReturn JSON:\n{{\n  \"rephrase\": \"...\"\n}}",
+      "extract_title": "Create a short, clear document title based on the text below. Return only a JSON object.\n\nTEXT:\n\"\"\"{sample}\"\"\"\n\nReturn JSON:\n{{\n  \"title\": \"...\"\n}}",
+      "extract_summary": "Summarize the document below in 3-5 sentences. Focus on the main topic and key points. Return only JSON.\n\nTEXT:\n\"\"\"{sample}\"\"\"\n\nReturn JSON:\n{{\n  \"summary\": \"...\"\n}}",
+      "community_labeling": "You are labeling graph communities. For each community, return 1-3 short topics and a 1-2 sentence description.\n\nCOMMUNITIES:\n{communities_text}\n\nReturn JSON:\n{{\n  \"communities\": {{\n    \"<id>\": {{\"topics\": [\"topic1\", \"topic2\"], \"description\": \"...\"}},\n    ...\n  }}\n}}"
+    },
+    "ui": {
+      "title": "Knowledge Graph",
+      "summary_label": "Summary",
+      "extracted_info": "Extracted {entities} entities, {relations} relations and {communities} topics on {date}",
+      "source_label": "Source",
+      "nav_chunks": "Text Chunks",
+      "nav_topics": "Topics",
+      "nav_entities": "Entities",
+      "network_title": "Network",
+      "topics_title": "Topics",
+      "content_title": "Content",
+      "entities_title": "Entities",
+      "show_original": "Show original text",
+      "show_rephrased": "Show rephrased text",
+      "appears_in": "Appears in",
+      "chunk_label": "Chunk",
+      "type_label": "Type",
+      "description_label": "Description",
+      "community_label": "Community",
+      "chunks_label": "Chunks",
+      "disclaimer": "The information contained in this document has been extracted and processed using automated artificial intelligence tools (Knwl.AI). While we strive for accuracy, this data is generated via machine learning algorithms and natural language processing, which may result in errors, omissions, or misinterpretations of the original source material. This document is provided \"as is\" and for informational purposes only. Orbifold Consulting makes no warranties, express or implied, regarding the accuracy, completeness, or reliability of this information. Users are advised to independently verify any critical data against original source documents before making business, legal, or financial decisions. Orbifold Consulting assumes no liability for any actions taken in reliance upon this information."
+    },
+    "console": {
+      "extracting": "Extracting...",
+      "rephrasing": "Rephrasing...",
+      "summarizing": "Summarizing {count} items...",
+      "analyzing_communities": "Analyzing communities...",
+      "discovering_schema": "Discovering schema...",
+      "detected_communities": "Detected {count} communities",
+      "removed_entities": "Removed {count} low-importance entities (meaningless name or zero degree)"
+    }
+  },
+  "de": {
+    "name": "German",
+    "prompts": {
+      "language_detection": "Erkenne die Sprache des folgenden Textes. Gib nur ein JSON-Objekt mit dem ISO 639-1 Sprachcode zurück.\n\nTEXT:\n\"\"\"{sample}\"\"\"\n\nJSON zurückgeben:\n{{\n  \"language\": \"de\"\n}}",
+      "schema_discovery": "Analysiere diesen Text und identifiziere die besten Entitätstypen und Beziehungstypen für einen Wissensgraphen.\n\nTEXTPROBE:\n\"\"\"{sample}\"\"\"\n\nRichtlinien:\n- Verwende snake_case für alle Typnamen\n- Sei spezifisch, aber nicht zu eng (z.B. \"person\" statt \"männlicher_wissenschaftler\")\n- Konzentriere dich auf Typen, die mehrfach vorkommen oder zentral für den Text sind\n- Entitätstypen: Welche Arten von Dingen werden erwähnt?\n- Beziehungstypen: Welche Beziehungen bestehen zwischen ihnen?\n\nJSON zurückgeben:\n{{\n  \"entity_types\": [\"typ1\", \"typ2\", ...],\n  \"relation_types\": [\"bez1\", \"bez2\", ...],\n  \"reasoning\": \"Kurze Erklärung\"\n}}\n\nMaximal {max_entity_types} Entitätstypen und {max_relation_types} Beziehungstypen.",
+      "extract_graph": "Extrahiere einen Wissensgraphen aus dem folgenden Text.\n\nENTITÄTSTYPEN: {entity_types}\nBEZIEHUNGSTYPEN: {relation_types}\n\nREGELN:\n- Extrahiere nur Entitäten und Beziehungen, die klar im Text angegeben sind\n- Jede Entität: Name, Typ, 1-2 Sätze Beschreibung\n- Jede Beziehung: Quelle, Ziel, Typ, kurze Beschreibung, Stärke (1-10)\n\nTEXT:\n\"\"\"{text}\"\"\"\n\nJSON zurückgeben:\n{{\n  \"entities\": [{{\"name\": \"...\", \"type\": \"...\", \"description\": \"...\"}}],\n  \"relations\": [{{\"source\": \"...\", \"target\": \"...\", \"type\": \"...\", \"description\": \"...\", \"strength\": 8}}]\n}}",
+      "summarize_descriptions": "Fasse mehrere Beschreibungen für jedes Element in EINE prägnante Beschreibung (1-2 Sätze) zusammen.\n\nELEMENTE:\n{items_text}\n\nJSON zurückgeben:\n{{\n  \"summaries\": {{\n    \"<id>\": \"<zusammengeführte Beschreibung>\",\n    ...\n  }}\n}}",
+      "rephrase_chunk": "Schreibe den folgenden Text so um, dass er leicht verständlich ist. Behalte alle wichtigen Fakten und Namen bei. Vermittle die Informationen klar und prägnant.\n\nTEXT:\n\"\"\"{chunk}\"\"\"\n\nJSON zurückgeben:\n{{\n  \"rephrase\": \"...\"\n}}",
+      "extract_title": "Erstelle einen kurzen, klaren Dokumenttitel basierend auf dem folgenden Text. Gib nur ein JSON-Objekt zurück.\n\nTEXT:\n\"\"\"{sample}\"\"\"\n\nJSON zurückgeben:\n{{\n  \"title\": \"...\"\n}}",
+      "extract_summary": "Fasse das folgende Dokument in 3-5 Sätzen zusammen. Konzentriere dich auf das Hauptthema und die wichtigsten Punkte. Gib nur JSON zurück.\n\nTEXT:\n\"\"\"{sample}\"\"\"\n\nJSON zurückgeben:\n{{\n  \"summary\": \"...\"\n}}",
+      "community_labeling": "Du beschriftest Graph-Gemeinschaften. Gib für jede Gemeinschaft 1-3 kurze Themen und eine 1-2 Sätze lange Beschreibung zurück.\n\nGEMEINSCHAFTEN:\n{communities_text}\n\nJSON zurückgeben:\n{{\n  \"communities\": {{\n    \"<id>\": {{\"topics\": [\"thema1\", \"thema2\"], \"description\": \"...\"}},\n    ...\n  }}\n}}"
+    },
+    "ui": {
+      "title": "Wissensgraph",
+      "summary_label": "Zusammenfassung",
+      "extracted_info": "{entities} Entitäten, {relations} Beziehungen und {communities} Themen am {date} extrahiert",
+      "source_label": "Quelle",
+      "nav_chunks": "Textabschnitte",
+      "nav_topics": "Themen",
+      "nav_entities": "Entitäten",
+      "network_title": "Netzwerk",
+      "topics_title": "Themen",
+      "content_title": "Inhalt",
+      "entities_title": "Entitäten",
+      "show_original": "Originaltext anzeigen",
+      "show_rephrased": "Umformulierten Text anzeigen",
+      "appears_in": "Erscheint in",
+      "chunk_label": "Abschnitt",
+      "type_label": "Typ",
+      "description_label": "Beschreibung",
+      "community_label": "Gemeinschaft",
+      "chunks_label": "Abschnitte",
+      "disclaimer": "Die in diesem Dokument enthaltenen Informationen wurden mit automatisierten Werkzeugen der künstlichen Intelligenz (Knwl.AI) extrahiert und verarbeitet. Obwohl wir nach Genauigkeit streben, werden diese Daten durch maschinelles Lernen und natürliche Sprachverarbeitung generiert, was zu Fehlern, Auslassungen oder Fehlinterpretationen des Quellmaterials führen kann. Dieses Dokument wird \"wie besehen\" und nur zu Informationszwecken bereitgestellt. Orbifold Consulting gibt keine ausdrücklichen oder stillschweigenden Garantien hinsichtlich der Genauigkeit, Vollständigkeit oder Zuverlässigkeit dieser Informationen. Benutzern wird empfohlen, kritische Daten unabhängig anhand der Originaldokumente zu überprüfen, bevor sie geschäftliche, rechtliche oder finanzielle Entscheidungen treffen. Orbifold Consulting übernimmt keine Haftung für Handlungen, die auf Grundlage dieser Informationen erfolgen."
+    },
+    "console": {
+      "extracting": "Extrahiere...",
+      "rephrasing": "Umformuliere...",
+      "summarizing": "{count} Elemente zusammenfassen...",
+      "analyzing_communities": "Analysiere Gemeinschaften...",
+      "discovering_schema": "Schema wird entdeckt...",
+      "detected_communities": "{count} Gemeinschaften erkannt",
+      "removed_entities": "{count} unwichtige Entitäten entfernt (bedeutungsloser Name oder Grad null)"
+    }
+  },
+  "fr": {
+    "name": "French",
+    "prompts": {
+      "language_detection": "Détectez la langue du texte suivant. Retournez uniquement un objet JSON avec le code de langue ISO 639-1.\n\nTEXTE:\n\"\"\"{sample}\"\"\"\n\nRetourner JSON:\n{{\n  \"language\": \"fr\"\n}}",
+      "schema_discovery": "Analysez ce texte et identifiez les meilleurs types d'entités et de relations pour un graphe de connaissances.\n\nÉCHANTILLON DE TEXTE:\n\"\"\"{sample}\"\"\"\n\nDirectives:\n- Utilisez snake_case pour tous les noms de types\n- Soyez spécifique mais pas trop étroit (par ex. \"personne\" et non \"scientifique_masculin\")\n- Concentrez-vous sur les types qui apparaissent plusieurs fois ou sont centraux au texte\n- Types d'entités: quels types de choses sont mentionnés?\n- Types de relations: quelles relations existent entre eux?\n\nRetourner JSON:\n{{\n  \"entity_types\": [\"type1\", \"type2\", ...],\n  \"relation_types\": [\"rel1\", \"rel2\", ...],\n  \"reasoning\": \"Brève explication\"\n}}\n\nMaximum {max_entity_types} types d'entités et {max_relation_types} types de relations.",
+      "extract_graph": "Extrayez un graphe de connaissances du texte ci-dessous.\n\nTYPES D'ENTITÉS: {entity_types}\nTYPES DE RELATIONS: {relation_types}\n\nRÈGLES:\n- N'extrayez que les entités et relations clairement énoncées dans le texte\n- Chaque entité: nom, type, description en 1-2 phrases\n- Chaque relation: source, cible, type, brève description, force (1-10)\n\nTEXTE:\n\"\"\"{text}\"\"\"\n\nRetourner JSON:\n{{\n  \"entities\": [{{\"name\": \"...\", \"type\": \"...\", \"description\": \"...\"}}],\n  \"relations\": [{{\"source\": \"...\", \"target\": \"...\", \"type\": \"...\", \"description\": \"...\", \"strength\": 8}}]\n}}",
+      "summarize_descriptions": "Résumez plusieurs descriptions pour chaque élément en UNE description concise (1-2 phrases).\n\nÉLÉMENTS:\n{items_text}\n\nRetourner JSON:\n{{\n  \"summaries\": {{\n    \"<id>\": \"<description fusionnée>\",\n    ...\n  }}\n}}",
+      "rephrase_chunk": "Réécrivez le texte suivant pour qu'il soit facile à comprendre. Gardez tous les faits clés et les noms. Transmettez les informations clairement et de manière concise.\n\nTEXTE:\n\"\"\"{chunk}\"\"\"\n\nRetourner JSON:\n{{\n  \"rephrase\": \"...\"\n}}",
+      "extract_title": "Créez un titre de document court et clair basé sur le texte ci-dessous. Retournez uniquement un objet JSON.\n\nTEXTE:\n\"\"\"{sample}\"\"\"\n\nRetourner JSON:\n{{\n  \"title\": \"...\"\n}}",
+      "extract_summary": "Résumez le document ci-dessous en 3-5 phrases. Concentrez-vous sur le sujet principal et les points clés. Retournez uniquement JSON.\n\nTEXTE:\n\"\"\"{sample}\"\"\"\n\nRetourner JSON:\n{{\n  \"summary\": \"...\"\n}}",
+      "community_labeling": "Vous étiquetez des communautés de graphes. Pour chaque communauté, retournez 1-3 sujets courts et une description de 1-2 phrases.\n\nCOMMUNAUTÉS:\n{communities_text}\n\nRetourner JSON:\n{{\n  \"communities\": {{\n    \"<id>\": {{\"topics\": [\"sujet1\", \"sujet2\"], \"description\": \"...\"}},\n    ...\n  }}\n}}"
+    },
+    "ui": {
+      "title": "Graphe de Connaissances",
+      "summary_label": "Résumé",
+      "extracted_info": "{entities} entités, {relations} relations et {communities} sujets extraits le {date}",
+      "source_label": "Source",
+      "nav_chunks": "Sections de Texte",
+      "nav_topics": "Sujets",
+      "nav_entities": "Entités",
+      "network_title": "Réseau",
+      "topics_title": "Sujets",
+      "content_title": "Contenu",
+      "entities_title": "Entités",
+      "show_original": "Afficher le texte original",
+      "show_rephrased": "Afficher le texte reformulé",
+      "appears_in": "Apparaît dans",
+      "chunk_label": "Section",
+      "type_label": "Type",
+      "description_label": "Description",
+      "community_label": "Communauté",
+      "chunks_label": "Sections",
+      "disclaimer": "Les informations contenues dans ce document ont été extraites et traitées à l'aide d'outils d'intelligence artificielle automatisés (Knwl.AI). Bien que nous nous efforcions d'être précis, ces données sont générées par des algorithmes d'apprentissage automatique et de traitement du langage naturel, ce qui peut entraîner des erreurs, des omissions ou des interprétations erronées du matériel source original. Ce document est fourni \"tel quel\" et à titre informatif uniquement. Orbifold Consulting ne donne aucune garantie, expresse ou implicite, concernant l'exactitude, l'exhaustivité ou la fiabilité de ces informations. Il est conseillé aux utilisateurs de vérifier indépendamment toute donnée critique par rapport aux documents sources originaux avant de prendre des décisions commerciales, juridiques ou financières. Orbifold Consulting décline toute responsabilité pour les actions entreprises sur la base de ces informations."
+    },
+    "console": {
+      "extracting": "Extraction...",
+      "rephrasing": "Reformulation...",
+      "summarizing": "Résumé de {count} éléments...",
+      "analyzing_communities": "Analyse des communautés...",
+      "discovering_schema": "Découverte du schéma...",
+      "detected_communities": "{count} communautés détectées",
+      "removed_entities": "{count} entités de faible importance supprimées (nom sans signification ou degré zéro)"
+    }
+  },
+  "es": {
+    "name": "Spanish",
+    "prompts": {
+      "language_detection": "Detecta el idioma del siguiente texto. Devuelve solo un objeto JSON con el código de idioma ISO 639-1.\n\nTEXTO:\n\"\"\"{sample}\"\"\"\n\nDevolver JSON:\n{{\n  \"language\": \"es\"\n}}",
+      "schema_discovery": "Analiza este texto e identifica los mejores tipos de entidades y relaciones para un grafo de conocimiento.\n\nMUESTRA DE TEXTO:\n\"\"\"{sample}\"\"\"\n\nDirectrices:\n- Usa snake_case para todos los nombres de tipos\n- Sé específico pero no demasiado estrecho (por ej. \"persona\" no \"científico_masculino\")\n- Concéntrate en tipos que aparecen múltiples veces o son centrales al texto\n- Tipos de entidades: ¿qué tipos de cosas se mencionan?\n- Tipos de relaciones: ¿qué relaciones existen entre ellas?\n\nDevolver JSON:\n{{\n  \"entity_types\": [\"tipo1\", \"tipo2\", ...],\n  \"relation_types\": [\"rel1\", \"rel2\", ...],\n  \"reasoning\": \"Breve explicación\"\n}}\n\nMáximo {max_entity_types} tipos de entidades y {max_relation_types} tipos de relaciones.",
+      "extract_graph": "Extrae un grafo de conocimiento del texto a continuación.\n\nTIPOS DE ENTIDADES: {entity_types}\nTIPOS DE RELACIONES: {relation_types}\n\nREGLAS:\n- Solo extrae entidades y relaciones claramente indicadas en el texto\n- Cada entidad: nombre, tipo, descripción de 1-2 oraciones\n- Cada relación: origen, destino, tipo, breve descripción, fuerza (1-10)\n\nTEXTO:\n\"\"\"{text}\"\"\"\n\nDevolver JSON:\n{{\n  \"entities\": [{{\"name\": \"...\", \"type\": \"...\", \"description\": \"...\"}}],\n  \"relations\": [{{\"source\": \"...\", \"target\": \"...\", \"type\": \"...\", \"description\": \"...\", \"strength\": 8}}]\n}}",
+      "summarize_descriptions": "Resume múltiples descripciones para cada elemento en UNA descripción concisa (1-2 oraciones).\n\nELEMENTOS:\n{items_text}\n\nDevolver JSON:\n{{\n  \"summaries\": {{\n    \"<id>\": \"<descripción fusionada>\",\n    ...\n  }}\n}}",
+      "rephrase_chunk": "Reescribe el siguiente texto para que sea fácil de entender. Mantén todos los hechos clave y nombres. Transmite la información de manera clara y concisa.\n\nTEXTO:\n\"\"\"{chunk}\"\"\"\n\nDevolver JSON:\n{{\n  \"rephrase\": \"...\"\n}}",
+      "extract_title": "Crea un título de documento corto y claro basado en el texto a continuación. Devuelve solo un objeto JSON.\n\nTEXTO:\n\"\"\"{sample}\"\"\"\n\nDevolver JSON:\n{{\n  \"title\": \"...\"\n}}",
+      "extract_summary": "Resume el documento a continuación en 3-5 oraciones. Concéntrate en el tema principal y los puntos clave. Devuelve solo JSON.\n\nTEXTO:\n\"\"\"{sample}\"\"\"\n\nDevolver JSON:\n{{\n  \"summary\": \"...\"\n}}",
+      "community_labeling": "Estás etiquetando comunidades de grafos. Para cada comunidad, devuelve 1-3 temas cortos y una descripción de 1-2 oraciones.\n\nCOMUNIDADES:\n{communities_text}\n\nDevolver JSON:\n{{\n  \"communities\": {{\n    \"<id>\": {{\"topics\": [\"tema1\", \"tema2\"], \"description\": \"...\"}},\n    ...\n  }}\n}}"
+    },
+    "ui": {
+      "title": "Grafo de Conocimiento",
+      "summary_label": "Resumen",
+      "extracted_info": "{entities} entidades, {relations} relaciones y {communities} temas extraídos el {date}",
+      "source_label": "Fuente",
+      "nav_chunks": "Secciones de Texto",
+      "nav_topics": "Temas",
+      "nav_entities": "Entidades",
+      "network_title": "Red",
+      "topics_title": "Temas",
+      "content_title": "Contenido",
+      "entities_title": "Entidades",
+      "show_original": "Mostrar texto original",
+      "show_rephrased": "Mostrar texto reformulado",
+      "appears_in": "Aparece en",
+      "chunk_label": "Sección",
+      "type_label": "Tipo",
+      "description_label": "Descripción",
+      "community_label": "Comunidad",
+      "chunks_label": "Secciones",
+      "disclaimer": "La información contenida en este documento ha sido extraída y procesada utilizando herramientas automatizadas de inteligencia artificial (Knwl.AI). Aunque nos esforzamos por la precisión, estos datos se generan mediante algoritmos de aprendizaje automático y procesamiento del lenguaje natural, lo que puede resultar en errores, omisiones o interpretaciones erróneas del material fuente original. Este documento se proporciona \"tal cual\" y solo con fines informativos. Orbifold Consulting no ofrece garantías, expresas o implícitas, con respecto a la exactitud, integridad o fiabilidad de esta información. Se aconseja a los usuarios que verifiquen independientemente cualquier dato crítico contra los documentos fuente originales antes de tomar decisiones comerciales, legales o financieras. Orbifold Consulting no asume ninguna responsabilidad por las acciones tomadas en base a esta información."
+    },
+    "console": {
+      "extracting": "Extrayendo...",
+      "rephrasing": "Reformulando...",
+      "summarizing": "Resumiendo {count} elementos...",
+      "analyzing_communities": "Analizando comunidades...",
+      "discovering_schema": "Descubriendo esquema...",
+      "detected_communities": "{count} comunidades detectadas",
+      "removed_entities": "{count} entidades de baja importancia eliminadas (nombre sin sentido o grado cero)"
+    }
+  },
+  "nl": {
+    "name": "Dutch",
+    "prompts": {
+      "language_detection": "Detecteer de taal van de volgende tekst. Retourneer alleen een JSON-object met de ISO 639-1 taalcode.\n\nTEKST:\n\"\"\"{sample}\"\"\"\n\nReturneer JSON:\n{{\n  \"language\": \"nl\"\n}}",
+      "schema_discovery": "Analyseer deze tekst en identificeer de beste entiteitstypen en relatietypen voor een kennisgraaf.\n\nTEKSTMONSTER:\n\"\"\"{sample}\"\"\"\n\nRichtlijnen:\n- Gebruik snake_case voor alle typenamen\n- Wees specifiek maar niet te nauw (bijv. \"persoon\" niet \"mannelijke_wetenschapper\")\n- Focus op typen die meerdere keren voorkomen of centraal staan in de tekst\n- Entiteitstypen: welke soorten dingen worden genoemd?\n- Relatietypen: welke relaties bestaan ertussen?\n\nReturneer JSON:\n{{\n  \"entity_types\": [\"type1\", \"type2\", ...],\n  \"relation_types\": [\"rel1\", \"rel2\", ...],\n  \"reasoning\": \"Korte uitleg\"\n}}\n\nMaximaal {max_entity_types} entiteitstypen en {max_relation_types} relatietypen.",
+      "extract_graph": "Extraheer een kennisgraaf uit de onderstaande tekst.\n\nENTITEITSTYPEN: {entity_types}\nRELATIETYPEN: {relation_types}\n\nREGELS:\n- Extraheer alleen entiteiten en relaties die duidelijk in de tekst staan\n- Elke entiteit: naam, type, 1-2 zinnen beschrijving\n- Elke relatie: bron, doel, type, korte beschrijving, sterkte (1-10)\n\nTEKST:\n\"\"\"{text}\"\"\"\n\nReturneer JSON:\n{{\n  \"entities\": [{{\"name\": \"...\", \"type\": \"...\", \"description\": \"...\"}}],\n  \"relations\": [{{\"source\": \"...\", \"target\": \"...\", \"type\": \"...\", \"description\": \"...\", \"strength\": 8}}]\n}}",
+      "summarize_descriptions": "Vat meerdere beschrijvingen voor elk item samen in ÉÉN beknopte beschrijving (1-2 zinnen).\n\nITEMS:\n{items_text}\n\nReturneer JSON:\n{{\n  \"summaries\": {{\n    \"<id>\": \"<samengevoegde beschrijving>\",\n    ...\n  }}\n}}",
+      "rephrase_chunk": "Herschrijf de volgende tekst zodat deze gemakkelijk te begrijpen is. Behoud alle belangrijke feiten en namen. Breng de informatie duidelijk en beknopt over.\n\nTEKST:\n\"\"\"{chunk}\"\"\"\n\nReturneer JSON:\n{{\n  \"rephrase\": \"...\"\n}}",
+      "extract_title": "Maak een korte, duidelijke documenttitel op basis van de onderstaande tekst. Retourneer alleen een JSON-object.\n\nTEKST:\n\"\"\"{sample}\"\"\"\n\nReturneer JSON:\n{{\n  \"title\": \"...\"\n}}",
+      "extract_summary": "Vat het onderstaande document samen in 3-5 zinnen. Focus op het hoofdonderwerp en de belangrijkste punten. Retourneer alleen JSON.\n\nTEKST:\n\"\"\"{sample}\"\"\"\n\nReturneer JSON:\n{{\n  \"summary\": \"...\"\n}}",
+      "community_labeling": "Je labelt graafgemeenschappen. Geef voor elke gemeenschap 1-3 korte onderwerpen en een beschrijving van 1-2 zinnen.\n\nGEMEENSCHAPPEN:\n{communities_text}\n\nReturneer JSON:\n{{\n  \"communities\": {{\n    \"<id>\": {{\"topics\": [\"onderwerp1\", \"onderwerp2\"], \"description\": \"...\"}},\n    ...\n  }}\n}}"
+    },
+    "ui": {
+      "title": "Kennisgraaf",
+      "summary_label": "Samenvatting",
+      "extracted_info": "{entities} entiteiten, {relations} relaties en {communities} onderwerpen geëxtraheerd op {date}",
+      "source_label": "Bron",
+      "nav_chunks": "Tekstsecties",
+      "nav_topics": "Onderwerpen",
+      "nav_entities": "Entiteiten",
+      "network_title": "Netwerk",
+      "topics_title": "Onderwerpen",
+      "content_title": "Inhoud",
+      "entities_title": "Entiteiten",
+      "show_original": "Toon originele tekst",
+      "show_rephrased": "Toon herformuleerde tekst",
+      "appears_in": "Verschijnt in",
+      "chunk_label": "Sectie",
+      "type_label": "Type",
+      "description_label": "Beschrijving",
+      "community_label": "Gemeenschap",
+      "chunks_label": "Secties",
+      "disclaimer": "De informatie in dit document is geëxtraheerd en verwerkt met behulp van geautomatiseerde kunstmatige intelligentie-tools (Knwl.AI). Hoewel we streven naar nauwkeurigheid, worden deze gegevens gegenereerd via machine learning-algoritmen en natuurlijke taalverwerking, wat kan resulteren in fouten, weglatingen of verkeerde interpretaties van het originele bronmateriaal. Dit document wordt \"zoals het is\" en alleen voor informatieve doeleinden verstrekt. Orbifold Consulting geeft geen garanties, expliciet of impliciet, met betrekking tot de nauwkeurigheid, volledigheid of betrouwbaarheid van deze informatie. Gebruikers wordt geadviseerd om kritieke gegevens onafhankelijk te verifiëren aan de hand van originele brondocumenten voordat zij zakelijke, juridische of financiële beslissingen nemen. Orbifold Consulting aanvaardt geen aansprakelijkheid voor acties die worden ondernomen op basis van deze informatie."
+    },
+    "console": {
+      "extracting": "Extraheren...",
+      "rephrasing": "Herformuleren...",
+      "summarizing": "{count} items samenvatten...",
+      "analyzing_communities": "Gemeenschappen analyseren...",
+      "discovering_schema": "Schema ontdekken...",
+      "detected_communities": "{count} gemeenschappen gedetecteerd",
+      "removed_entities": "{count} onbelangrijke entiteiten verwijderd (betekenisloze naam of graad nul)"
+    }
+  }
+}

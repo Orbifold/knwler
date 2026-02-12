@@ -159,6 +159,13 @@ You can easily add additional languages, simply ask Copilot, Gemini or any AI to
 If you run the process in your terminal the code will look for the usual `OPENAI_API_KEY`.
 You can assign it explicitly via a terminal export
 
+## Ollama
+
+Ollama is just a convenient local LLM service, you can use LMStudio or any other service. 
+The default model is Qwen 2.5 but here as well, experiment and see what works best for you.
+We have done lots of benchmarks and bigger models are not better, sometimes quite the opposite. Small models of 3 or 7 billion parameters will be fine and a lot faster.
+Thinking, in particular, is really standing in the way of graph extraction. Whatever you do, don't enable thinking and don't use advanced MOE models.
+
 ```bash
 export OPENAI_API_KEY=...
 ```

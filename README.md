@@ -6,6 +6,9 @@ Knwler is a lightweight, single-file Python tool that extracts structured knowle
 
 Built for compliance teams, legal departments, research analysts, and anyone who needs to rapidly understand the structure hidden inside dense documents.
 
+![](./Screenshot1.png)
+
+![](./Screenshot2.png)
 ---
 
 ## Why Knwler?

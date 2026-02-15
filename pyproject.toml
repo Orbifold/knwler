@@ -1,6 +1,6 @@
 [project]
 name = "fast-graph-extraction"
-version = "0.1.0"
+version = "0.2.0"
 description = "Fast and accurate graph extraction from text using LLMs"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -11,4 +11,5 @@ dependencies = [
     "rich>=14.3.2",
     "networkx>=3.6.1",
     "pymupdf4llm[layout,ocr]>=0.2.9",
+    "jinja2>=3.1.6",
 ]

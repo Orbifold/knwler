@@ -45,6 +45,7 @@ from typing import Annotated, Any, Optional
 import requests
 import tiktoken
 import typer
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 from rich.console import Console
 from rich.panel import Panel
 from rich.progress import (
@@ -1102,7 +1103,7 @@ def _linkify_entities(text: str, entity_names: set[str]) -> str:
 
 
 def export_html(results_data: dict, output_path: Path, title: str = "Knowledge Graph"):
-    """Export results.json data to an HTML report."""
+    """Export results.json data to an HTML report using Jinja2 template."""
     title = results_data.get("title") or title
     summary = results_data.get("summary", "")
     url = results_data.get("url", "")
@@ -1113,6 +1114,7 @@ def export_html(results_data: dict, output_path: Path, title: str = "Knowledge G
     relations = consolidated.get("relations", [])
 
     entity_names = {e["name"] for e in entities}
+    
     # Build relation lookup: entity -> list of (other, type, description, direction)
     rel_map: dict[str, list[dict]] = {}
     for r in relations:
@@ -1126,348 +1128,174 @@ def export_html(results_data: dict, output_path: Path, title: str = "Knowledge G
             {"other": src, "type": rtype, "description": desc, "dir": "in"}
         )
 
-    node_elements = []
-    for e in entities:
-        node_elements.append(
-            {
-                "data": {
-                    "id": e.get("name", ""),
-                    "label": e.get("name", ""),
-                    "type": e.get("type", ""),
-                    "description": e.get("description", ""),
-                    "chunk_ids": e.get("chunk_ids", []),
-                    "community_id": e.get("community_id"),
-                }
+    # Build node elements for Cytoscape
+    node_elements = [
+        {
+            "data": {
+                "id": e.get("name", ""),
+                "label": e.get("name", ""),
+                "type": e.get("type", ""),
+                "description": e.get("description", ""),
+                "chunk_ids": e.get("chunk_ids", []),
+                "community_id": e.get("community_id"),
             }
-        )
+        }
+        for e in entities
+    ]
 
-    edge_elements = []
-    for idx, r in enumerate(relations):
-        src = r.get("source", "")
-        tgt = r.get("target", "")
-        if src not in entity_names or tgt not in entity_names:
-            continue
-        edge_elements.append(
-            {
-                "data": {
-                    "id": f"e{idx}",
-                    "source": src,
-                    "target": tgt,
-                    "type": r.get("type", ""),
-                    "description": r.get("description", ""),
-                }
+    # Build edge elements for Cytoscape
+    edge_elements = [
+        {
+            "data": {
+                "id": f"e{idx}",
+                "source": r.get("source", ""),
+                "target": r.get("target", ""),
+                "type": r.get("type", ""),
+                "description": r.get("description", ""),
             }
-        )
+        }
+        for idx, r in enumerate(relations)
+        if r.get("source", "") in entity_names and r.get("target", "") in entity_names
+    ]
 
-    # --- Build HTML ---
-    parts: list[str] = []
-    # Get the current language code for the HTML lang attribute
-    html_lang = _CURRENT_LANG or "en"
-    
-    parts.append(
-        f"""<!DOCTYPE html>
-<html lang="{html_lang}">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{html_mod.escape(title)}</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-<style>
-:root {{
-  --bg: #f5f5f5;
-  --card: #bbc7c9;
-  --card-text: #303030;
-  --border: #26c6da;
-  --link: #3c506b;
-  --entity-bg: #fff;
-  --entity-border: #96b9bd;
-}}
-* {{ box-sizing: border-box; margin: 0; padding: 0; }}
-body {{ font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: #333; line-height: 1.6; max-width: 820px; margin: 0 auto; padding: 2rem 1rem; }}
-h1 {{ font-size: 1.8rem; margin-bottom: 1.5rem; }}
-h2 {{ font-size: 1.3rem; margin: 2rem 0 1rem; border-bottom: 2px solid #ccc; padding-bottom: .3rem; }}
-h3 {{ font-size: 1.1rem; margin-bottom: .3rem; }}
-.card {{ background: var(--card); color: var(--card-text); border-radius: 8px; padding: 1rem 1.2rem; margin-bottom: .8rem; }}
-.card .tags {{ font-weight: 900; margin-bottom: .4rem; }}
-.card ul {{ margin: .4rem 0 0 1.2rem; }}
-.card li {{ margin-bottom: .2rem; }}
-.card a {{ color: var(--link); text-decoration: none;  }}
-.card a:hover {{ color:white; background: var(--link); padding: 0.2rem; border-radius: 2px; }}
-.toggle {{ text-align: right; font-size: .85rem; color: #555; cursor: pointer; user-select: none; margin-bottom: .2rem; }}
-.toggle:hover {{ color: var(--link); }}
-.chunk-original {{ display: none; background: #e0e0e0; border-radius: 8px; padding: 1rem 1.2rem; margin-bottom: .8rem; white-space: pre-wrap; font-size: .9rem; }}
-a.entity-link {{ color: var(--link); text-decoration: none; border-bottom: 1px dashed var(--link); }}
-a.entity-link:hover {{ color: white; border-bottom-style: solid; }}
-.entity-card {{ background: var(--entity-bg); border: 1px solid var(--entity-border); border-radius: 8px; padding: 1rem 1.2rem; margin-bottom: .8rem; }}
-.entity-card h3 {{ color: #00796b; }}
-.entity-card .desc {{ color: #555; margin: .3rem 0 .6rem; }}
-.entity-card ul {{ margin: 0 0 .6rem 1.2rem; }}
-.entity-card li {{ margin-bottom: .2rem; }}
-.chunk-links {{ font-size: .85rem; color: #777; }}
-.chunk-links a {{ color: var(--link); text-decoration: none; }}
-.chunk-links a:hover {{ text-decoration: underline; }}
-.footer {{font-size: .8rem; color: #696969; margin-top: 2rem; border-top: 1px solid #ddd; padding-top: 1rem; text-align: center; text-decoration: none; }}
-.footer a {{ color: var(--link); text-decoration: none; }}
-.footer a:hover {{ text-decoration: underline; }}
-.detail{{font-size: .9rem; color: #555; margin-top: 1rem;}}
-.disclaimer{{font-size: .6rem; color: #696969; margin-top: 1rem; border-top: 1px solid #ddd; padding-top: 1rem; text-align: left; border-bottom: 1px solid #ddd; padding-bottom: 1rem;}}
-#graph {{ height: 420px; background: #fff; border: 1px solid #cfd8dc; border-radius: 8px; margin-bottom: 1rem; }}
-#node-info {{ background: #fff; border: 1px solid #cfd8dc; border-radius: 8px; padding: .8rem 1rem; margin-bottom: 1rem; display: none; }}
-#node-info a{{ color: var(--link); text-decoration: none; }}
-#node-info a:hover {{ color:white; background: var(--link); padding: 0.2rem; border-radius: 2px; }}
-#node-info h4 {{ margin-bottom: .4rem; }}
-.node-info-name{{ font-weight: 900; color:var(--link); }}
-</style>
-</head>
-<body>
-"""
-    )
-
-    # Title + summary
-    parts.append(f"<h1>{html_mod.escape(title)}</h1>\n")
-
-    # Summary
-    parts.append("<div class='card'>\n")
-    if summary:
-        parts.append(f"<p>{html_mod.escape(summary)}</p>\n")
-    date_info = datetime.now().strftime("%b %d, %Y")
-
-    extracted_info = get_ui("extracted_info", entities=len(entities), relations=len(relations), communities=len(communities), date=date_info)
-    if not extracted_info:
-        extracted_info = f"Extracted {len(entities)} entities, {len(relations)} relations and {len(communities)} topics on {date_info}"
-    parts.append(f"<div class='detail'>{html_mod.escape(extracted_info)}</div>\n")
-    
-    if url:
-        safe_url = html_mod.escape(url)
-        source_label = get_ui("source_label") or "Source"
-        parts.append(
-            f'<div class="detail">{source_label}: <a href="{safe_url}" target="_blank" rel="noopener noreferrer">{safe_url}</a></div>\n'
-        )
-    parts.append("</div>\n")
-    parts.append("<div class='card'>\n")
-
-    nav_chunks = get_ui("nav_chunks") or "Text Chunks"
-    nav_topics = get_ui("nav_topics") or "Topics"
-    nav_entities = get_ui("nav_entities") or "Entities"
-    parts.append(f"‣<a href='#chunks'>{html_mod.escape(nav_chunks)}</a>\n")
-    parts.append(f"‣<a href='#topics'>{html_mod.escape(nav_topics)}</a>\n")
-    parts.append(f"‣<a href='#entities'>{html_mod.escape(nav_entities)}</a>\n")
-    parts.append("</div>\n")
-
-    # --- Graph ---
-    network_title = get_ui("network_title") or "Network"
-    parts.append(f"<h2 id='graph-title'>{html_mod.escape(network_title)}</h2>\n")
-    parts.append("<div id='graph'></div>\n")
-    parts.append("<div id='node-info'></div>\n")
-    # --- Topics (communities) ---
-    topics_title = get_ui("topics_title") or "Topics"
-    parts.append(f"<h2 id='topics'>{html_mod.escape(topics_title)}</h2>\n")
+    # Prepare communities display data
+    communities_display = []
     for c in communities:
         topics = c.get("topics", [])
-        desc = c.get("description", "")
         members = c.get("members", [])
-        tags_str = ", ".join(html_mod.escape(t) for t in topics)
-        parts.append('<div class="card">')
-        parts.append(f'<div class="tags">{tags_str}</div>')
-        if desc:
-            parts.append(f"<ul><li>{html_mod.escape(desc)}</li>")
-        else:
-            parts.append("<ul>")
-        # Entity members as links
-        member_links = []
-        for m in sorted(members):
-            anchor = f"entity-{m.lower().replace(' ', '-')}"
-            member_links.append(
-                f'<a href="#{anchor}" class="entity-link">{html_mod.escape(m)}</a>'
-            )
-        if member_links:
-            parts.append(f"<li>{', '.join(member_links)}</li>")
-        parts.append("</ul></div>\n")
+        member_links = ", ".join(
+            f'<a href="#entity-{m.lower().replace(" ", "-")}" class="entity-link">{html_mod.escape(m)}</a>'
+            for m in sorted(members)
+        )
+        communities_display.append({
+            "topics": topics,
+            "description": c.get("description", ""),
+            "member_links": member_links,
+        })
 
-    # --- Content (chunks) ---
-    content_title = get_ui("content_title") or "Content"
-    show_original = get_ui("show_original") or "Show original text"
-    show_rephrased = get_ui("show_rephrased") or "Show rephrased text"
-    parts.append(f"<h2 id='chunks'>{html_mod.escape(content_title)}</h2>\n")
+    # Prepare chunks display data
+    chunks_display = []
     for i, chunk in enumerate(chunks):
-        chunk_id = f"chunk-{i}"
         rephrase = chunk.get("rephrase", "")
         original = chunk.get("text", "")
         display = rephrase if rephrase else original
-        linkified = _linkify_entities(display, entity_names)
+        chunks_display.append({
+            "id": f"chunk-{i}",
+            "linkified": _linkify_entities(display, entity_names),
+            "original": original,
+        })
 
-        parts.append(
-            f'<div class="toggle" onclick="toggleChunk(\'{chunk_id}\')">{html_mod.escape(show_original)}</div>'
-        )
-        parts.append(f'<div class="card" id="{chunk_id}-rephrase">{linkified}</div>')
-        parts.append(
-            f'<div class="chunk-original" id="{chunk_id}-original">{html_mod.escape(original)}</div>'
-        )
-
-    # --- Entities ---
-    entities_title = get_ui("entities_title") or "Entities"
-    appears_in_label = get_ui("appears_in") or "Appears in"
+    # Prepare entities display data
     chunk_label = get_ui("chunk_label") or "Chunk"
-    parts.append(f"<h2 id='entities'>{html_mod.escape(entities_title)}</h2>\n")
+    entities_display = []
     for e in sorted(entities, key=lambda x: x.get("name", "").lower()):
         name = e.get("name", "")
-        anchor = f"entity-{name.lower().replace(' ', '-')}"
-        desc = e.get("description", "")
         chunk_ids = e.get("chunk_ids", [])
         rels = rel_map.get(name, [])
+        
+        # Build relation HTML
+        rel_html = []
+        for rel in rels:
+            other = rel["other"]
+            other_anchor = f"entity-{other.lower().replace(' ', '-')}"
+            arrow = "\u2192" if rel["dir"] == "out" else "\u2190"
+            label = f'{arrow} <a href="#{other_anchor}" class="entity-link">{html_mod.escape(other)}</a>'
+            if rel["description"]:
+                label += f": {html_mod.escape(rel['description'])}"
+            rel_html.append(label)
+        
+        # Build chunk links
+        chunk_links = " \u2022 ".join(
+            f'<a href="#chunk-{cid}-rephrase">{chunk_label} {cid}</a>'
+            for cid in chunk_ids if cid >= 0
+        )
+        
+        entities_display.append({
+            "name": name,
+            "anchor": f"entity-{name.lower().replace(' ', '-')}",
+            "description": e.get("description", ""),
+            "relations": rel_html,
+            "chunk_links": chunk_links,
+        })
 
-        parts.append(f'<div class="entity-card" id="{anchor}">')
-        parts.append(f"<h3>{html_mod.escape(name)}</h3>")
-        if desc:
-            parts.append(f'<div class="desc">{html_mod.escape(desc)}</div>')
-        if rels:
-            parts.append("<ul>")
-            for rel in rels:
-                other = rel["other"]
-                other_anchor = f"entity-{other.lower().replace(' ', '-')}"
-                rel_desc = rel["description"]
-                arrow = "\u2192" if rel["dir"] == "out" else "\u2190"
-                label = f'{arrow} <a href="#{other_anchor}" class="entity-link">{html_mod.escape(other)}</a>'
-                if rel_desc:
-                    label += f": {html_mod.escape(rel_desc)}"
-                parts.append(f"<li>{label}</li>")
-            parts.append("</ul>")
-        if chunk_ids:
-            links = [
-                f'<a href="#chunk-{cid}-rephrase">{chunk_label} {cid}</a>'
-                for cid in chunk_ids
-                if cid >= 0
-            ]
-            if links:
-                parts.append(
-                    f'<div class="chunk-links">{appears_in_label}: {" \u2022 ".join(links)}</div>'
-                )
-        parts.append("</div>\n")
+    # Get localized labels
+    date_info = datetime.now().strftime("%b %d, %Y")
+    extracted_info = get_ui(
+        "extracted_info",
+        entities=len(entities),
+        relations=len(relations),
+        communities=len(communities),
+        date=date_info
+    ) or f"Extracted {len(entities)} entities, {len(relations)} relations and {len(communities)} topics on {date_info}"
 
-    # --- Origin and disclaimer ---
-    disclaimer = get_ui("disclaimer") or "The information contained in this document has been extracted and processed using automated artificial intelligence tools (Knwl.AI). While we strive for accuracy, this data is generated via machine learning algorithms and natural language processing, which may result in errors, omissions, or misinterpretations of the original source material. This document is provided \"as is\" and for informational purposes only. Orbifold Consulting makes no warranties, express or implied, regarding the accuracy, completeness, or reliability of this information. Users are advised to independently verify any critical data against original source documents before making business, legal, or financial decisions. Orbifold Consulting assumes no liability for any actions taken in reliance upon this information."
-    parts.append(
-        f'''<div class="footer">
-<div>Generated by <a title="Knwl AI" target="_blank" href="https://knwl.ai">Knwl</a>, &copy; 2026 <a href="https://graphsandnetworks.com" title="Orbifold Consulting">Orbifold Consulting</a>.</div>
-<div class='disclaimer'>{html_mod.escape(disclaimer)}</div>
-</div>'''   
+    labels = {
+        "source": get_ui("source_label") or "Source",
+        "nav_chunks": get_ui("nav_chunks") or "Text Chunks",
+        "nav_topics": get_ui("nav_topics") or "Topics",
+        "nav_entities": get_ui("nav_entities") or "Entities",
+        "network_title": get_ui("network_title") or "Network",
+        "topics_title": get_ui("topics_title") or "Topics",
+        "content_title": get_ui("content_title") or "Content",
+        "entities_title": get_ui("entities_title") or "Entities",
+        "show_original": get_ui("show_original") or "Show original text",
+        "show_rephrased": get_ui("show_rephrased") or "Show rephrased text",
+        "appears_in": get_ui("appears_in") or "Appears in",
+        "chunk_label": chunk_label,
+    }
+
+    js_labels = {
+        "type": get_ui("type_label") or "Type",
+        "description": get_ui("description_label") or "Description",
+        "community": get_ui("community_label") or "Community",
+        "chunks": get_ui("chunks_label") or "Chunks",
+        "chunk": get_ui("chunk_label") or "Chunk",
+        "showOriginal": get_ui("show_original") or "Show original text",
+        "showRephrased": get_ui("show_rephrased") or "Show rephrased text",
+    }
+
+    disclaimer = get_ui("disclaimer") or (
+        "The information contained in this document has been extracted and processed "
+        "using automated artificial intelligence tools (Knwl.AI). While we strive for "
+        "accuracy, this data is generated via machine learning algorithms and natural "
+        "language processing, which may result in errors, omissions, or misinterpretations "
+        "of the original source material. This document is provided \"as is\" and for "
+        "informational purposes only. Orbifold Consulting makes no warranties, express or "
+        "implied, regarding the accuracy, completeness, or reliability of this information. "
+        "Users are advised to independently verify any critical data against original source "
+        "documents before making business, legal, or financial decisions. Orbifold Consulting "
+        "assumes no liability for any actions taken in reliance upon this information."
     )
 
-    # Get localized UI strings for JavaScript
-    js_type_label = get_ui("type_label") or "Type"
-    js_desc_label = get_ui("description_label") or "Description"
-    js_community_label = get_ui("community_label") or "Community"
-    js_chunks_label = get_ui("chunks_label") or "Chunks"
-    js_chunk_label = get_ui("chunk_label") or "Chunk"
-    js_show_original = get_ui("show_original") or "Show original text"
-    js_show_rephrased = get_ui("show_rephrased") or "Show rephrased text"
+    community_desc = {str(c.get("id")): c.get("description", "") for c in communities}
 
-    # --- Script ---
-    parts.append(
-                f"""<script src=\"https://unpkg.com/cytoscape@3.26.0/dist/cytoscape.min.js\"></script>
-        <script src=\"https://unpkg.com/layout-base@2.0.1/layout-base.js\"></script>
-        <script src=\"https://unpkg.com/cose-base@2.2.0/cose-base.js\"></script>
-        <script src=\"https://unpkg.com/cytoscape-fcose@2.2.0/cytoscape-fcose.js\"></script>
-<script>
-        if (window.cytoscape && window.cytoscapeFcose) {{
-            cytoscape.use(cytoscapeFcose);
-        }}
+    # Setup Jinja2 environment
+    templates_dir = Path(__file__).parent / "templates"
+    env = Environment(
+        loader=FileSystemLoader(templates_dir),
+        autoescape=select_autoescape(["html", "xml"]),
+    )
+    template = env.get_template("report.html")
 
-// Localized labels
-const labels = {{
-    type: {json.dumps(js_type_label)},
-    description: {json.dumps(js_desc_label)},
-    community: {json.dumps(js_community_label)},
-    chunks: {json.dumps(js_chunks_label)},
-    chunk: {json.dumps(js_chunk_label)},
-    showOriginal: {json.dumps(js_show_original)},
-    showRephrased: {json.dumps(js_show_rephrased)}
-}};
+    # Render template
+    html_content = template.render(
+        html_lang=_CURRENT_LANG or "en",
+        title=title,
+        summary=summary,
+        url=url,
+        extracted_info=extracted_info,
+        labels=labels,
+        communities=communities_display,
+        chunks_display=chunks_display,
+        entities_display=entities_display,
+        disclaimer=disclaimer,
+        node_elements=node_elements,
+        edge_elements=edge_elements,
+        community_desc=community_desc,
+        js_labels=js_labels,
+    )
 
-const graphElements = {{
-    nodes: {json.dumps(node_elements)},
-    edges: {json.dumps(edge_elements)}
-}};
-
-const communityDesc = {json.dumps({str(c.get("id")): c.get("description", "") for c in communities})};
-
-const colors = [
-    '#6baed6','#9ecae1','#c6dbef','#74c476','#a1d99b',
-    '#c7e9c0','#fd8d3c','#fdae6b','#fdd0a2','#9e9ac8'
-];
-
-function colorForCommunity(cid) {{
-    if (cid === null || cid === undefined || cid === '') return '#bdbdbd';
-    return colors[Math.abs(parseInt(cid, 10)) % colors.length];
-}}
-
-const cy = cytoscape({{
-    container: document.getElementById('graph'),
-    elements: graphElements,
-    layout: {{ name: 'fcose', animate: true, randomize: true, nodeRepulsion: 4500 }},
-    style: [
-        {{ selector: 'node', style: {{
-                'label': 'data(label)',
-                'text-valign': 'center',
-                'text-halign': 'center',
-                'font-size': 8,
-                'background-color': (ele) => colorForCommunity(ele.data('community_id')),
-                'width': 18,
-                'height': 18,
-                'color': '#263238'
-        }} }},
-        {{ selector: 'edge', style: {{
-                'width': 1,
-                'line-color': '#90a4ae',
-                'target-arrow-color': '#90a4ae',
-                'target-arrow-shape': 'triangle',
-                'curve-style': 'bezier'
-        }} }}
-    ]
-}});
-
-const info = document.getElementById('node-info');
-cy.on('tap', 'node', (evt) => {{
-    const d = evt.target.data();
-    const chunks = (d.chunk_ids || [])
-        .map((cid) => `<a href="#chunk-${{cid}}-rephrase">${{labels.chunk}} ${{cid}}</a>`)
-        .join(', ');
-    const cdesc = communityDesc[String(d.community_id)] || '';
-    info.style.display = 'block';
-    info.innerHTML = `
-        <div class='node-info-name'>${{d.label.toUpperCase() || ''}}</div>
-        <div><strong>${{labels.type}}:</strong> ${{d.type || ''}}</div>
-        <div><strong>${{labels.description}}:</strong> ${{d.description || ''}}</div>
-        <div><strong>${{labels.community}}:</strong> ${{cdesc}}</div>
-        <div><strong>${{labels.chunks}}:</strong> ${{chunks}}</div>
-    `;
-}});
-cy.on('tap', (evt) => {{
-    if (evt.target === cy) {{
-        info.style.display = 'none';
-    }}
-}});
-
-function toggleChunk(id) {{
-    const reph = document.getElementById(id + '-rephrase');
-    const orig = document.getElementById(id + '-original');
-    const toggle = reph.previousElementSibling;
-    if (orig.style.display === 'block') {{
-        orig.style.display = 'none';
-        reph.style.display = 'block';
-        toggle.textContent = labels.showOriginal;
-    }} else {{
-        orig.style.display = 'block';
-        reph.style.display = 'none';
-        toggle.textContent = labels.showRephrased;
-    }}
-}}
-</script>
-</body>
-</html>"""
-        )
     html_path = output_path.with_suffix(".html")
-    html_path.write_text("\n".join(parts), encoding="utf-8")
+    html_path.write_text(html_content, encoding="utf-8")
     return html_path
 
 

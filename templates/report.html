@@ -1,0 +1,1439 @@
+<!doctype html>
+<html lang="{{ html_lang }}">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ title }}</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #f5f5f5;
+        --card: #bbc7c9;
+        --card-text: #303030;
+        --border: #26c6da;
+        --link: #3c506b;
+        --entity-bg: #fff;
+        --entity-border: #96b9bd;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family:
+          "Inter",
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          Roboto,
+          sans-serif;
+        background: var(--bg);
+        color: #333;
+        line-height: 1.6;
+        max-width: 820px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+      }
+      h1 {
+        font-size: 1.8rem;
+        margin-bottom: 1.5rem;
+      }
+      h2 {
+        font-size: 1.3rem;
+        margin: 2rem 0 1rem;
+        border-bottom: 2px solid #ccc;
+        padding-bottom: 0.3rem;
+      }
+      h3 {
+        font-size: 1.1rem;
+        margin-bottom: 0.3rem;
+      }
+      .card {
+        background: var(--card);
+        color: var(--card-text);
+        border-radius: 8px;
+        padding: 1rem 1.2rem;
+        margin-bottom: 0.8rem;
+      }
+      .card .tags {
+        font-weight: 900;
+        margin-bottom: 0.4rem;
+      }
+      .card ul {
+        margin: 0.4rem 0 0 1.2rem;
+      }
+      .card li {
+        margin-bottom: 0.2rem;
+      }
+      .card a {
+        color: var(--link);
+        text-decoration: none;
+      }
+      .card a:hover {
+        color: white;
+        background: var(--link);
+        padding: 0.2rem;
+        border-radius: 2px;
+      }
+      .toggle {
+        text-align: right;
+        font-size: 0.85rem;
+        color: #555;
+        cursor: pointer;
+        user-select: none;
+        margin-bottom: 0.2rem;
+      }
+      .toggle:hover {
+        color: var(--link);
+      }
+      .chunk-original {
+        display: none;
+        background: #e0e0e0;
+        border-radius: 8px;
+        padding: 1rem 1.2rem;
+        margin-bottom: 0.8rem;
+        white-space: pre-wrap;
+        font-size: 0.9rem;
+      }
+      a.entity-link {
+        color: var(--link);
+        text-decoration: none;
+        border-bottom: 1px dashed var(--link);
+      }
+      a.entity-link:hover {
+        color: white;
+        border-bottom-style: solid;
+      }
+      .entity-card {
+        background: var(--entity-bg);
+        border: 1px solid var(--entity-border);
+        border-radius: 8px;
+        padding: 1rem 1.2rem;
+        margin-bottom: 0.8rem;
+      }
+      .entity-card h3 {
+        color: #00796b;
+      }
+      .entity-card .desc {
+        color: #555;
+        margin: 0.3rem 0 0.6rem;
+      }
+      .entity-card ul {
+        margin: 0 0 0.6rem 1.2rem;
+      }
+      .entity-card li {
+        margin-bottom: 0.2rem;
+      }
+      .chunk-links {
+        font-size: 0.85rem;
+        color: #777;
+      }
+      .chunk-links a {
+        color: var(--link);
+        text-decoration: none;
+      }
+      .chunk-links a:hover {
+        text-decoration: underline;
+      }
+      .footer {
+        font-size: 0.8rem;
+        color: #696969;
+        margin-top: 2rem;
+        border-top: 1px solid #ddd;
+        padding-top: 1rem;
+        text-align: center;
+        text-decoration: none;
+      }
+      .footer a {
+        color: var(--link);
+        text-decoration: none;
+      }
+      .footer a:hover {
+        text-decoration: underline;
+      }
+      .detail {
+        font-size: 0.9rem;
+        color: #555;
+        margin-top: 1rem;
+      }
+      .disclaimer {
+        font-size: 0.6rem;
+        color: #696969;
+        margin-top: 1rem;
+        border-top: 1px solid #ddd;
+        padding-top: 1rem;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+        padding-bottom: 1rem;
+      }
+      #graph {
+        background: #373737;
+        border: 1px solid #cfd8dc;
+        border-radius: 8px;
+        min-height: 500px;
+      }
+      svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+        cursor: grab;
+        min-height: 500px;
+      }
+
+      svg.panning {
+        cursor: grabbing;
+      }
+
+      /* Guide circles */
+      .ring {
+        fill: rgb(145, 145, 145);
+        /* filter: drop-shadow(0px 0px 14px #fff);    */
+        stroke: #d0d0d0;
+        stroke-width: 4;
+        stroke-dasharray: 6 4;
+        opacity: 0.05;
+      }
+
+      /* Edges */
+      .edge {
+        stroke: #aab;
+        stroke-width: 1.4;
+        fill: none;
+        transition:
+          opacity 0.15s,
+          stroke 0.15s,
+          stroke-width 0.15s;
+      }
+
+      .edge.same-layer {
+        stroke: #aab;
+        stroke-width: 1.6;
+      }
+
+      .edge.highlighted {
+        stroke: #e06030;
+        stroke-width: 2.4;
+      }
+
+      /* Nodes */
+      .node-circle {
+        stroke: #444;
+        stroke-width: 1.5;
+        cursor: pointer;
+        transition:
+          r 0.15s,
+          stroke-width 0.15s;
+      }
+
+      .node-circle:hover {
+        stroke-width: 2.5;
+      }
+
+      .node-circle.faded {
+        opacity: 0.25;
+      }
+
+      .node-label {
+        font-size: 11px;
+        fill: #fff;
+        opacity: 0.8;
+        text-anchor: middle;
+        dominant-baseline: central;
+        pointer-events: none;
+        font-weight: 500;
+      }
+
+      .node-label.faded {
+        opacity: 0.2;
+      }
+
+      /* Tooltip */
+      #tooltip {
+        position: fixed;
+        background: #5a5a5a;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        padding: 8px 12px;
+        font-size: 13px;
+        color: #fff;
+        pointer-events: none;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        display: none;
+        z-index: 100;
+        line-height: 1.5;
+        max-width: 400px;
+        word-wrap: wrap;
+      }
+
+      #tooltip .tt-label {
+        font-weight: 600;
+        font-size: 14px;
+        opacity: 0.8;
+      }
+
+      #tooltip .tt-detail {
+        color: #fff;
+        opacity: 0.8;
+        font-size: 10px;
+        margin-top: 10px;
+      }
+
+      /* Graph container for fullscreen */
+      .graph-container {
+        position: relative;
+      }
+      .graph-container.fullscreen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 9999;
+        background: var(--bg);
+        margin: 0;
+        padding: 0;
+      }
+      .graph-container.fullscreen svg {
+        width: 100vw;
+        height: 100vh;
+      }
+      .fullscreen-toggle {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 32px;
+        height: 32px;
+        background: rgba(90, 90, 90, 0.75);
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        transition: background 0.15s;
+      }
+      .fullscreen-toggle:hover {
+        background: rgba(60, 60, 60, 0.9);
+      }
+      .fullscreen-toggle svg {
+        width: 18px;
+        height: 18px;
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>{{ title }}</h1>
+
+    {# Summary card #}
+    <div class="card">
+      {% if summary %}
+      <p>{{ summary }}</p>
+      {% endif %}
+      <div class="detail">{{ extracted_info }}</div>
+      {% if url %}
+      <div class="detail">
+        {{ labels.source }}:
+        <a href="{{ url }}" target="_blank" rel="noopener noreferrer"
+          >{{ url }}</a
+        >
+      </div>
+      {% endif %}
+    </div>
+
+    {# Navigation #}
+    <div class="card">
+      ‣<a href="#chunks">{{ labels.nav_chunks }}</a> ‣<a href="#topics"
+        >{{ labels.nav_topics }}</a
+      >
+      ‣<a href="#entities">{{ labels.nav_entities }}</a>
+    </div>
+
+    {# Graph section #}
+    <h2 id="graph-title">{{ labels.network_title }}</h2>
+    <div class="graph-container" id="graph-container">
+      <button
+        class="fullscreen-toggle"
+        id="fullscreen-toggle"
+        title="Toggle fullscreen"
+      >
+        <svg
+          id="fs-icon-expand"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#fff"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <polyline points="15 3 21 3 21 9"></polyline>
+          <polyline points="9 21 3 21 3 15"></polyline>
+          <line x1="21" y1="3" x2="14" y2="10"></line>
+          <line x1="3" y1="21" x2="10" y2="14"></line>
+        </svg>
+        <svg
+          id="fs-icon-collapse"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#fff"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          style="display: none"
+        >
+          <polyline points="4 14 10 14 10 20"></polyline>
+          <polyline points="20 10 14 10 14 4"></polyline>
+          <line x1="14" y1="10" x2="21" y2="3"></line>
+          <line x1="10" y1="14" x2="3" y2="21"></line>
+        </svg>
+      </button>
+      <div id="graph">
+        <svg id="graph-svg">
+          <g id="viewport">
+            <g id="rings-layer"></g>
+            <g id="edges-layer"></g>
+            <g id="nodes-layer"></g>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <div id="tooltip"></div>
+    <div id="node-info"></div>
+
+    {# Topics (communities) section #}
+    <h2 id="topics">{{ labels.topics_title }}</h2>
+    {% for community in communities %}
+    <div class="card">
+      <div class="tags">{{ community.topics | join(', ') }}</div>
+      <ul>
+        {% if community.description %}
+        <li>{{ community.description }}</li>
+        {% endif %} {% if community.member_links %}
+        <li>{{ community.member_links | safe }}</li>
+        {% endif %}
+      </ul>
+    </div>
+    {% endfor %} {# Content (chunks) section #}
+    <h2 id="chunks">{{ labels.content_title }}</h2>
+    {% for chunk in chunks_display %}
+    <div class="toggle" onclick="toggleChunk('{{ chunk.id }}')">
+      {{ labels.show_original }}
+    </div>
+    <div class="card" id="{{ chunk.id }}-rephrase">
+      {{ chunk.linkified | safe }}
+    </div>
+    <div class="chunk-original" id="{{ chunk.id }}-original">
+      {{ chunk.original }}
+    </div>
+    {% endfor %} {# Entities section #}
+    <h2 id="entities">{{ labels.entities_title }}</h2>
+    {% for entity in entities_display %}
+    <div class="entity-card" id="{{ entity.anchor }}">
+      <h3>{{ entity.name }}</h3>
+      {% if entity.description %}
+      <div class="desc">{{ entity.description }}</div>
+      {% endif %} {% if entity.relations %}
+      <ul>
+        {% for rel in entity.relations %}
+        <li>{{ rel | safe }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %} {% if entity.chunk_links %}
+      <div class="chunk-links">
+        {{ labels.appears_in }}: {{ entity.chunk_links | safe }}
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %} {# Footer #}
+    <div class="footer">
+      <div>
+        Generated by
+        <a title="Knwl AI" target="_blank" href="https://knwl.ai">Knwl</a>,
+        &copy; 2026
+        <a href="https://graphsandnetworks.com" title="Orbifold Consulting"
+          >Orbifold Consulting</a
+        >.
+      </div>
+      <div class="disclaimer">{{ disclaimer }}</div>
+    </div>
+
+    {# Scripts #}
+
+    <script>
+      const rawData = {{ rawData | safe }};
+      function toggleChunk(id) {
+        const reph = document.getElementById(id + "-rephrase");
+        const orig = document.getElementById(id + "-original");
+        const toggle = reph.previousElementSibling;
+        if (orig.style.display === "block") {
+          orig.style.display = "none";
+          reph.style.display = "block";
+          toggle.textContent = labels.showOriginal;
+        } else {
+          orig.style.display = "block";
+          reph.style.display = "none";
+          toggle.textContent = labels.showRephrased;
+        }
+      }
+
+      function transformRawData(rawData, minDegree = 3) {
+        // Count degree for each entity based on relations
+        const degree = new Map();
+        rawData.consolidated.entities.forEach((entity) => {
+          degree.set(entity.name, 0);
+        });
+        rawData.consolidated.relations.forEach((relation) => {
+          degree.set(relation.source, (degree.get(relation.source) || 0) + 1);
+          degree.set(relation.target, (degree.get(relation.target) || 0) + 1);
+        });
+
+        // Keep only nodes that meet the minimum degree threshold
+        const kept = new Set();
+        for (const [name, deg] of degree) {
+          if (deg >= minDegree) kept.add(name);
+        }
+
+        const transformed = {
+          nodes: [],
+          edges: [],
+        };
+
+        rawData.consolidated.entities.forEach((entity) => {
+          if (kept.has(entity.name)) {
+            transformed.nodes.push({
+              id: entity.name,
+              label: entity.name,
+              description: entity.description || "",
+            });
+          }
+        });
+
+        rawData.consolidated.relations.forEach((relation) => {
+          if (kept.has(relation.source) && kept.has(relation.target)) {
+            transformed.edges.push({
+              source: relation.source,
+              target: relation.target,
+            });
+          }
+        });
+
+        return transformed;
+      }
+
+      // ─── Graph Parsing ──────────────────────────────────────────────
+      function parseGraph(data) {
+        const nodes = new Map();
+        const adj = new Map();
+
+        for (const n of data.nodes) {
+          nodes.set(n.id, {
+            id: n.id,
+            label: n.label || n.id,
+            description: n.description || "",
+            layer: -1,
+            angle: 0,
+            x: 0,
+            y: 0,
+          });
+          adj.set(n.id, new Set());
+        }
+
+        const edges = [];
+        for (const e of data.edges) {
+          if (!nodes.has(e.source) || !nodes.has(e.target)) continue;
+          if (e.source === e.target) continue;
+          adj.get(e.source).add(e.target);
+          adj.get(e.target).add(e.source);
+          edges.push({ source: e.source, target: e.target });
+        }
+
+        return { nodes, adj, edges };
+      }
+
+      // ─── Layer Assignment (BFS from a given or highest-degree node) ──
+      function assignLayers(nodes, adj, rootId) {
+        // Use specified root, or fall back to highest-degree node
+        let root = rootId || null;
+        if (!root) {
+          let maxDeg = -1;
+          for (const [id, neighbors] of adj) {
+            if (neighbors.size > maxDeg) {
+              maxDeg = neighbors.size;
+              root = id;
+            }
+          }
+        }
+
+        // Reset all layers
+        for (const [, node] of nodes) node.layer = -1;
+
+        // BFS
+        const visited = new Set();
+        const queue = [root];
+        visited.add(root);
+        nodes.get(root).layer = 0;
+
+        while (queue.length > 0) {
+          const current = queue.shift();
+          const currentLayer = nodes.get(current).layer;
+          for (const neighbor of adj.get(current)) {
+            if (!visited.has(neighbor)) {
+              visited.add(neighbor);
+              nodes.get(neighbor).layer = currentLayer + 1;
+              queue.push(neighbor);
+            }
+          }
+        }
+
+        // Handle disconnected components
+        for (const [id, node] of nodes) {
+          if (node.layer === -1) {
+            // Find a new root for this component
+            node.layer = 0;
+            const compQueue = [id];
+            visited.add(id);
+            while (compQueue.length > 0) {
+              const cur = compQueue.shift();
+              const curLayer = nodes.get(cur).layer;
+              for (const nb of adj.get(cur)) {
+                if (!visited.has(nb)) {
+                  visited.add(nb);
+                  nodes.get(nb).layer = curLayer + 1;
+                  compQueue.push(nb);
+                }
+              }
+            }
+          }
+        }
+
+        // Build layers map
+        const layers = new Map();
+        for (const [id, node] of nodes) {
+          if (!layers.has(node.layer)) layers.set(node.layer, []);
+          layers.get(node.layer).push(id);
+        }
+
+        return layers;
+      }
+
+      // ─── Classify Edges ─────────────────────────────────────────────
+      function classifyEdges(edges, nodes) {
+        const crossLayer = [];
+        const sameLayer = [];
+
+        for (const e of edges) {
+          const sLayer = nodes.get(e.source).layer;
+          const tLayer = nodes.get(e.target).layer;
+          if (sLayer === tLayer) {
+            sameLayer.push(e);
+          } else {
+            crossLayer.push(e);
+          }
+        }
+
+        return { crossLayer, sameLayer };
+      }
+
+      // ─── Crossing Minimization (Barycenter Heuristic) ───────────────
+      function minimizeCrossings(layers, nodes, adj, edges) {
+        const layerIndices = Array.from(layers.keys()).sort((a, b) => a - b);
+        if (layerIndices.length <= 1) return;
+
+        // Helper: get index of a node in its layer
+        function positionOf(nodeId) {
+          const layer = nodes.get(nodeId).layer;
+          const arr = layers.get(layer);
+          return arr.indexOf(nodeId);
+        }
+
+        // Helper: count crossings between two adjacent layers
+        function countCrossings(layerA, layerB) {
+          const nodesA = layers.get(layerA);
+          const nodesB = layers.get(layerB);
+          if (!nodesA || !nodesB) return 0;
+
+          // Collect edges between these two layers
+          const edgePairs = [];
+          for (const e of edges) {
+            const sLayer = nodes.get(e.source).layer;
+            const tLayer = nodes.get(e.target).layer;
+            let posA, posB;
+            if (sLayer === layerA && tLayer === layerB) {
+              posA = nodesA.indexOf(e.source);
+              posB = nodesB.indexOf(e.target);
+            } else if (sLayer === layerB && tLayer === layerA) {
+              posA = nodesA.indexOf(e.target);
+              posB = nodesB.indexOf(e.source);
+            } else {
+              continue;
+            }
+            if (posA >= 0 && posB >= 0) edgePairs.push([posA, posB]);
+          }
+
+          // Count inversions
+          let crossings = 0;
+          for (let i = 0; i < edgePairs.length; i++) {
+            for (let j = i + 1; j < edgePairs.length; j++) {
+              const [a1, b1] = edgePairs[i];
+              const [a2, b2] = edgePairs[j];
+              if ((a1 - a2) * (b1 - b2) < 0) crossings++;
+            }
+          }
+          return crossings;
+        }
+
+        // Total crossings
+        function totalCrossings() {
+          let total = 0;
+          for (let i = 0; i < layerIndices.length - 1; i++) {
+            total += countCrossings(layerIndices[i], layerIndices[i + 1]);
+          }
+          return total;
+        }
+
+        // Barycenter sweep
+        function barycenterSweep(fixedLayer, freeLayer) {
+          const fixedNodes = layers.get(fixedLayer);
+          const freeNodes = layers.get(freeLayer);
+          if (!fixedNodes || !freeNodes || freeNodes.length <= 1) return;
+
+          const barycenters = new Map();
+          for (const nodeId of freeNodes) {
+            const neighbors = adj.get(nodeId);
+            let sum = 0;
+            let count = 0;
+            for (const nb of neighbors) {
+              if (nodes.get(nb).layer === fixedLayer) {
+                sum += fixedNodes.indexOf(nb);
+                count++;
+              }
+            }
+            barycenters.set(nodeId, count > 0 ? sum / count : Infinity);
+          }
+
+          // Sort free layer by barycenter
+          freeNodes.sort((a, b) => {
+            const ba = barycenters.get(a);
+            const bb = barycenters.get(b);
+            if (ba === bb) return 0;
+            if (ba === Infinity) return 1;
+            if (bb === Infinity) return -1;
+            return ba - bb;
+          });
+          layers.set(freeLayer, freeNodes);
+        }
+
+        // Adjacent swap pass for same-layer edges
+        function adjacentSwapPass(layerIdx) {
+          const layerNodes = layers.get(layerIdx);
+          if (!layerNodes || layerNodes.length <= 1) return;
+
+          let improved = true;
+          while (improved) {
+            improved = false;
+            for (let i = 0; i < layerNodes.length - 1; i++) {
+              // Count crossings before swap
+              const before = totalCrossings();
+              // Swap
+              [layerNodes[i], layerNodes[i + 1]] = [
+                layerNodes[i + 1],
+                layerNodes[i],
+              ];
+              const after = totalCrossings();
+              if (after < before) {
+                improved = true;
+              } else {
+                // Swap back
+                [layerNodes[i], layerNodes[i + 1]] = [
+                  layerNodes[i + 1],
+                  layerNodes[i],
+                ];
+              }
+            }
+          }
+        }
+
+        // Run sweeps
+        const maxIterations = 15;
+        let bestCrossings = totalCrossings();
+        let bestArrangement = new Map();
+        for (const [k, v] of layers) bestArrangement.set(k, [...v]);
+
+        for (let iter = 0; iter < maxIterations; iter++) {
+          // Forward sweep (inner to outer)
+          for (let i = 0; i < layerIndices.length - 1; i++) {
+            barycenterSweep(layerIndices[i], layerIndices[i + 1]);
+          }
+          // Backward sweep (outer to inner)
+          for (let i = layerIndices.length - 1; i > 0; i--) {
+            barycenterSweep(layerIndices[i], layerIndices[i - 1]);
+          }
+
+          const c = totalCrossings();
+          if (c < bestCrossings) {
+            bestCrossings = c;
+            for (const [k, v] of layers) bestArrangement.set(k, [...v]);
+          }
+
+          if (bestCrossings === 0) break;
+        }
+
+        // Restore best
+        for (const [k, v] of bestArrangement) layers.set(k, v);
+
+        // Adjacent swap refinement
+        for (const li of layerIndices) {
+          adjacentSwapPass(li);
+        }
+      }
+
+      // ─── Coordinate Computation ─────────────────────────────────────
+      const BASE_RADIUS = 80;
+      const RING_SPACING = 110;
+      const NODE_RADIUS = 10;
+
+      function computePositions(layers, nodes) {
+        for (const [layerIdx, layerNodes] of layers) {
+          const radius = BASE_RADIUS + layerIdx * RING_SPACING;
+          const n = layerNodes.length;
+
+          // Special case: single node at center (layer 0 with 1 node)
+          if (layerIdx === 0 && n === 1) {
+            const node = nodes.get(layerNodes[0]);
+            node.angle = 0;
+            node.x = 0;
+            node.y = 0;
+            node.radius = 0;
+            continue;
+          }
+
+          for (let i = 0; i < n; i++) {
+            const angle = i * ((2 * Math.PI) / n); // starts at 0, counter-clockwise
+            const node = nodes.get(layerNodes[i]);
+            node.angle = angle;
+            node.x = radius * Math.cos(angle);
+            node.y = -radius * Math.sin(angle); // negate y for SVG (y-down) to get counter-clockwise
+            node.radius = radius;
+          }
+        }
+      }
+
+      // ─── Layer Colors ───────────────────────────────────────────────
+      const LAYER_COLORS = [
+        "#4e79a7", // blue
+        "#f28e2b", // orange
+        "#e15759", // red
+        "#76b7b2", // teal
+        "#59a14f", // green
+        "#edc948", // yellow
+        "#b07aa1", // purple
+        "#ff9da7", // pink
+      ];
+
+      function layerColor(layerIdx) {
+        return LAYER_COLORS[layerIdx % LAYER_COLORS.length];
+      }
+
+      // ─── Edge Opacity by Distance ───────────────────────────────────
+      function setEdgeOpacities(edgesContainer, getPos) {
+        const edgeEls = edgesContainer.querySelectorAll(".edge");
+        let maxDist = 0;
+        const dists = [];
+
+        edgeEls.forEach((el) => {
+          const src = getPos(el.dataset.source);
+          const tgt = getPos(el.dataset.target);
+          const dx = tgt.x - src.x;
+          const dy = tgt.y - src.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          dists.push(dist);
+          if (dist > maxDist) maxDist = dist;
+        });
+
+        edgeEls.forEach((el, i) => {
+          const opacity =
+            maxDist > 0 ? Math.max(0.1, 1 - 0.85 * (dists[i] / maxDist)) : 1;
+          el.style.opacity = opacity;
+          el.dataset.baseOpacity = opacity;
+        });
+      }
+
+      // ─── SVG Rendering ──────────────────────────────────────────────
+      const svgNS = "http://www.w3.org/2000/svg";
+
+      function renderRings(container, layers) {
+        container.innerHTML = "";
+        const maxLayer = Math.max(...layers.keys());
+
+        for (let i = 0; i <= maxLayer; i++) {
+          const layerNodes = layers.get(i);
+          // Skip ring for layer 0 if single node at center
+          if (i === 0 && layerNodes && layerNodes.length === 1) continue;
+
+          const radius = BASE_RADIUS + i * RING_SPACING;
+          const circle = document.createElementNS(svgNS, "circle");
+          circle.setAttribute("cx", 0);
+          circle.setAttribute("cy", 0);
+          circle.setAttribute("r", radius);
+          circle.classList.add("ring");
+          container.appendChild(circle);
+        }
+      }
+
+      function renderEdges(container, edges, nodes, sameLayerSet) {
+        container.innerHTML = "";
+
+        for (const e of edges) {
+          const src = nodes.get(e.source);
+          const tgt = nodes.get(e.target);
+          const isSameLayer = sameLayerSet.has(e);
+
+          if (isSameLayer) {
+            // Quadratic Bezier arc bulging outward
+            const path = document.createElementNS(svgNS, "path");
+            const r = src.radius;
+
+            let theta1 = src.angle;
+            let theta2 = tgt.angle;
+
+            // Compute angular difference (shortest arc)
+            let dTheta = theta2 - theta1;
+            // Normalize to [-PI, PI]
+            while (dTheta > Math.PI) dTheta -= 2 * Math.PI;
+            while (dTheta < -Math.PI) dTheta += 2 * Math.PI;
+
+            const thetaMid = theta1 + dTheta / 2;
+            const bulge = 0.35 * r * Math.abs(dTheta);
+
+            // Control point outward along the midpoint radius
+            const cx = (r + bulge) * Math.cos(thetaMid);
+            const cy = -(r + bulge) * Math.sin(thetaMid); // negate for SVG
+
+            const d = `M ${src.x},${src.y} Q ${cx},${cy} ${tgt.x},${tgt.y}`;
+            path.setAttribute("d", d);
+            path.classList.add("edge", "same-layer");
+            path.dataset.source = e.source;
+            path.dataset.target = e.target;
+            container.appendChild(path);
+          } else {
+            // Quadratic Bezier with slight outward bulge
+            const path = document.createElementNS(svgNS, "path");
+
+            // Midpoint of the chord
+            const mx = (src.x + tgt.x) / 2;
+            const my = (src.y + tgt.y) / 2;
+
+            // Chord direction and perpendicular
+            const dx = tgt.x - src.x;
+            const dy = tgt.y - src.y;
+            const chordLen = Math.sqrt(dx * dx + dy * dy);
+
+            // Perpendicular (rotated 90°): (-dy, dx)
+            // Pick the direction pointing away from center (outward)
+            let px = -dy;
+            let py = dx;
+            // Dot with midpoint vector — if negative, flip to point outward
+            if (px * mx + py * my < 0) {
+              px = -px;
+              py = -py;
+            }
+
+            // Normalize and scale: subtle bulge proportional to chord length
+            const bulge = 0.12 * chordLen;
+            const pLen = Math.sqrt(px * px + py * py);
+            const cx = mx + (px / pLen) * bulge;
+            const cy = my + (py / pLen) * bulge;
+
+            const d = `M ${src.x},${src.y} Q ${cx},${cy} ${tgt.x},${tgt.y}`;
+            path.setAttribute("d", d);
+            path.classList.add("edge");
+            path.dataset.source = e.source;
+            path.dataset.target = e.target;
+            container.appendChild(path);
+          }
+        }
+      }
+
+      function renderNodes(container, nodes, adj) {
+        container.innerHTML = "";
+
+        for (const [id, node] of nodes) {
+          const g = document.createElementNS(svgNS, "g");
+          g.classList.add("node-group");
+          g.dataset.id = id;
+
+          const circle = document.createElementNS(svgNS, "circle");
+          circle.setAttribute("cx", node.x);
+          circle.setAttribute("cy", node.y);
+          circle.setAttribute("r", NODE_RADIUS);
+          circle.setAttribute("fill", layerColor(node.layer));
+          circle.classList.add("node-circle");
+          circle.dataset.id = id;
+          g.appendChild(circle);
+
+          // Label offset: push label outward from center
+          const dist = Math.sqrt(node.x * node.x + node.y * node.y);
+          let lx, ly;
+          if (dist < 1) {
+            lx = node.x;
+            ly = node.y - NODE_RADIUS - 8;
+          } else {
+            const offset = NODE_RADIUS + 10;
+            lx = node.x + (node.x / dist) * offset;
+            ly = node.y + (node.y / dist) * offset;
+          }
+
+          const label = document.createElementNS(svgNS, "text");
+          label.setAttribute("x", lx);
+          label.setAttribute("y", ly);
+          label.classList.add("node-label");
+          label.textContent = node.label;
+          label.dataset.id = id;
+          g.appendChild(label);
+
+          container.appendChild(g);
+        }
+      }
+
+      // ─── Interaction ────────────────────────────────────────────────
+      function setupInteraction(svg, viewport, nodes, adj) {
+        let scale = 1;
+        let translateX = 0;
+        let translateY = 0;
+        let isPanning = false;
+        let startX, startY, startTX, startTY;
+
+        function updateTransform() {
+          viewport.setAttribute(
+            "transform",
+            `translate(${translateX}, ${translateY}) scale(${scale})`,
+          );
+        }
+
+        // Center initially
+        function centerView() {
+          const rect = svg.getBoundingClientRect();
+          translateX = rect.width / 2;
+          translateY = rect.height / 2;
+          updateTransform();
+        }
+
+        centerView();
+        window.addEventListener("resize", centerView);
+
+        // Zoom
+        svg.addEventListener(
+          "wheel",
+          (e) => {
+            e.preventDefault();
+            const factor = e.deltaY < 0 ? 1.08 : 1 / 1.08;
+            const newScale = Math.max(0.15, Math.min(5, scale * factor));
+
+            // Zoom toward mouse position
+            const rect = svg.getBoundingClientRect();
+            const mx = e.clientX - rect.left;
+            const my = e.clientY - rect.top;
+
+            translateX = mx - (mx - translateX) * (newScale / scale);
+            translateY = my - (my - translateY) * (newScale / scale);
+            scale = newScale;
+            updateTransform();
+          },
+          { passive: false },
+        );
+
+        // Pan
+        svg.addEventListener("mousedown", (e) => {
+          if (e.target.classList.contains("node-circle")) return;
+          isPanning = true;
+          startX = e.clientX;
+          startY = e.clientY;
+          startTX = translateX;
+          startTY = translateY;
+          svg.classList.add("panning");
+        });
+
+        window.addEventListener("mousemove", (e) => {
+          if (!isPanning) return;
+          translateX = startTX + (e.clientX - startX);
+          translateY = startTY + (e.clientY - startY);
+          updateTransform();
+        });
+
+        window.addEventListener("mouseup", () => {
+          isPanning = false;
+          svg.classList.remove("panning");
+        });
+
+        // Hover tooltips & highlighting
+        const tooltip = document.getElementById("tooltip");
+
+        svg.addEventListener("mouseover", (e) => {
+          const circle = e.target.closest(".node-circle");
+          if (!circle) return;
+
+          const id = circle.dataset.id;
+          const node = nodes.get(id);
+          const neighbors = adj.get(id);
+          const degree = neighbors.size;
+
+          // Show tooltip
+          tooltip.innerHTML =
+            `<div class="tt-label">${node.label}</div>` +
+            `<div class="tt-detail">${node.description}</div>`;
+          tooltip.style.display = "block";
+
+          // Highlight connected edges, fade others
+          const connectedNodes = new Set([id, ...neighbors]);
+
+          document.querySelectorAll(".edge").forEach((el) => {
+            if (el.dataset.source === id || el.dataset.target === id) {
+              el.classList.add("highlighted");
+              el.classList.remove("faded");
+              el.style.opacity = 1;
+            } else {
+              el.classList.add("faded");
+              el.classList.remove("highlighted");
+              el.style.opacity = 0.12;
+            }
+          });
+
+          document.querySelectorAll(".node-circle").forEach((el) => {
+            if (!connectedNodes.has(el.dataset.id)) {
+              el.classList.add("faded");
+            }
+          });
+
+          document.querySelectorAll(".node-label").forEach((el) => {
+            if (!connectedNodes.has(el.dataset.id)) {
+              el.classList.add("faded");
+            }
+          });
+        });
+
+        svg.addEventListener("mousemove", (e) => {
+          if (tooltip.style.display === "block") {
+            tooltip.style.left = e.clientX + 14 + "px";
+            tooltip.style.top = e.clientY - 10 + "px";
+          }
+        });
+
+        svg.addEventListener("mouseout", (e) => {
+          const circle = e.target.closest(".node-circle");
+          if (!circle) return;
+
+          tooltip.style.display = "none";
+
+          document.querySelectorAll(".edge").forEach((el) => {
+            el.classList.remove("highlighted", "faded");
+            el.style.opacity = el.dataset.baseOpacity || 0.6;
+          });
+          document.querySelectorAll(".node-circle").forEach((el) => {
+            el.classList.remove("faded");
+          });
+          document.querySelectorAll(".node-label").forEach((el) => {
+            el.classList.remove("faded");
+          });
+        });
+      }
+
+      // ─── Easing ─────────────────────────────────────────────────────
+      function easeInOutCubic(t) {
+        return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      }
+
+      // ─── Animation helpers ──────────────────────────────────────────
+      function snapshotPositions(nodes) {
+        const snap = new Map();
+        for (const [id, n] of nodes) {
+          snap.set(id, {
+            x: n.x,
+            y: n.y,
+            radius: n.radius,
+            angle: n.angle,
+            layer: n.layer,
+          });
+        }
+        return snap;
+      }
+
+      function lerpNode(old, cur, t) {
+        return {
+          x: old.x + (cur.x - old.x) * t,
+          y: old.y + (cur.y - old.y) * t,
+          radius: old.radius + (cur.radius - old.radius) * t,
+          angle: old.angle + (cur.angle - old.angle) * t,
+          layer: cur.layer,
+        };
+      }
+
+      function renderEdgesFromPositions(
+        container,
+        edges,
+        posMap,
+        nodes,
+        sameLayerSet,
+      ) {
+        container.innerHTML = "";
+
+        for (const e of edges) {
+          const src = posMap.get(e.source);
+          const tgt = posMap.get(e.target);
+          const isSameLayer = sameLayerSet.has(e);
+
+          if (isSameLayer) {
+            const path = document.createElementNS(svgNS, "path");
+            const r = src.radius;
+            let theta1 = src.angle;
+            let theta2 = tgt.angle;
+            let dTheta = theta2 - theta1;
+            while (dTheta > Math.PI) dTheta -= 2 * Math.PI;
+            while (dTheta < -Math.PI) dTheta += 2 * Math.PI;
+            const thetaMid = theta1 + dTheta / 2;
+            const bulge = 0.35 * r * Math.abs(dTheta);
+            const cx = (r + bulge) * Math.cos(thetaMid);
+            const cy = -(r + bulge) * Math.sin(thetaMid);
+            path.setAttribute(
+              "d",
+              `M ${src.x},${src.y} Q ${cx},${cy} ${tgt.x},${tgt.y}`,
+            );
+            path.classList.add("edge", "same-layer");
+            path.dataset.source = e.source;
+            path.dataset.target = e.target;
+            container.appendChild(path);
+          } else {
+            const path = document.createElementNS(svgNS, "path");
+            const mx = (src.x + tgt.x) / 2;
+            const my = (src.y + tgt.y) / 2;
+            const dx = tgt.x - src.x;
+            const dy = tgt.y - src.y;
+            const chordLen = Math.sqrt(dx * dx + dy * dy);
+            let px = -dy,
+              py = dx;
+            if (px * mx + py * my < 0) {
+              px = -px;
+              py = -py;
+            }
+            const bulge = 0.12 * chordLen;
+            const pLen = Math.sqrt(px * px + py * py) || 1;
+            const cx = mx + (px / pLen) * bulge;
+            const cy = my + (py / pLen) * bulge;
+            path.setAttribute(
+              "d",
+              `M ${src.x},${src.y} Q ${cx},${cy} ${tgt.x},${tgt.y}`,
+            );
+            path.classList.add("edge");
+            path.dataset.source = e.source;
+            path.dataset.target = e.target;
+            container.appendChild(path);
+          }
+        }
+      }
+
+      function renderNodesFromPositions(container, posMap, nodes, adj) {
+        container.innerHTML = "";
+
+        for (const [id, node] of nodes) {
+          const p = posMap.get(id);
+          const g = document.createElementNS(svgNS, "g");
+          g.classList.add("node-group");
+          g.dataset.id = id;
+
+          const circle = document.createElementNS(svgNS, "circle");
+          circle.setAttribute("cx", p.x);
+          circle.setAttribute("cy", p.y);
+          circle.setAttribute("r", NODE_RADIUS);
+          circle.setAttribute("fill", layerColor(p.layer));
+          circle.classList.add("node-circle");
+          circle.dataset.id = id;
+          g.appendChild(circle);
+
+          const dist = Math.sqrt(p.x * p.x + p.y * p.y);
+          let lx, ly;
+          if (dist < 1) {
+            lx = p.x;
+            ly = p.y - NODE_RADIUS - 8;
+          } else {
+            const offset = NODE_RADIUS + 10;
+            lx = p.x + (p.x / dist) * offset;
+            ly = p.y + (p.y / dist) * offset;
+          }
+
+          const label = document.createElementNS(svgNS, "text");
+          label.setAttribute("x", lx);
+          label.setAttribute("y", ly);
+          label.classList.add("node-label");
+          label.textContent = node.label;
+          label.dataset.id = id;
+          g.appendChild(label);
+          container.appendChild(g);
+        }
+      }
+
+      function renderRingsAnimated(container, oldLayers, newLayers, t) {
+        container.innerHTML = "";
+        // Collect all unique layer indices from both old and new
+        const allLayers = new Set([...oldLayers.keys(), ...newLayers.keys()]);
+
+        for (const i of allLayers) {
+          const oldNodes = oldLayers.get(i);
+          const newNodes = newLayers.get(i);
+          const hadRing = oldNodes && !(i === 0 && oldNodes.length === 1);
+          const hasRing = newNodes && !(i === 0 && newNodes.length === 1);
+
+          if (!hadRing && !hasRing) continue;
+
+          const oldR = hadRing ? BASE_RADIUS + i * RING_SPACING : 0;
+          const newR = hasRing ? BASE_RADIUS + i * RING_SPACING : 0;
+          const r = oldR + (newR - oldR) * t;
+
+          // Fade in / out
+          let opacity = 1;
+          if (!hadRing) opacity = t;
+          else if (!hasRing) opacity = 1 - t;
+
+          if (r > 0 && opacity > 0.01) {
+            const circle = document.createElementNS(svgNS, "circle");
+            circle.setAttribute("cx", 0);
+            circle.setAttribute("cy", 0);
+            circle.setAttribute("r", r);
+            circle.classList.add("ring");
+            circle.style.opacity = opacity;
+            container.appendChild(circle);
+          }
+        }
+      }
+
+      // ─── Main ───────────────────────────────────────────────────────
+      function main() {
+        const graphData = transformRawData(rawData);
+        const { nodes, adj, edges } = parseGraph(graphData);
+        let currentLayers = assignLayers(nodes, adj);
+        minimizeCrossings(currentLayers, nodes, adj, edges);
+        computePositions(currentLayers, nodes);
+
+        const ringsLayer = document.getElementById("rings-layer");
+        const edgesLayer = document.getElementById("edges-layer");
+        const nodesLayer = document.getElementById("nodes-layer");
+        const svg = document.getElementById("graph-svg");
+        const viewport = document.getElementById("viewport");
+
+        const { sameLayer } = classifyEdges(edges, nodes);
+        let sameLayerSet = new Set(sameLayer);
+
+        renderRings(ringsLayer, currentLayers);
+        renderEdges(edgesLayer, edges, nodes, sameLayerSet);
+        setEdgeOpacities(edgesLayer, (id) => nodes.get(id));
+        renderNodes(nodesLayer, nodes, adj);
+        setupInteraction(svg, viewport, nodes, adj);
+
+        // ─── Click-to-recenter ──────────────────────────────────────
+        let animating = false;
+
+        svg.addEventListener("click", (e) => {
+          const circle = e.target.closest(".node-circle");
+          if (!circle || animating) return;
+
+          const clickedId = circle.dataset.id;
+
+          // Snapshot old positions
+          const oldSnap = snapshotPositions(nodes);
+          const oldLayers = new Map();
+          for (const [k, v] of currentLayers) oldLayers.set(k, [...v]);
+
+          // Recompute layout from clicked node
+          currentLayers = assignLayers(nodes, adj, clickedId);
+          minimizeCrossings(currentLayers, nodes, adj, edges);
+          computePositions(currentLayers, nodes);
+
+          // Reclassify same-layer edges for new layout
+          const newClassified = classifyEdges(edges, nodes);
+          sameLayerSet = new Set(newClassified.sameLayer);
+
+          const newSnap = snapshotPositions(nodes);
+          const newLayers = new Map();
+          for (const [k, v] of currentLayers) newLayers.set(k, [...v]);
+
+          // Animate
+          animating = true;
+          const duration = 700; // ms
+          const startTime = performance.now();
+
+          function frame(now) {
+            const elapsed = now - startTime;
+            const rawT = Math.min(elapsed / duration, 1);
+            const t = easeInOutCubic(rawT);
+
+            // Interpolate positions
+            const interpPos = new Map();
+            for (const [id] of nodes) {
+              interpPos.set(id, lerpNode(oldSnap.get(id), newSnap.get(id), t));
+            }
+
+            // Render interpolated state
+            renderRingsAnimated(ringsLayer, oldLayers, newLayers, t);
+            renderEdgesFromPositions(
+              edgesLayer,
+              edges,
+              interpPos,
+              nodes,
+              sameLayerSet,
+            );
+            setEdgeOpacities(edgesLayer, (id) => interpPos.get(id));
+            renderNodesFromPositions(nodesLayer, interpPos, nodes, adj);
+
+            if (rawT < 1) {
+              requestAnimationFrame(frame);
+            } else {
+              animating = false;
+              // Final clean render
+              renderRings(ringsLayer, currentLayers);
+              renderEdges(edgesLayer, edges, nodes, sameLayerSet);
+              setEdgeOpacities(edgesLayer, (id) => nodes.get(id));
+              renderNodes(nodesLayer, nodes, adj);
+            }
+          }
+
+          requestAnimationFrame(frame);
+        });
+      }
+
+      // ─── Fullscreen Toggle ─────────────────────────────────────
+      (function () {
+        const container = document.getElementById("graph-container");
+        const btn = document.getElementById("fullscreen-toggle");
+        const iconExpand = document.getElementById("fs-icon-expand");
+        const iconCollapse = document.getElementById("fs-icon-collapse");
+
+        btn.addEventListener("click", () => {
+          container.classList.toggle("fullscreen");
+          const isFs = container.classList.contains("fullscreen");
+          iconExpand.style.display = isFs ? "none" : "block";
+          iconCollapse.style.display = isFs ? "block" : "none";
+          // Re-center the graph after toggling
+          window.dispatchEvent(new Event("resize"));
+        });
+
+        document.addEventListener("keydown", (e) => {
+          if (
+            e.key === "Escape" &&
+            container.classList.contains("fullscreen")
+          ) {
+            container.classList.remove("fullscreen");
+            iconExpand.style.display = "block";
+            iconCollapse.style.display = "none";
+            window.dispatchEvent(new Event("resize"));
+          }
+        });
+      })();
+
+      main();
+    </script>
+  </body>
+</html>

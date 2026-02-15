@@ -2,9 +2,9 @@
 
 ## v0.2.0
 
-### Changed
 - Refactored `export_html` to use Jinja2 templates for cleaner HTML generation and easier customization
-
+- Replaced Cytoscape visualization with custom concentric one, no hairballs anymore
+- The four examples updated with the new graphviz
 
 ## v0.1.0
 

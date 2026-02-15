@@ -1292,6 +1292,7 @@ def export_html(results_data: dict, output_path: Path, title: str = "Knowledge G
         edge_elements=edge_elements,
         community_desc=community_desc,
         js_labels=js_labels,
+        rawData=json.dumps(results_data, indent=2)
     )
 
     html_path = output_path.with_suffix(".html")

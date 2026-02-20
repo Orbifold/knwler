@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Knwler</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- ========== View 1: Upload + Settings ========== -->
+    <div id="view-upload" class="view active">
+        <header class="app-header">
+            <h1>Knwler</h1>
+            <p class="subtitle">Knowledge Graph Extraction</p>
+        </header>
+
+        <div class="upload-area" id="drop-zone">
+            <div class="upload-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+            </div>
+            <p>Drop a PDF or text file here</p>
+            <button id="btn-pick-file" class="btn-secondary">or click to select</button>
+            <input type="file" id="file-input" accept=".pdf,.txt,.md" hidden>
+            <div id="selected-file" class="selected-file" style="display:none"></div>
+        </div>
+
+        <div class="settings-panel">
+            <h2>Settings</h2>
+
+            <div class="setting-row">
+                <label for="setting-backend">Backend</label>
+                <select id="setting-backend">
+                    <option value="ollama">Ollama (local)</option>
+                    <option value="openai">OpenAI</option>
+                </select>
+            </div>
+
+            <div id="openai-settings" class="setting-group" style="display:none">
+                <div class="setting-row">
+                    <label for="setting-openai-key">API Key</label>
+                    <input type="password" id="setting-openai-key" placeholder="sk-...">
+                </div>
+                <div class="setting-row">
+                    <label for="setting-openai-url">Base URL</label>
+                    <input type="text" id="setting-openai-url" value="https://api.openai.com/v1">
+                </div>
+            </div>
+
+            <div class="setting-row">
+                <label for="setting-extraction-model">Extraction Model</label>
+                <input type="text" id="setting-extraction-model" placeholder="auto (qwen2.5:3b / gpt-4o-mini)">
+            </div>
+
+            <div class="setting-row">
+                <label for="setting-discovery-model">Discovery Model</label>
+                <input type="text" id="setting-discovery-model" placeholder="auto (qwen2.5:14b / gpt-4o)">
+            </div>
+
+            <div class="setting-row">
+                <label for="setting-concurrent">Concurrency</label>
+                <input type="number" id="setting-concurrent" value="8" min="1" max="32">
+            </div>
+
+            <div class="setting-row">
+                <label for="setting-max-tokens">Max Tokens / Chunk</label>
+                <input type="number" id="setting-max-tokens" value="400" min="100" max="2000">
+            </div>
+
+            <div class="setting-row">
+                <label for="setting-language">Language</label>
+                <select id="setting-language">
+                    <option value="">Auto-detect</option>
+                    <option value="en">English</option>
+                    <option value="de">Deutsch</option>
+                    <option value="fr">Fran&ccedil;ais</option>
+                    <option value="es">Espa&ntilde;ol</option>
+                    <option value="nl">Nederlands</option>
+                </select>
+            </div>
+
+            <div class="setting-row checkbox-row">
+                <label for="setting-no-discovery">
+                    <input type="checkbox" id="setting-no-discovery">
+                    Skip Schema Discovery
+                </label>
+            </div>
+        </div>
+
+        <button id="btn-start" class="btn-primary" disabled>Start Extraction</button>
+    </div>
+
+    <!-- ========== View 2: Processing ========== -->
+    <div id="view-processing" class="view">
+        <header class="app-header">
+            <h1>Knwler</h1>
+        </header>
+
+        <div class="processing-card">
+            <div class="stage-indicator" id="stage-label">Initializing...</div>
+            <div class="progress-container">
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
+            <div class="progress-text" id="progress-text">0%</div>
+            <div class="log-output" id="log-output"></div>
+        </div>
+    </div>
+
+    <!-- ========== View 3: Results ========== -->
+    <div id="view-results" class="view">
+        <div class="results-toolbar">
+            <button id="btn-new" class="btn-secondary">New Extraction</button>
+            <div class="toolbar-spacer"></div>
+            <button id="btn-export-json" class="btn-secondary">Export JSON</button>
+            <button id="btn-export-html" class="btn-secondary">Export HTML</button>
+        </div>
+        <iframe id="results-iframe" class="results-iframe"></iframe>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

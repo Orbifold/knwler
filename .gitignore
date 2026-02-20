@@ -13,3 +13,10 @@ cache/
 results/
 uv.lock
 .DS_Store
+
+# Tauri
+src-tauri/target/
+src-tauri/binaries/
+
+# Node
+node_modules/

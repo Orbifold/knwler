@@ -40,7 +40,18 @@ import fitz  # PyMuPDF
 from dataclasses import dataclass, field
 from pathlib import Path
 from statistics import mean, median
-from typing import Annotated, Any, Optional
+from typing import Annotated, Any, Callable, Optional
+
+
+# ---------------------------------------------------------------------------
+# Resource directory (PyInstaller compatible)
+# ---------------------------------------------------------------------------
+def get_resource_dir() -> Path:
+    """Get the directory containing bundled resources (languages.json, templates/).
+    Works both when running from source and when frozen with PyInstaller."""
+    if getattr(sys, "frozen", False):
+        return Path(sys._MEIPASS)
+    return Path(__file__).parent
 
 import requests
 import tiktoken
@@ -68,7 +79,7 @@ app = typer.Typer(
 # ---------------------------------------------------------------------------
 # Language Support
 # ---------------------------------------------------------------------------
-LANGUAGES_FILE = Path(__file__).parent / "languages.json"
+LANGUAGES_FILE = get_resource_dir() / "languages.json"
 DEFAULT_LANGUAGE = "en"
 _LANGUAGES: dict = {}
 _CURRENT_LANG: str = DEFAULT_LANGUAGE
@@ -133,7 +144,7 @@ def set_language(lang_code: str):
 # ---------------------------------------------------------------------------
 # LLM Response Cache
 # ---------------------------------------------------------------------------
-CACHE_DIR = Path(__file__).parent / "cache"
+CACHE_DIR = get_resource_dir() / "cache"
 DEFAULT_OLLAMA_SCHEMA_MODEL = "qwen2.5:14b"
 # qwen2.5:14b gives better quality but 3b is good for faster extraction, especially with many chunks. Adjust as needed based on your hardware and quality requirements.
 DEFAULT_OLLAMA_EXTRACTION_MODEL = "qwen2.5:3b"
@@ -673,27 +684,22 @@ async def extract_all(
     schema: Schema,
     config: Config,
     output_path: Path | None = None,
+    progress_callback: Callable[[int, int], None] | None = None,
 ) -> list[ExtractionResult]:
-    """Extract from all chunks with concurrency control and incremental saving."""
+    """Extract from all chunks with concurrency control and incremental saving.
+
+    If *progress_callback* is provided it is called with (completed, total) after
+    each chunk finishes.  When it is ``None`` the original Rich progress bar is
+    used instead.
+    """
     semaphore = asyncio.Semaphore(config.max_concurrent)
     loop = asyncio.get_event_loop()
     total = len(chunks)
     results: list[ExtractionResult] = []
     lock = asyncio.Lock()
-    progress_msg = get_console_msg("extracting") or "Extracting..."
 
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        BarColumn(),
-        TaskProgressColumn(),
-        TextColumn("•"),
-        TimeElapsedColumn(),
-        console=console,
-        transient=False,
-    ) as progress:
-        task = progress.add_task(f"[cyan]{progress_msg}", total=total)
-
+    if progress_callback is not None:
+        # Headless mode – no Rich output
         async def bounded(chunk: str, idx: int) -> ExtractionResult:
             async with semaphore:
                 result = await loop.run_in_executor(
@@ -701,15 +707,43 @@ async def extract_all(
                 )
                 async with lock:
                     results.append(result)
-                    # Save intermediate results
                     if output_path:
                         _save_partial_results(
                             output_path, schema, results, len(results), total
                         )
-                    progress.update(task, advance=1)
+                    progress_callback(len(results), total)
                 return result
 
         await asyncio.gather(*[bounded(c, i) for i, c in enumerate(chunks)])
+    else:
+        progress_msg = get_console_msg("extracting") or "Extracting..."
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            TextColumn("•"),
+            TimeElapsedColumn(),
+            console=console,
+            transient=False,
+        ) as progress:
+            task = progress.add_task(f"[cyan]{progress_msg}", total=total)
+
+            async def bounded_rich(chunk: str, idx: int) -> ExtractionResult:
+                async with semaphore:
+                    result = await loop.run_in_executor(
+                        None, extract_chunk, chunk, idx, schema, config
+                    )
+                    async with lock:
+                        results.append(result)
+                        if output_path:
+                            _save_partial_results(
+                                output_path, schema, results, len(results), total
+                            )
+                        progress.update(task, advance=1)
+                    return result
+
+            await asyncio.gather(*[bounded_rich(c, i) for i, c in enumerate(chunks)])
 
     # Remove partial file on successful completion
     if output_path:
@@ -727,6 +761,7 @@ def consolidate_graphs(
     results: list[ExtractionResult],
     config: Config,
     summarize: bool = True,
+    progress_callback: Callable[[int, int], None] | None = None,
 ) -> tuple[dict, float]:
     """Consolidate chunk graphs with unique (name, type) and summarized descriptions.
 
@@ -783,7 +818,7 @@ def consolidate_graphs(
     # Phase 2: Summarize descriptions that need merging
     if summarize:
         entity_map, relation_map = _summarize_descriptions(
-            entity_map, relation_map, config
+            entity_map, relation_map, config, progress_callback=progress_callback
         )
 
     # Phase 3: Build final output
@@ -888,6 +923,7 @@ def _summarize_descriptions(
     entity_map: dict,
     relation_map: dict,
     config: Config,
+    progress_callback: Callable[[int, int], None] | None = None,
 ) -> tuple[dict, dict]:
     """Batch summarize entities/relations with multiple descriptions."""
 
@@ -921,29 +957,40 @@ def _summarize_descriptions(
     batch_size = 20
     summaries = {}
     total_batches = (len(to_summarize) + batch_size - 1) // batch_size
-    progress_msg = get_console_msg("summarizing", count=len(to_summarize)) or f"Summarizing {len(to_summarize)} items..."
 
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        BarColumn(),
-        TaskProgressColumn(),
-        TextColumn("•"),
-        TimeElapsedColumn(),
-        console=console,
-        transient=False,
-    ) as progress:
-        task = progress.add_task(
-            f"[cyan]{progress_msg}", total=total_batches
-        )
-
+    if progress_callback is not None:
+        completed = 0
         for i in range(0, len(to_summarize), batch_size):
             batch = to_summarize[i : i + batch_size]
             prompt = _build_summarization_prompt(batch)
             response = llm_generate(prompt, config, model=config.extraction_model)
             result = parse_json_response(response)
             summaries.update(result.get("summaries", {}))
-            progress.update(task, advance=1)
+            completed += 1
+            progress_callback(completed, total_batches)
+    else:
+        progress_msg = get_console_msg("summarizing", count=len(to_summarize)) or f"Summarizing {len(to_summarize)} items..."
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            TextColumn("•"),
+            TimeElapsedColumn(),
+            console=console,
+            transient=False,
+        ) as progress:
+            task = progress.add_task(
+                f"[cyan]{progress_msg}", total=total_batches
+            )
+
+            for i in range(0, len(to_summarize), batch_size):
+                batch = to_summarize[i : i + batch_size]
+                prompt = _build_summarization_prompt(batch)
+                response = llm_generate(prompt, config, model=config.extraction_model)
+                result = parse_json_response(response)
+                summaries.update(result.get("summaries", {}))
+                progress.update(task, advance=1)
 
     # Apply summaries back
     for key, e in entity_map.items():
@@ -992,39 +1039,48 @@ Return JSON:
     return prompt
 
 
-def rephrase_chunks(chunks: list[str], config: Config) -> list[str]:
+def rephrase_chunks(
+    chunks: list[str],
+    config: Config,
+    progress_callback: Callable[[int, int], None] | None = None,
+) -> list[str]:
     """Rephrase each chunk in simple language for UI display."""
     rephrased = []
-    progress_msg = get_console_msg("rephrasing") or "Rephrasing..."
+    total = len(chunks)
 
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        BarColumn(),
-        TaskProgressColumn(),
-        TextColumn("•"),
-        TimeElapsedColumn(),
-        console=console,
-        transient=False,
-    ) as progress:
-        task = progress.add_task(f"[cyan]{progress_msg}", total=len(chunks))
+    def _do_chunk(chunk: str):
+        prompt = get_prompt("rephrase_chunk", chunk=chunk)
+        if not prompt:
+            prompt = (
+                "Rewrite the following text so that it is easy to understand. "
+                "Keep all the key facts and names. Convey the information clearly and concisely.\n\n"
+                f'TEXT:\n"""{ chunk }"""\n\n'
+                'Return JSON:\n{\n  "rephrase": "..."\n}'
+            )
+        response = llm_generate(prompt, config, model=config.extraction_model)
+        parsed = parse_json_response(response)
+        rephrased.append(parsed.get("rephrase", chunk))
 
-        for chunk in chunks:
-            # Use localized prompt
-            prompt = get_prompt("rephrase_chunk", chunk=chunk)
-            
-            # Fallback to English prompt if localization fails
-            if not prompt:
-                prompt = (
-                    "Rewrite the following text so that it is easy to understand. "
-                    "Keep all the key facts and names. Convey the information clearly and concisely.\n\n"
-                    f'TEXT:\n"""{ chunk }"""\n\n'
-                    'Return JSON:\n{\n  "rephrase": "..."\n}'
-                )
-            response = llm_generate(prompt, config, model=config.extraction_model)
-            parsed = parse_json_response(response)
-            rephrased.append(parsed.get("rephrase", chunk))
-            progress.update(task, advance=1)
+    if progress_callback is not None:
+        for i, chunk in enumerate(chunks):
+            _do_chunk(chunk)
+            progress_callback(i + 1, total)
+    else:
+        progress_msg = get_console_msg("rephrasing") or "Rephrasing..."
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            TextColumn("•"),
+            TimeElapsedColumn(),
+            console=console,
+            transient=False,
+        ) as progress:
+            task = progress.add_task(f"[cyan]{progress_msg}", total=total)
+            for chunk in chunks:
+                _do_chunk(chunk)
+                progress.update(task, advance=1)
 
     return rephrased
 
@@ -1269,7 +1325,7 @@ def export_html(results_data: dict, output_path: Path, title: str = "Knowledge G
     community_desc = {str(c.get("id")): c.get("description", "") for c in communities}
 
     # Setup Jinja2 environment
-    templates_dir = Path(__file__).parent / "templates"
+    templates_dir = get_resource_dir() / "templates"
     env = Environment(
         loader=FileSystemLoader(templates_dir),
         autoescape=select_autoescape(["html", "xml"]),
@@ -1372,10 +1428,23 @@ def _fallback_community_labels(communities: list[dict]) -> dict:
     return labels
 
 
-def analyze_communities(consolidated: dict, config: Config) -> dict:
-    """Detect communities and label them with topics and descriptions."""
-    analyzing_msg = get_console_msg("analyzing_communities") or "Analyzing communities..."
-    with console.status(f"[cyan]{analyzing_msg}"):
+def analyze_communities(
+    consolidated: dict,
+    config: Config,
+    use_console: bool = True,
+) -> dict:
+    """Detect communities and label them with topics and descriptions.
+
+    Set *use_console* to ``False`` to suppress Rich console output (headless mode).
+    """
+    if use_console:
+        analyzing_msg = get_console_msg("analyzing_communities") or "Analyzing communities..."
+        _cm = console.status(f"[cyan]{analyzing_msg}")
+    else:
+        import contextlib
+        _cm = contextlib.nullcontext()
+
+    with _cm:
         g = nx.Graph()
         for e in consolidated.get("entities", []):
             g.add_node(e["name"])
@@ -1428,8 +1497,9 @@ def analyze_communities(consolidated: dict, config: Config) -> dict:
                     entity_map[name]["community_id"] = cid
 
         consolidated["communities"] = communities_out
-        detected_msg = get_console_msg("detected_communities", count=len(communities)) or f"Detected {len(communities)} communities"
-        console.print(f"[white]{detected_msg}[/]")
+        if use_console:
+            detected_msg = get_console_msg("detected_communities", count=len(communities)) or f"Detected {len(communities)} communities"
+            console.print(f"[white]{detected_msg}[/]")
     return consolidated
 
 
@@ -1567,6 +1637,186 @@ def print_stats(stats: dict, schema: Schema, consolidated: dict | None = None):
     )
 
     console.print(table)
+
+
+# ---------------------------------------------------------------------------
+# Importable pipeline helpers (used by server.py and CLI)
+# ---------------------------------------------------------------------------
+
+def load_document(file_path: Path, cache_dir: Path | None = None) -> str:
+    """Load text from a PDF or text file.  For PDFs, caches the extracted text
+    in *cache_dir* (if given) to avoid re-extracting on subsequent runs."""
+    if file_path.suffix.lower() == ".pdf":
+        if cache_dir:
+            extracted_text_path = cache_dir / f"{file_path.stem}_extracted.txt"
+            if extracted_text_path.exists():
+                return extracted_text_path.read_text(encoding="utf-8", errors="ignore")
+        doc = fitz.open(file_path)
+        text = "\n\n".join(page.get_text() for page in doc)
+        if cache_dir:
+            cache_dir.mkdir(parents=True, exist_ok=True)
+            extracted_text_path = cache_dir / f"{file_path.stem}_extracted.txt"
+            extracted_text_path.write_text(text, encoding="utf-8", errors="ignore")
+        return text
+    return file_path.read_text(encoding="utf-8", errors="ignore")
+
+
+def render_report_html(results_data: dict, title: str = "Knowledge Graph") -> str:
+    """Render the HTML report as a string (no file I/O)."""
+    import tempfile
+    # Reuse export_html but capture the output
+    with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tmp:
+        tmp_path = Path(tmp.name)
+    try:
+        tmp_path.write_text(json.dumps(results_data))
+        html_path = export_html(results_data, tmp_path, title=title)
+        html_content = html_path.read_text(encoding="utf-8")
+        html_path.unlink(missing_ok=True)
+        return html_content
+    finally:
+        tmp_path.unlink(missing_ok=True)
+
+
+async def run_pipeline(
+    file_path: Path,
+    config: Config,
+    language: str | None = None,
+    no_discovery: bool = False,
+    url: str | None = None,
+    progress_callback: Callable[[str, int, int], None] | None = None,
+) -> dict:
+    """Run the full extraction pipeline and return the results dict.
+
+    *progress_callback* receives ``(stage_name, current, total)`` updates.
+    Stage names: loading, language_detection, schema_discovery, chunking,
+    title_extraction, summary_extraction, rephrasing, extraction,
+    consolidation, community_analysis.
+    """
+
+    def report(stage: str, current: int = 0, total: int = 0):
+        if progress_callback:
+            progress_callback(stage, current, total)
+
+    # Load document
+    report("loading", 0, 1)
+    text = load_document(file_path)
+    report("loading", 1, 1)
+
+    # Language detection
+    report("language_detection", 0, 1)
+    if language:
+        set_language(language)
+        detected_lang = language
+    else:
+        detected_lang = detect_language(text, config)
+        set_language(detected_lang)
+    report("language_detection", 1, 1)
+
+    # Schema discovery
+    report("schema_discovery", 0, 1)
+    if no_discovery:
+        schema = Schema(
+            entity_types=config.default_entity_types,
+            relation_types=config.default_relation_types,
+            reasoning="Using defaults (discovery skipped)",
+        )
+    else:
+        schema = discover_schema(text, config)
+    report("schema_discovery", 1, 1)
+
+    # Chunking
+    chunks = chunk_text(text, config)
+    report("chunking", len(chunks), len(chunks))
+
+    # Title extraction
+    report("title_extraction", 0, 1)
+    title = extract_title(chunks, config) or file_path.stem
+    report("title_extraction", 1, 1)
+
+    # Summary extraction
+    report("summary_extraction", 0, 1)
+    summary = extract_summary(chunks, config)
+    report("summary_extraction", 1, 1)
+
+    # Rephrase chunks
+    def rephrase_cb(current: int, total: int):
+        report("rephrasing", current, total)
+
+    rephrase_t0 = time.perf_counter()
+    rephrased = rephrase_chunks(chunks, config, progress_callback=rephrase_cb)
+    rephrase_time = time.perf_counter() - rephrase_t0
+
+    # Extraction
+    def extract_cb(current: int, total: int):
+        report("extraction", current, total)
+
+    t0 = time.perf_counter()
+    results = await extract_all(chunks, schema, config, progress_callback=extract_cb)
+    wall_time = time.perf_counter() - t0
+
+    # Consolidation
+    def consolidation_cb(current: int, total: int):
+        report("consolidation", current, total)
+
+    consolidated, consolidation_time = consolidate_graphs(
+        results, config, summarize=True, progress_callback=consolidation_cb
+    )
+
+    # Community analysis
+    report("community_analysis", 0, 1)
+    community_t0 = time.perf_counter()
+    consolidated = analyze_communities(consolidated, config, use_console=False)
+    community_time = time.perf_counter() - community_t0
+    report("community_analysis", 1, 1)
+
+    # Stats
+    stats = compute_stats(results, schema.discovery_time, wall_time, consolidation_time)
+    stats["community_detection_time"] = round(community_time, 2)
+    stats["communities"] = compute_community_stats(consolidated)
+    stats["run"] = {
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "file": str(file_path),
+        "backend": "openai" if config.use_openai else "ollama",
+        "extraction_model": config.extraction_model,
+        "discovery_model": config.discovery_model,
+        "max_tokens": config.max_tokens,
+        "overlap_tokens": config.overlap_tokens,
+        "max_concurrent": config.max_concurrent,
+        "use_cache": config.use_cache,
+        "no_discovery": no_discovery,
+    }
+
+    # Assemble output
+    output_data = {
+        "title": title,
+        "summary": summary,
+        "url": url,
+        "language": detected_lang,
+        "schema": {
+            "entity_types": list(schema.entity_types),
+            "relation_types": list(schema.relation_types),
+            "reasoning": schema.reasoning,
+        },
+        "stats": [stats],
+        "communities": consolidated.get("communities", []),
+        "consolidated": consolidated,
+        "chunks": [
+            {
+                "chunk_idx": r.chunk_idx,
+                "text": chunks[r.chunk_idx],
+                "rephrase": (
+                    rephrased[r.chunk_idx] if r.chunk_idx < len(rephrased) else ""
+                ),
+                "entities": r.entities,
+                "relations": r.relations,
+                "chunk_time": r.chunk_time,
+                "chunk_tokens": r.chunk_tokens,
+                "source_file": str(file_path),
+            }
+            for r in results
+        ],
+    }
+    return output_data
 
 
 # ---------------------------------------------------------------------------

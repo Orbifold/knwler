@@ -74,6 +74,7 @@ from llm import (
     load_languages,
     parse_json_response,
     set_language,
+    get_language
 )
 
 app = typer.Typer(
@@ -889,7 +890,7 @@ def export_html(results_data: dict, output_path: Path, title: str = "Knowledge G
 
     # Render template
     html_content = template.render(
-        html_lang=_CURRENT_LANG or "en",
+        html_lang=get_language() or "en",
         title=title,
         summary=summary,
         url=url,

@@ -23,6 +23,20 @@ from typing import Callable, Optional
 import requests
 from rich.console import Console
 
+
+LANGUAGES_FILE = get_resource_dir() / "languages.json"
+DEFAULT_LANGUAGE = "en"
+_LANGUAGES: dict = {}
+_CURRENT_LANG: str = DEFAULT_LANGUAGE
+
+CACHE_DIR = get_resource_dir() / "cache"
+
+DEFAULT_OLLAMA_SCHEMA_MODEL = "qwen2.5:14b"
+# qwen2.5:14b gives better quality; 3b is faster for parallel extraction.
+DEFAULT_OLLAMA_EXTRACTION_MODEL = "qwen2.5:3b"
+DEFAULT_OPENAI_DISCOVERY_MODEL = "gpt-4o"
+DEFAULT_OPENAI_EXTRACTION_MODEL = "gpt-4o-mini"
+
 # ---------------------------------------------------------------------------
 # Resource directory (PyInstaller compatible)
 # ---------------------------------------------------------------------------
@@ -45,11 +59,6 @@ console = Console()
 # ---------------------------------------------------------------------------
 # Language Support
 # ---------------------------------------------------------------------------
-
-LANGUAGES_FILE = get_resource_dir() / "languages.json"
-DEFAULT_LANGUAGE = "en"
-_LANGUAGES: dict = {}
-_CURRENT_LANG: str = DEFAULT_LANGUAGE
 
 
 def load_languages() -> dict:
@@ -114,17 +123,14 @@ def set_language(lang_code: str) -> None:
         _CURRENT_LANG = DEFAULT_LANGUAGE
 
 
+def get_language() -> str:
+    """Return the current language code."""
+    return _CURRENT_LANG
+
+
 # ---------------------------------------------------------------------------
 # LLM Response Cache
 # ---------------------------------------------------------------------------
-
-CACHE_DIR = get_resource_dir() / "cache"
-
-DEFAULT_OLLAMA_SCHEMA_MODEL = "qwen2.5:14b"
-# qwen2.5:14b gives better quality; 3b is faster for parallel extraction.
-DEFAULT_OLLAMA_EXTRACTION_MODEL = "qwen2.5:3b"
-DEFAULT_OPENAI_DISCOVERY_MODEL = "gpt-4o"
-DEFAULT_OPENAI_EXTRACTION_MODEL = "gpt-4o-mini"
 
 
 def _cache_key(prompt: str, model: str, temperature: float, num_predict: int) -> str:

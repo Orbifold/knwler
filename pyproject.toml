@@ -15,4 +15,6 @@ dependencies = [
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.34.0",
     "python-multipart>=0.0.20",
+    "taskiq>=0.12.1",
+    "taskiq-fastapi>=0.4.0",
 ]

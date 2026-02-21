@@ -72,7 +72,7 @@ async def extraction_task(
         job_progress[task_id] = {
             "stage": stage,
             "current": current,
-            "total": total,
+            "total": total, 
         }
         # Schedule the async broadcast without blocking (already in the loop)
         asyncio.ensure_future(_broadcast_progress(task_id, stage, current, total))
@@ -208,7 +208,7 @@ async def start_extraction(
         url=url,
         task_id=job_id,
     )
-
+    print(f"Started job {job_id}", file=sys.stderr, flush=True)
     return {"job_id": job_id}
 
 

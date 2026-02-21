@@ -24,40 +24,25 @@ Usage:
     python benchmark.py --openai --openai-base-url https://api.example.com/v1
 """
 
-import sys
-import networkx as nx
-from networkx.algorithms.community import louvain_communities
-from datetime import datetime
 import asyncio
-import hashlib
+import contextlib
 import html as html_mod
 import json
-import os
 import re
+import sys
 import time
 import fitz  # PyMuPDF
 
-from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
 from statistics import mean, median
 from typing import Annotated, Any, Callable, Optional
 
-
-# ---------------------------------------------------------------------------
-# Resource directory (PyInstaller compatible)
-# ---------------------------------------------------------------------------
-def get_resource_dir() -> Path:
-    """Get the directory containing bundled resources (languages.json, templates/).
-    Works both when running from source and when frozen with PyInstaller."""
-    if getattr(sys, "frozen", False):
-        return Path(sys._MEIPASS)
-    return Path(__file__).parent
-
-import requests
+import networkx as nx
 import tiktoken
 import typer
 from jinja2 import Environment, FileSystemLoader, select_autoescape
-from rich.console import Console
+from networkx.algorithms.community import louvain_communities
 from rich.panel import Panel
 from rich.progress import (
     BarColumn,
@@ -69,232 +54,33 @@ from rich.progress import (
 )
 from rich.table import Table
 
-# Rich console and Typer app
-console = Console()
+from llm import (
+    CACHE_DIR,
+    DEFAULT_OLLAMA_EXTRACTION_MODEL,
+    DEFAULT_OLLAMA_SCHEMA_MODEL,
+    DEFAULT_OPENAI_DISCOVERY_MODEL,
+    DEFAULT_OPENAI_EXTRACTION_MODEL,
+    Config,
+    ExtractionResult,
+    Schema,
+    console,
+    detect_language,
+    discover_schema,
+    get_console_msg,
+    get_prompt,
+    get_resource_dir,
+    get_ui,
+    llm_generate,
+    load_languages,
+    parse_json_response,
+    set_language,
+)
+
 app = typer.Typer(
     help="Extract knowledge graphs from text using Ollama or OpenAI.",
     rich_markup_mode="rich",
+    no_args_is_help=True,
 )
-
-# ---------------------------------------------------------------------------
-# Language Support
-# ---------------------------------------------------------------------------
-LANGUAGES_FILE = get_resource_dir() / "languages.json"
-DEFAULT_LANGUAGE = "en"
-_LANGUAGES: dict = {}
-_CURRENT_LANG: str = DEFAULT_LANGUAGE
-
-
-def load_languages() -> dict:
-    """Load language definitions from JSON file."""
-    global _LANGUAGES
-    if not _LANGUAGES:
-        if LANGUAGES_FILE.exists():
-            _LANGUAGES = json.loads(LANGUAGES_FILE.read_text(encoding="utf-8"))
-        else:
-            console.print(f"[yellow]Warning: {LANGUAGES_FILE} not found, using English[/yellow]")
-            _LANGUAGES = {"en": {"name": "English", "prompts": {}, "ui": {}, "console": {}}}
-    return _LANGUAGES
-
-
-def get_lang() -> dict:
-    """Get the current language dictionary."""
-    langs = load_languages()
-    return langs.get(_CURRENT_LANG, langs.get(DEFAULT_LANGUAGE, {}))
-
-
-def get_prompt(key: str, **kwargs) -> str:
-    """Get a localized prompt template, formatted with kwargs."""
-    lang = get_lang()
-    template = lang.get("prompts", {}).get(key, "")
-    if not template:
-        # Fallback to English
-        template = load_languages().get("en", {}).get("prompts", {}).get(key, "")
-    return template.format(**kwargs) if template else ""
-
-
-def get_ui(key: str, **kwargs) -> str:
-    """Get a localized UI string, formatted with kwargs."""
-    lang = get_lang()
-    template = lang.get("ui", {}).get(key, "")
-    if not template:
-        template = load_languages().get("en", {}).get("ui", {}).get(key, "")
-    return template.format(**kwargs) if template else ""
-
-
-def get_console_msg(key: str, **kwargs) -> str:
-    """Get a localized console message, formatted with kwargs."""
-    lang = get_lang()
-    template = lang.get("console", {}).get(key, "")
-    if not template:
-        template = load_languages().get("en", {}).get("console", {}).get(key, "")
-    return template.format(**kwargs) if template else ""
-
-
-def set_language(lang_code: str):
-    """Set the current language."""
-    global _CURRENT_LANG
-    langs = load_languages()
-    if lang_code in langs:
-        _CURRENT_LANG = lang_code
-    else:
-        console.print(f"[yellow]Language '{lang_code}' not found, using English[/yellow]")
-        _CURRENT_LANG = DEFAULT_LANGUAGE
-
-# ---------------------------------------------------------------------------
-# LLM Response Cache
-# ---------------------------------------------------------------------------
-CACHE_DIR = get_resource_dir() / "cache"
-DEFAULT_OLLAMA_SCHEMA_MODEL = "qwen2.5:14b"
-# qwen2.5:14b gives better quality but 3b is good for faster extraction, especially with many chunks. Adjust as needed based on your hardware and quality requirements.
-DEFAULT_OLLAMA_EXTRACTION_MODEL = "qwen2.5:3b"
-DEFAULT_OPENAI_DISCOVERY_MODEL = "gpt-4o"
-DEFAULT_OPENAI_EXTRACTION_MODEL = "gpt-4o-mini"
-
-
-def _cache_key(prompt: str, model: str, temperature: float, num_predict: int) -> str:
-    """Generate a cache key from prompt and model parameters."""
-    content = f"{model}|{temperature}|{num_predict}|{prompt}"
-    return hashlib.sha256(content.encode()).hexdigest()
-
-
-def _get_cached_response(key: str) -> str | None:
-    """Retrieve cached response if it exists."""
-    cache_file = CACHE_DIR / f"{key}.json"
-    if cache_file.exists():
-        try:
-            data = json.loads(cache_file.read_text())
-            return data.get("response")
-        except (json.JSONDecodeError, IOError):
-            return None
-    return None
-
-
-def _save_to_cache(key: str, response: str, model: str):
-    """Save response to cache."""
-    CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    cache_file = CACHE_DIR / f"{key}.json"
-    data = {
-        "model": model,
-        "response": response,
-        "cached_at": time.strftime("%Y-%m-%d %H:%M:%S"),
-    }
-    cache_file.write_text(json.dumps(data, indent=2))
-
-
-DEFAULT_FILE = "./small.md"
-
-
-# ---------------------------------------------------------------------------
-# Configuration
-# ---------------------------------------------------------------------------
-@dataclass
-class Config:
-    # Backend selection
-    use_openai: bool = False  # If True, use OpenAI API instead of Ollama
-
-    # Ollama settings
-    ollama_url: str = "http://localhost:11434/api/generate"
-
-    # OpenAI settings
-    openai_api_key: str = (
-        "sk-proj--your-own-key"  # Set via OPENAI_API_KEY env var or directly
-    )
-    openai_base_url: str = (
-        "https://api.openai.com/v1"  # Can override for OpenAI-compatible APIs
-    )
-
-    # Model settings
-    ollama_extraction_model: str = (
-        DEFAULT_OLLAMA_EXTRACTION_MODEL  # Fast model for parallel chunk extraction
-    )
-    ollama_discovery_model: str = (
-        DEFAULT_OLLAMA_SCHEMA_MODEL  # Larger model for schema discovery
-    )
-    openai_extraction_model: str = (
-        DEFAULT_OPENAI_EXTRACTION_MODEL  # OpenAI model for extraction
-    )
-    openai_discovery_model: str = (
-        DEFAULT_OPENAI_DISCOVERY_MODEL  # OpenAI model for discovery
-    )
-    max_tokens: int = 400
-    overlap_tokens: int = 50
-    max_concurrent: int = 8
-    num_predict: int = 1024
-    temperature: float = 0.1
-    use_cache: bool = True  # Cache LLM responses
-
-    # Default schema (used if discovery is skipped or fails)
-    default_entity_types: list[str] = field(
-        default_factory=lambda: [
-            "person",
-            "organization",
-            "technology",
-            "location",
-            "project",
-            "concept",
-            "event",
-        ]
-    )
-    default_relation_types: list[str] = field(
-        default_factory=lambda: [
-            "works_at",
-            "created",
-            "lives_in",
-            "located_in",
-            "uses",
-            "partners_with",
-            "supports",
-            "integrates_with",
-            "related_to",
-            "requires",
-            "leads_to",
-        ]
-    )
-
-    @property
-    def extraction_model(self) -> str:
-        """Return the extraction model for the active backend."""
-        return (
-            self.openai_extraction_model
-            if self.use_openai
-            else self.ollama_extraction_model
-        )
-
-    @property
-    def discovery_model(self) -> str:
-        """Return the discovery model for the active backend."""
-        return (
-            self.openai_discovery_model
-            if self.use_openai
-            else self.ollama_discovery_model
-        )
-
-
-@dataclass
-class ExtractionResult:
-    entities: list[dict]
-    relations: list[dict]
-    chunk_idx: int
-    chunk_time: float
-    chunk_tokens: int
-
-    @property
-    def entities_count(self) -> int:
-        return len(self.entities)
-
-    @property
-    def relations_count(self) -> int:
-        return len(self.relations)
-
-
-@dataclass
-class Schema:
-    entity_types: list[str]
-    relation_types: list[str]
-    reasoning: str = ""
-    discovery_time: float = 0.0
-
 
 # ---------------------------------------------------------------------------
 # Cached encoder
@@ -307,251 +93,6 @@ def get_encoder() -> tiktoken.Encoding:
     if _ENCODER is None:
         _ENCODER = tiktoken.get_encoding("cl100k_base")
     return _ENCODER
-
-
-# ---------------------------------------------------------------------------
-# Ollama API
-# ---------------------------------------------------------------------------
-def ollama_generate(
-    prompt: str,
-    config: Config,
-    model: str | None = None,
-    format_json: bool = True,
-) -> str:
-    """Call Ollama and return the response text.
-
-    Caches responses based on hash of prompt + model parameters.
-    """
-    actual_model = model or config.ollama_extraction_model
-
-    # Check cache first
-    if config.use_cache:
-        cache_key = _cache_key(
-            prompt, actual_model, config.temperature, config.num_predict
-        )
-        cached = _get_cached_response(cache_key)
-        if cached is not None:
-            return cached
-
-    # Make API call
-    payload = {
-        "model": actual_model,
-        "prompt": prompt,
-        "stream": False,
-        "options": {
-            "temperature": config.temperature,
-            "num_predict": config.num_predict,
-        },
-    }
-    if format_json:
-        payload["format"] = "json"
-
-    resp = requests.post(config.ollama_url, json=payload, timeout=360)
-    resp.raise_for_status()
-    response = resp.json()["response"]
-
-    # Save to cache
-    if config.use_cache:
-        _save_to_cache(cache_key, response, actual_model)
-
-    return response
-
-
-# ---------------------------------------------------------------------------
-# OpenAI API
-# ---------------------------------------------------------------------------
-def openai_generate(
-    prompt: str,
-    config: Config,
-    model: str | None = None,
-    format_json: bool = True,
-) -> str:
-    """Call OpenAI API and return the response text.
-
-    Caches responses based on hash of prompt + model parameters.
-    Works with OpenAI API and compatible endpoints (e.g., Azure, local servers).
-    """
-    actual_model = model or config.openai_extraction_model
-    api_key = config.openai_api_key or os.environ.get("OPENAI_API_KEY", "")
-
-    if not api_key:
-        raise ValueError(
-            "OpenAI API key not set. Set OPENAI_API_KEY env var or config.openai_api_key"
-        )
-
-    # Check cache first
-    if config.use_cache:
-        cache_key = _cache_key(
-            prompt, actual_model, config.temperature, config.num_predict
-        )
-        cached = _get_cached_response(cache_key)
-        if cached is not None:
-            return cached
-
-    # Build request
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-    }
-
-    messages = [{"role": "user", "content": prompt}]
-
-    payload = {
-        "model": actual_model,
-        "messages": messages,
-        "temperature": config.temperature,
-        "max_tokens": config.num_predict,
-    }
-
-    if format_json:
-        payload["response_format"] = {"type": "json_object"}
-
-    url = f"{config.openai_base_url.rstrip('/')}/chat/completions"
-    resp = requests.post(url, headers=headers, json=payload, timeout=360)
-    resp.raise_for_status()
-    response = resp.json()["choices"][0]["message"]["content"]
-
-    # Save to cache
-    if config.use_cache:
-        _save_to_cache(cache_key, response, actual_model)
-
-    return response
-
-
-# ---------------------------------------------------------------------------
-# LLM Dispatcher
-# ---------------------------------------------------------------------------
-def llm_generate(
-    prompt: str,
-    config: Config,
-    model: str | None = None,
-    format_json: bool = True,
-) -> str:
-    """Dispatch to appropriate LLM backend based on config."""
-    if config.use_openai:
-        return openai_generate(prompt, config, model, format_json)
-    return ollama_generate(prompt, config, model, format_json)
-
-
-# ---------------------------------------------------------------------------
-# Language Detection
-# ---------------------------------------------------------------------------
-def detect_language(text: str, config: Config, sample_size: int = 1000) -> str:
-    """Detect the language of the input text using LLM."""
-    # Take a sample from the text
-    sample = text[:sample_size] if len(text) > sample_size else text
-    
-    prompt = f"""Detect the language of the following text. Return only a JSON object with the ISO 639-1 language code (e.g., "en" for English, "de" for German, "fr" for French, etc.).
-
-TEXT:
-\"\"\"{sample}\"\"\"
-
-Return JSON:
-{{
-  "language": "en"
-}}"""
-    
-    response = llm_generate(prompt, config, model=config.discovery_model)
-    result = parse_json_response(response)
-    
-    detected = result.get("language", DEFAULT_LANGUAGE).lower().strip()
-    
-    # Validate that we support this language, fallback to English if not
-    langs = load_languages()
-    if detected not in langs:
-        return DEFAULT_LANGUAGE
-    
-    return detected
-
-
-def parse_json_response(response: str) -> dict:
-    """Parse JSON from response, handling edge cases."""
-    try:
-        return json.loads(response)
-    except json.JSONDecodeError:
-        # Try to extract JSON object from response
-        # match = re.search(r"\{.*\}", response, re.DOTALL)
-        # if match:
-        #     return json.loads(match.group())
-        return {}
-
-
-# ---------------------------------------------------------------------------
-# Schema Discovery
-# ---------------------------------------------------------------------------
-def discover_schema(
-    text: str,
-    config: Config,
-    sample_size: int = 4000,
-    max_entity_types: int = 20,
-    max_relation_types: int = 25,
-) -> Schema:
-    """Analyze text to discover appropriate entity and relation types."""
-
-    # Sample from beginning, middle, and end
-    if len(text) <= sample_size:
-        sample = text
-    else:
-        chunk = sample_size // 3
-        sample = "\n\n[...]\n\n".join(
-            [
-                text[:chunk],
-                text[len(text) // 2 - chunk // 2 : len(text) // 2 + chunk // 2],
-                text[-chunk:],
-            ]
-        )
-
-    # Use localized prompt
-    prompt = get_prompt(
-        "schema_discovery",
-        sample=sample,
-        max_entity_types=max_entity_types,
-        max_relation_types=max_relation_types,
-    )
-    
-    # Fallback to English prompt if localization fails
-    if not prompt:
-        prompt = f"""Analyze this text and identify the best entity types and relation types for a knowledge graph.
-
-TEXT SAMPLE:
-\"\"\"{sample}\"\"\"
-
-Guidelines:
-- Use snake_case for all type names
-- Be specific but not too narrow (e.g., "person" not "male_scientist")
-- Focus on types that appear multiple times or are central to the text
-- Entity types: what kinds of things are mentioned?
-- Relation types: what relationships exist between them?
-
-Return JSON:
-{{
-  "entity_types": ["type1", "type2", ...],
-  "relation_types": ["rel1", "rel2", ...],
-  "reasoning": "Brief explanation"
-}}
-
-Max {max_entity_types} entity types and {max_relation_types} relation types."""
-
-    t0 = time.perf_counter()
-    response = llm_generate(prompt, config, model=config.discovery_model)
-    elapsed = time.perf_counter() - t0
-
-    result = parse_json_response(response)
-
-    if not result.get("entity_types"):
-        return Schema(
-            entity_types=config.default_entity_types,
-            relation_types=config.default_relation_types,
-            reasoning="Discovery failed, using defaults",
-            discovery_time=elapsed,
-        )
-
-    return Schema(
-        entity_types=result.get("entity_types", [])[:max_entity_types],
-        relation_types=result.get("relation_types", [])[:max_relation_types],
-        reasoning=result.get("reasoning", ""),
-        discovery_time=elapsed,
-    )
 
 
 # ---------------------------------------------------------------------------
@@ -600,7 +141,7 @@ def extract_graph(text: str, schema: Schema, config: Config) -> dict[str, Any]:
         relation_types=json.dumps(schema.relation_types),
         text=text,
     )
-    
+
     # Fallback to English prompt if localization fails
     if not prompt:
         prompt = f"""Extract a knowledge graph from the text below.
@@ -913,7 +454,10 @@ def _filter_low_importance_nodes(
 
     removed = original_count - len(filtered_entities)
     if removed > 0:
-        msg = get_console_msg("removed_entities", count=removed) or f"Removed {removed} low-importance entities (meaningless name or zero degree)"
+        msg = (
+            get_console_msg("removed_entities", count=removed)
+            or f"Removed {removed} low-importance entities (meaningless name or zero degree)"
+        )
         console.print(f"[dim]{msg}[/dim]")
 
     return filtered_entities, relations
@@ -969,7 +513,10 @@ def _summarize_descriptions(
             completed += 1
             progress_callback(completed, total_batches)
     else:
-        progress_msg = get_console_msg("summarizing", count=len(to_summarize)) or f"Summarizing {len(to_summarize)} items..."
+        progress_msg = (
+            get_console_msg("summarizing", count=len(to_summarize))
+            or f"Summarizing {len(to_summarize)} items..."
+        )
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
@@ -980,9 +527,7 @@ def _summarize_descriptions(
             console=console,
             transient=False,
         ) as progress:
-            task = progress.add_task(
-                f"[cyan]{progress_msg}", total=total_batches
-            )
+            task = progress.add_task(f"[cyan]{progress_msg}", total=total_batches)
 
             for i in range(0, len(to_summarize), batch_size):
                 batch = to_summarize[i : i + batch_size]
@@ -1018,10 +563,10 @@ def _build_summarization_prompt(items: list[dict]) -> str:
         descs = ", ".join(f'"{d}"' for d in item["descriptions"])
         lines.append(f'- "{item["id"]}": [{descs}]')
     items_text = "\n".join(lines)
-    
+
     # Use localized prompt
     prompt = get_prompt("summarize_descriptions", items_text=items_text)
-    
+
     # Fallback to English prompt if localization fails
     if not prompt:
         prompt = f"""Summarize multiple descriptions for each item into ONE concise description (1-2 sentences).
@@ -1088,10 +633,10 @@ def rephrase_chunks(
 def extract_title(chunks: list[str], config: Config, max_chunks: int = 3) -> str:
     """Extract a short document title from the first few chunks."""
     sample = "\n\n".join(chunks[:max_chunks])
-    
+
     # Use localized prompt
     prompt = get_prompt("extract_title", sample=sample)
-    
+
     # Fallback to English prompt if localization fails
     if not prompt:
         prompt = (
@@ -1108,10 +653,10 @@ def extract_title(chunks: list[str], config: Config, max_chunks: int = 3) -> str
 def extract_summary(chunks: list[str], config: Config, max_chunks: int = 3) -> str:
     """Summarize the document based on the first few chunks."""
     sample = "\n\n".join(chunks[:max_chunks])
-    
+
     # Use localized prompt
     prompt = get_prompt("extract_summary", sample=sample)
-    
+
     # Fallback to English prompt if localization fails
     if not prompt:
         prompt = (
@@ -1170,7 +715,7 @@ def export_html(results_data: dict, output_path: Path, title: str = "Knowledge G
     relations = consolidated.get("relations", [])
 
     entity_names = {e["name"] for e in entities}
-    
+
     # Build relation lookup: entity -> list of (other, type, description, direction)
     rel_map: dict[str, list[dict]] = {}
     for r in relations:
@@ -1223,11 +768,13 @@ def export_html(results_data: dict, output_path: Path, title: str = "Knowledge G
             f'<a href="#entity-{m.lower().replace(" ", "-")}" class="entity-link">{html_mod.escape(m)}</a>'
             for m in sorted(members)
         )
-        communities_display.append({
-            "topics": topics,
-            "description": c.get("description", ""),
-            "member_links": member_links,
-        })
+        communities_display.append(
+            {
+                "topics": topics,
+                "description": c.get("description", ""),
+                "member_links": member_links,
+            }
+        )
 
     # Prepare chunks display data
     chunks_display = []
@@ -1235,11 +782,13 @@ def export_html(results_data: dict, output_path: Path, title: str = "Knowledge G
         rephrase = chunk.get("rephrase", "")
         original = chunk.get("text", "")
         display = rephrase if rephrase else original
-        chunks_display.append({
-            "id": f"chunk-{i}",
-            "linkified": _linkify_entities(display, entity_names),
-            "original": original,
-        })
+        chunks_display.append(
+            {
+                "id": f"chunk-{i}",
+                "linkified": _linkify_entities(display, entity_names),
+                "original": original,
+            }
+        )
 
     # Prepare entities display data
     chunk_label = get_ui("chunk_label") or "Chunk"
@@ -1248,7 +797,7 @@ def export_html(results_data: dict, output_path: Path, title: str = "Knowledge G
         name = e.get("name", "")
         chunk_ids = e.get("chunk_ids", [])
         rels = rel_map.get(name, [])
-        
+
         # Build relation HTML
         rel_html = []
         for rel in rels:
@@ -1259,30 +808,36 @@ def export_html(results_data: dict, output_path: Path, title: str = "Knowledge G
             if rel["description"]:
                 label += f": {html_mod.escape(rel['description'])}"
             rel_html.append(label)
-        
+
         # Build chunk links
         chunk_links = " \u2022 ".join(
             f'<a href="#chunk-{cid}-rephrase">{chunk_label} {cid}</a>'
-            for cid in chunk_ids if cid >= 0
+            for cid in chunk_ids
+            if cid >= 0
         )
-        
-        entities_display.append({
-            "name": name,
-            "anchor": f"entity-{name.lower().replace(' ', '-')}",
-            "description": e.get("description", ""),
-            "relations": rel_html,
-            "chunk_links": chunk_links,
-        })
+
+        entities_display.append(
+            {
+                "name": name,
+                "anchor": f"entity-{name.lower().replace(' ', '-')}",
+                "description": e.get("description", ""),
+                "relations": rel_html,
+                "chunk_links": chunk_links,
+            }
+        )
 
     # Get localized labels
     date_info = datetime.now().strftime("%b %d, %Y")
-    extracted_info = get_ui(
-        "extracted_info",
-        entities=len(entities),
-        relations=len(relations),
-        communities=len(communities),
-        date=date_info
-    ) or f"Extracted {len(entities)} entities, {len(relations)} relations and {len(communities)} topics on {date_info}"
+    extracted_info = (
+        get_ui(
+            "extracted_info",
+            entities=len(entities),
+            relations=len(relations),
+            communities=len(communities),
+            date=date_info,
+        )
+        or f"Extracted {len(entities)} entities, {len(relations)} relations and {len(communities)} topics on {date_info}"
+    )
 
     labels = {
         "source": get_ui("source_label") or "Source",
@@ -1314,7 +869,7 @@ def export_html(results_data: dict, output_path: Path, title: str = "Knowledge G
         "using automated artificial intelligence tools (Knwl.AI). While we strive for "
         "accuracy, this data is generated via machine learning algorithms and natural "
         "language processing, which may result in errors, omissions, or misinterpretations "
-        "of the original source material. This document is provided \"as is\" and for "
+        'of the original source material. This document is provided "as is" and for '
         "informational purposes only. Orbifold Consulting makes no warranties, express or "
         "implied, regarding the accuracy, completeness, or reliability of this information. "
         "Users are advised to independently verify any critical data against original source "
@@ -1348,7 +903,7 @@ def export_html(results_data: dict, output_path: Path, title: str = "Knowledge G
         edge_elements=edge_elements,
         community_desc=community_desc,
         js_labels=js_labels,
-        rawData=json.dumps(results_data, indent=2)
+        rawData=json.dumps(results_data, indent=2),
     )
 
     html_path = output_path.with_suffix(".html")
@@ -1383,10 +938,10 @@ def _build_community_prompt(communities: list[dict]) -> str:
         )
         lines.append(f'- "{c["id"]}": [{members}]')
     communities_text = chr(10).join(lines)
-    
+
     # Use localized prompt
     prompt = get_prompt("community_labeling", communities_text=communities_text)
-    
+
     # Fallback to English prompt if localization fails
     if not prompt:
         prompt = f"""You are labeling graph communities. For each community, return 1-3 short topics and a 1-2 sentence description.
@@ -1438,10 +993,13 @@ def analyze_communities(
     Set *use_console* to ``False`` to suppress Rich console output (headless mode).
     """
     if use_console:
-        analyzing_msg = get_console_msg("analyzing_communities") or "Analyzing communities..."
+        analyzing_msg = (
+            get_console_msg("analyzing_communities") or "Analyzing communities..."
+        )
         _cm = console.status(f"[cyan]{analyzing_msg}")
     else:
         import contextlib
+
         _cm = contextlib.nullcontext()
 
     with _cm:
@@ -1498,7 +1056,10 @@ def analyze_communities(
 
         consolidated["communities"] = communities_out
         if use_console:
-            detected_msg = get_console_msg("detected_communities", count=len(communities)) or f"Detected {len(communities)} communities"
+            detected_msg = (
+                get_console_msg("detected_communities", count=len(communities))
+                or f"Detected {len(communities)} communities"
+            )
             console.print(f"[white]{detected_msg}[/]")
     return consolidated
 
@@ -1643,6 +1204,7 @@ def print_stats(stats: dict, schema: Schema, consolidated: dict | None = None):
 # Importable pipeline helpers (used by server.py and CLI)
 # ---------------------------------------------------------------------------
 
+
 def load_document(file_path: Path, cache_dir: Path | None = None) -> str:
     """Load text from a PDF or text file.  For PDFs, caches the extracted text
     in *cache_dir* (if given) to avoid re-extracting on subsequent runs."""
@@ -1664,6 +1226,7 @@ def load_document(file_path: Path, cache_dir: Path | None = None) -> str:
 def render_report_html(results_data: dict, title: str = "Knowledge Graph") -> str:
     """Render the HTML report as a string (no file I/O)."""
     import tempfile
+
     # Reuse export_html but capture the output
     with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tmp:
         tmp_path = Path(tmp.name)
@@ -1677,32 +1240,25 @@ def render_report_html(results_data: dict, title: str = "Knowledge Graph") -> st
         tmp_path.unlink(missing_ok=True)
 
 
-async def run_pipeline(
+# ---------------------------------------------------------------------------
+# run_pipeline helpers
+# ---------------------------------------------------------------------------
+
+
+def _pipeline_load_text(
     file_path: Path,
+    language: str | None,
     config: Config,
-    language: str | None = None,
-    no_discovery: bool = False,
-    url: str | None = None,
-    progress_callback: Callable[[str, int, int], None] | None = None,
-) -> dict:
-    """Run the full extraction pipeline and return the results dict.
+    report: Callable,
+) -> tuple[str, str]:
+    """Load the document and detect (or apply) the requested language.
 
-    *progress_callback* receives ``(stage_name, current, total)`` updates.
-    Stage names: loading, language_detection, schema_discovery, chunking,
-    title_extraction, summary_extraction, rephrasing, extraction,
-    consolidation, community_analysis.
+    Returns ``(text, detected_lang)``.
     """
-
-    def report(stage: str, current: int = 0, total: int = 0):
-        if progress_callback:
-            progress_callback(stage, current, total)
-
-    # Load document
     report("loading", 0, 1)
     text = load_document(file_path)
     report("loading", 1, 1)
 
-    # Language detection
     report("language_detection", 0, 1)
     if language:
         set_language(language)
@@ -1712,7 +1268,20 @@ async def run_pipeline(
         set_language(detected_lang)
     report("language_detection", 1, 1)
 
-    # Schema discovery
+    return text, detected_lang
+
+
+def _pipeline_prepare(
+    text: str,
+    file_path: Path,
+    config: Config,
+    no_discovery: bool,
+    report: Callable,
+) -> tuple[Schema, list[str], str, str]:
+    """Discover schema, chunk text, extract title and summary.
+
+    Returns ``(schema, chunks, title, summary)``.
+    """
     report("schema_discovery", 0, 1)
     if no_discovery:
         schema = Schema(
@@ -1724,52 +1293,92 @@ async def run_pipeline(
         schema = discover_schema(text, config)
     report("schema_discovery", 1, 1)
 
-    # Chunking
     chunks = chunk_text(text, config)
     report("chunking", len(chunks), len(chunks))
 
-    # Title extraction
     report("title_extraction", 0, 1)
     title = extract_title(chunks, config) or file_path.stem
     report("title_extraction", 1, 1)
 
-    # Summary extraction
     report("summary_extraction", 0, 1)
     summary = extract_summary(chunks, config)
     report("summary_extraction", 1, 1)
 
-    # Rephrase chunks
-    def rephrase_cb(current: int, total: int):
-        report("rephrasing", current, total)
+    return schema, chunks, title, summary
 
+
+async def _pipeline_extract(
+    chunks: list[str],
+    schema: Schema,
+    config: Config,
+    report: Callable,
+) -> tuple[list, list[str], float, float]:
+    """Rephrase chunks and run parallel extraction.
+
+    Returns ``(results, rephrased, wall_time, rephrase_time)``.
+    """
     rephrase_t0 = time.perf_counter()
-    rephrased = rephrase_chunks(chunks, config, progress_callback=rephrase_cb)
+    rephrased = rephrase_chunks(
+        chunks, config, progress_callback=lambda c, t: report("rephrasing", c, t)
+    )
     rephrase_time = time.perf_counter() - rephrase_t0
 
-    # Extraction
-    def extract_cb(current: int, total: int):
-        report("extraction", current, total)
-
     t0 = time.perf_counter()
-    results = await extract_all(chunks, schema, config, progress_callback=extract_cb)
+    results = await extract_all(
+        chunks,
+        schema,
+        config,
+        progress_callback=lambda c, t: report("extraction", c, t),
+    )
     wall_time = time.perf_counter() - t0
 
-    # Consolidation
-    def consolidation_cb(current: int, total: int):
-        report("consolidation", current, total)
+    return results, rephrased, wall_time, rephrase_time
 
+
+def _pipeline_consolidate(
+    results: list,
+    config: Config,
+    report: Callable,
+) -> tuple[dict, float, float]:
+    """Consolidate extraction results and detect communities.
+
+    Returns ``(consolidated, consolidation_time, community_time)``.
+    """
     consolidated, consolidation_time = consolidate_graphs(
-        results, config, summarize=True, progress_callback=consolidation_cb
+        results,
+        config,
+        summarize=True,
+        progress_callback=lambda c, t: report("consolidation", c, t),
     )
 
-    # Community analysis
     report("community_analysis", 0, 1)
     community_t0 = time.perf_counter()
     consolidated = analyze_communities(consolidated, config, use_console=False)
     community_time = time.perf_counter() - community_t0
     report("community_analysis", 1, 1)
 
-    # Stats
+    return consolidated, consolidation_time, community_time
+
+
+def _pipeline_assemble(
+    *,
+    file_path: Path,
+    config: Config,
+    no_discovery: bool,
+    url: str | None,
+    detected_lang: str,
+    schema: Schema,
+    title: str,
+    summary: str,
+    chunks: list[str],
+    rephrased: list[str],
+    results: list,
+    consolidated: dict,
+    wall_time: float,
+    consolidation_time: float,
+    community_time: float,
+) -> dict:
+    """Build the final output dict including stats."""
     stats = compute_stats(results, schema.discovery_time, wall_time, consolidation_time)
     stats["community_detection_time"] = round(community_time, 2)
     stats["communities"] = compute_community_stats(consolidated)
@@ -1786,8 +1395,7 @@ async def run_pipeline(
         "no_discovery": no_discovery,
     }
 
-    # Assemble output
-    output_data = {
+    return {
         "title": title,
         "summary": summary,
         "url": url,
@@ -1816,15 +1424,69 @@ async def run_pipeline(
             for r in results
         ],
     }
-    return output_data
+
+
+# ---------------------------------------------------------------------------
+# Public pipeline entry-point
+# ---------------------------------------------------------------------------
+
+
+async def run_pipeline(
+    file_path: Path,
+    config: Config,
+    language: str | None = None,
+    no_discovery: bool = False,
+    url: str | None = None,
+    progress_callback: Callable[[str, int, int], None] | None = None,
+) -> dict:
+    """Run the full extraction pipeline and return the results dict.
+
+    *progress_callback* receives ``(stage_name, current, total)`` updates.
+    Stages: loading, language_detection, schema_discovery, chunking,
+    title_extraction, summary_extraction, rephrasing, extraction,
+    consolidation, community_analysis.
+    """
+
+    def report(stage: str, current: int = 0, total: int = 0) -> None:
+        if progress_callback:
+            progress_callback(stage, current, total)
+
+    text, detected_lang = _pipeline_load_text(file_path, language, config, report)
+    schema, chunks, title, summary = _pipeline_prepare(
+        text, file_path, config, no_discovery, report
+    )
+    results, rephrased, wall_time, _ = await _pipeline_extract(
+        chunks, schema, config, report
+    )
+    consolidated, consolidation_time, community_time = _pipeline_consolidate(
+        results, config, report
+    )
+
+    return _pipeline_assemble(
+        file_path=file_path,
+        config=config,
+        no_discovery=no_discovery,
+        url=url,
+        detected_lang=detected_lang,
+        schema=schema,
+        title=title,
+        summary=summary,
+        chunks=chunks,
+        rephrased=rephrased,
+        results=results,
+        consolidated=consolidated,
+        wall_time=wall_time,
+        consolidation_time=consolidation_time,
+        community_time=community_time,
+    )
 
 
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
-@app.command()
+@app.command("extract")
 def main(
-    file: Annotated[
+    file_path: Annotated[
         Optional[Path],
         typer.Option("--file", "-f", help="Input text file"),
     ] = None,
@@ -1884,7 +1546,11 @@ def main(
     ] = None,
     language: Annotated[
         Optional[str],
-        typer.Option("--language", "-l", help="Language code (e.g., en, de, fr, es, nl). Auto-detects if not specified."),
+        typer.Option(
+            "--language",
+            "-l",
+            help="Language code (e.g., en, de, fr, es, nl). Auto-detects if not specified.",
+        ),
     ] = None,
 ):
     """Extract knowledge graphs from text using LLMs."""
@@ -1921,7 +1587,6 @@ def main(
     )
 
     # Load text
-    file_path = file or Path(DEFAULT_FILE)
     # if the file is pdf, extract text using Pymupdf, otherwise read as text
     if file_path.suffix.lower() == ".pdf":
         # if existst in the results dir, use the extracted text to avoid re-extracting from pdf
@@ -1961,7 +1626,7 @@ def main(
     else:
         detected_lang = detect_language(text, config)
         set_language(detected_lang)
-    
+
     lang_name = get_lang().get("name", detected_lang)
 
     # Show header
@@ -1999,7 +1664,9 @@ def main(
         )
         console.print("[yellow]Skipped (using defaults)[/yellow]")
     else:
-        discovering_msg = get_console_msg("discovering_schema") or "Discovering schema..."
+        discovering_msg = (
+            get_console_msg("discovering_schema") or "Discovering schema..."
+        )
         with console.status(f"[bold green]{discovering_msg}[/bold green]"):
             schema = discover_schema(text, config)
         console.print(f"Time: [cyan]{schema.discovery_time:.2f}s[/cyan]")
@@ -2177,6 +1844,14 @@ def main(
 
         # nx.write_graphml(g, output.with_suffix(".graphml"))
         # console.print(f"[green]✓[/green] Graph saved to [cyan]{output.with_suffix('.graphml')}[/cyan]")
+
+
+@app.callback(invoke_without_command=True)
+def _app_callback(ctx: typer.Context):
+
+    if ctx.invoked_subcommand is None:
+        typer.echo(ctx.get_help())
+        raise typer.Exit()
 
 
 if __name__ == "__main__":

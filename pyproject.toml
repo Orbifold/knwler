@@ -1,5 +1,5 @@
 [project]
-name = "fast-graph-extraction"
+name = "knwler"
 version = "0.3.0"
 description = "Fast and accurate graph extraction from text using LLMs"
 readme = "README.md"

@@ -24,6 +24,7 @@ Usage:
     python benchmark.py --openai --openai-base-url https://api.example.com/v1
 """
 
+import atexit
 import sys
 import networkx as nx
 from networkx.algorithms.community import louvain_communities
@@ -59,11 +60,13 @@ from rich.progress import (
 from rich.table import Table
 
 # Rich console and Typer app
-console = Console()
+console = Console(record=True)
 app = typer.Typer(
     help="Extract knowledge graphs from text using Ollama or OpenAI.",
     rich_markup_mode="rich",
+    no_args_is_help=True,
 )
+
 
 # ---------------------------------------------------------------------------
 # Language Support
@@ -81,8 +84,12 @@ def load_languages() -> dict:
         if LANGUAGES_FILE.exists():
             _LANGUAGES = json.loads(LANGUAGES_FILE.read_text(encoding="utf-8"))
         else:
-            console.print(f"[yellow]Warning: {LANGUAGES_FILE} not found, using English[/yellow]")
-            _LANGUAGES = {"en": {"name": "English", "prompts": {}, "ui": {}, "console": {}}}
+            console.print(
+                f"[yellow]Warning: {LANGUAGES_FILE} not found, using English[/yellow]"
+            )
+            _LANGUAGES = {
+                "en": {"name": "English", "prompts": {}, "ui": {}, "console": {}}
+            }
     return _LANGUAGES
 
 
@@ -127,8 +134,11 @@ def set_language(lang_code: str):
     if lang_code in langs:
         _CURRENT_LANG = lang_code
     else:
-        console.print(f"[yellow]Language '{lang_code}' not found, using English[/yellow]")
+        console.print(
+            f"[yellow]Language '{lang_code}' not found, using English[/yellow]"
+        )
         _CURRENT_LANG = DEFAULT_LANGUAGE
+
 
 # ---------------------------------------------------------------------------
 # LLM Response Cache
@@ -171,9 +181,6 @@ def _save_to_cache(key: str, response: str, model: str):
     cache_file.write_text(json.dumps(data, indent=2))
 
 
-DEFAULT_FILE = "./small.md"
-
-
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
@@ -186,9 +193,7 @@ class Config:
     ollama_url: str = "http://localhost:11434/api/generate"
 
     # OpenAI settings
-    openai_api_key: str = (
-        "sk-proj--your-own-key"  # Set via OPENAI_API_KEY env var or directly
-    )
+    openai_api_key: str = None  # Set via OPENAI_API_KEY env var or directly
     openai_base_url: str = (
         "https://api.openai.com/v1"  # Can override for OpenAI-compatible APIs
     )
@@ -429,7 +434,7 @@ def detect_language(text: str, config: Config, sample_size: int = 1000) -> str:
     """Detect the language of the input text using LLM."""
     # Take a sample from the text
     sample = text[:sample_size] if len(text) > sample_size else text
-    
+
     prompt = f"""Detect the language of the following text. Return only a JSON object with the ISO 639-1 language code (e.g., "en" for English, "de" for German, "fr" for French, etc.).
 
 TEXT:
@@ -439,17 +444,17 @@ Return JSON:
 {{
   "language": "en"
 }}"""
-    
+
     response = llm_generate(prompt, config, model=config.discovery_model)
     result = parse_json_response(response)
-    
+
     detected = result.get("language", DEFAULT_LANGUAGE).lower().strip()
-    
+
     # Validate that we support this language, fallback to English if not
     langs = load_languages()
     if detected not in langs:
         return DEFAULT_LANGUAGE
-    
+
     return detected
 
 
@@ -497,7 +502,7 @@ def discover_schema(
         max_entity_types=max_entity_types,
         max_relation_types=max_relation_types,
     )
-    
+
     # Fallback to English prompt if localization fails
     if not prompt:
         prompt = f"""Analyze this text and identify the best entity types and relation types for a knowledge graph.
@@ -589,7 +594,7 @@ def extract_graph(text: str, schema: Schema, config: Config) -> dict[str, Any]:
         relation_types=json.dumps(schema.relation_types),
         text=text,
     )
-    
+
     # Fallback to English prompt if localization fails
     if not prompt:
         prompt = f"""Extract a knowledge graph from the text below.
@@ -646,7 +651,7 @@ def _save_partial_results(
 ):
     """Save intermediate results to a partial file."""
     partial_path = output_path.with_suffix(".partial.json")
-    output = {
+    partial_json = {
         "status": "in_progress",
         "progress": f"{completed}/{total}",
         "schema": {
@@ -665,7 +670,7 @@ def _save_partial_results(
             for r in sorted(results, key=lambda x: x.chunk_idx)
         ],
     }
-    partial_path.write_text(json.dumps(output, indent=2))
+    partial_path.write_text(json.dumps(partial_json, indent=2))
 
 
 async def extract_all(
@@ -878,7 +883,10 @@ def _filter_low_importance_nodes(
 
     removed = original_count - len(filtered_entities)
     if removed > 0:
-        msg = get_console_msg("removed_entities", count=removed) or f"Removed {removed} low-importance entities (meaningless name or zero degree)"
+        msg = (
+            get_console_msg("removed_entities", count=removed)
+            or f"Removed {removed} low-importance entities (meaningless name or zero degree)"
+        )
         console.print(f"[dim]{msg}[/dim]")
 
     return filtered_entities, relations
@@ -921,7 +929,10 @@ def _summarize_descriptions(
     batch_size = 20
     summaries = {}
     total_batches = (len(to_summarize) + batch_size - 1) // batch_size
-    progress_msg = get_console_msg("summarizing", count=len(to_summarize)) or f"Summarizing {len(to_summarize)} items..."
+    progress_msg = (
+        get_console_msg("summarizing", count=len(to_summarize))
+        or f"Summarizing {len(to_summarize)} items..."
+    )
 
     with Progress(
         SpinnerColumn(),
@@ -933,9 +944,7 @@ def _summarize_descriptions(
         console=console,
         transient=False,
     ) as progress:
-        task = progress.add_task(
-            f"[cyan]{progress_msg}", total=total_batches
-        )
+        task = progress.add_task(f"[cyan]{progress_msg}", total=total_batches)
 
         for i in range(0, len(to_summarize), batch_size):
             batch = to_summarize[i : i + batch_size]
@@ -971,10 +980,10 @@ def _build_summarization_prompt(items: list[dict]) -> str:
         descs = ", ".join(f'"{d}"' for d in item["descriptions"])
         lines.append(f'- "{item["id"]}": [{descs}]')
     items_text = "\n".join(lines)
-    
+
     # Use localized prompt
     prompt = get_prompt("summarize_descriptions", items_text=items_text)
-    
+
     # Fallback to English prompt if localization fails
     if not prompt:
         prompt = f"""Summarize multiple descriptions for each item into ONE concise description (1-2 sentences).
@@ -1012,7 +1021,7 @@ def rephrase_chunks(chunks: list[str], config: Config) -> list[str]:
         for chunk in chunks:
             # Use localized prompt
             prompt = get_prompt("rephrase_chunk", chunk=chunk)
-            
+
             # Fallback to English prompt if localization fails
             if not prompt:
                 prompt = (
@@ -1032,10 +1041,10 @@ def rephrase_chunks(chunks: list[str], config: Config) -> list[str]:
 def extract_title(chunks: list[str], config: Config, max_chunks: int = 3) -> str:
     """Extract a short document title from the first few chunks."""
     sample = "\n\n".join(chunks[:max_chunks])
-    
+
     # Use localized prompt
     prompt = get_prompt("extract_title", sample=sample)
-    
+
     # Fallback to English prompt if localization fails
     if not prompt:
         prompt = (
@@ -1052,10 +1061,10 @@ def extract_title(chunks: list[str], config: Config, max_chunks: int = 3) -> str
 def extract_summary(chunks: list[str], config: Config, max_chunks: int = 3) -> str:
     """Summarize the document based on the first few chunks."""
     sample = "\n\n".join(chunks[:max_chunks])
-    
+
     # Use localized prompt
     prompt = get_prompt("extract_summary", sample=sample)
-    
+
     # Fallback to English prompt if localization fails
     if not prompt:
         prompt = (
@@ -1114,7 +1123,7 @@ def export_html(results_data: dict, output_path: Path, title: str = "Knowledge G
     relations = consolidated.get("relations", [])
 
     entity_names = {e["name"] for e in entities}
-    
+
     # Build relation lookup: entity -> list of (other, type, description, direction)
     rel_map: dict[str, list[dict]] = {}
     for r in relations:
@@ -1167,11 +1176,13 @@ def export_html(results_data: dict, output_path: Path, title: str = "Knowledge G
             f'<a href="#entity-{m.lower().replace(" ", "-")}" class="entity-link">{html_mod.escape(m)}</a>'
             for m in sorted(members)
         )
-        communities_display.append({
-            "topics": topics,
-            "description": c.get("description", ""),
-            "member_links": member_links,
-        })
+        communities_display.append(
+            {
+                "topics": topics,
+                "description": c.get("description", ""),
+                "member_links": member_links,
+            }
+        )
 
     # Prepare chunks display data
     chunks_display = []
@@ -1179,11 +1190,13 @@ def export_html(results_data: dict, output_path: Path, title: str = "Knowledge G
         rephrase = chunk.get("rephrase", "")
         original = chunk.get("text", "")
         display = rephrase if rephrase else original
-        chunks_display.append({
-            "id": f"chunk-{i}",
-            "linkified": _linkify_entities(display, entity_names),
-            "original": original,
-        })
+        chunks_display.append(
+            {
+                "id": f"chunk-{i}",
+                "linkified": _linkify_entities(display, entity_names),
+                "original": original,
+            }
+        )
 
     # Prepare entities display data
     chunk_label = get_ui("chunk_label") or "Chunk"
@@ -1192,7 +1205,7 @@ def export_html(results_data: dict, output_path: Path, title: str = "Knowledge G
         name = e.get("name", "")
         chunk_ids = e.get("chunk_ids", [])
         rels = rel_map.get(name, [])
-        
+
         # Build relation HTML
         rel_html = []
         for rel in rels:
@@ -1203,30 +1216,36 @@ def export_html(results_data: dict, output_path: Path, title: str = "Knowledge G
             if rel["description"]:
                 label += f": {html_mod.escape(rel['description'])}"
             rel_html.append(label)
-        
+
         # Build chunk links
         chunk_links = " \u2022 ".join(
             f'<a href="#chunk-{cid}-rephrase">{chunk_label} {cid}</a>'
-            for cid in chunk_ids if cid >= 0
+            for cid in chunk_ids
+            if cid >= 0
         )
-        
-        entities_display.append({
-            "name": name,
-            "anchor": f"entity-{name.lower().replace(' ', '-')}",
-            "description": e.get("description", ""),
-            "relations": rel_html,
-            "chunk_links": chunk_links,
-        })
+
+        entities_display.append(
+            {
+                "name": name,
+                "anchor": f"entity-{name.lower().replace(' ', '-')}",
+                "description": e.get("description", ""),
+                "relations": rel_html,
+                "chunk_links": chunk_links,
+            }
+        )
 
     # Get localized labels
     date_info = datetime.now().strftime("%b %d, %Y")
-    extracted_info = get_ui(
-        "extracted_info",
-        entities=len(entities),
-        relations=len(relations),
-        communities=len(communities),
-        date=date_info
-    ) or f"Extracted {len(entities)} entities, {len(relations)} relations and {len(communities)} topics on {date_info}"
+    extracted_info = (
+        get_ui(
+            "extracted_info",
+            entities=len(entities),
+            relations=len(relations),
+            communities=len(communities),
+            date=date_info,
+        )
+        or f"Extracted {len(entities)} entities, {len(relations)} relations and {len(communities)} topics on {date_info}"
+    )
 
     labels = {
         "source": get_ui("source_label") or "Source",
@@ -1258,7 +1277,7 @@ def export_html(results_data: dict, output_path: Path, title: str = "Knowledge G
         "using automated artificial intelligence tools (Knwl.AI). While we strive for "
         "accuracy, this data is generated via machine learning algorithms and natural "
         "language processing, which may result in errors, omissions, or misinterpretations "
-        "of the original source material. This document is provided \"as is\" and for "
+        'of the original source material. This document is provided "as is" and for '
         "informational purposes only. Orbifold Consulting makes no warranties, express or "
         "implied, regarding the accuracy, completeness, or reliability of this information. "
         "Users are advised to independently verify any critical data against original source "
@@ -1292,7 +1311,7 @@ def export_html(results_data: dict, output_path: Path, title: str = "Knowledge G
         edge_elements=edge_elements,
         community_desc=community_desc,
         js_labels=js_labels,
-        rawData=json.dumps(results_data, indent=2)
+        rawData=json.dumps(results_data, indent=2),
     )
 
     html_path = output_path.with_suffix(".html")
@@ -1327,10 +1346,10 @@ def _build_community_prompt(communities: list[dict]) -> str:
         )
         lines.append(f'- "{c["id"]}": [{members}]')
     communities_text = chr(10).join(lines)
-    
+
     # Use localized prompt
     prompt = get_prompt("community_labeling", communities_text=communities_text)
-    
+
     # Fallback to English prompt if localization fails
     if not prompt:
         prompt = f"""You are labeling graph communities. For each community, return 1-3 short topics and a 1-2 sentence description.
@@ -1374,7 +1393,9 @@ def _fallback_community_labels(communities: list[dict]) -> dict:
 
 def analyze_communities(consolidated: dict, config: Config) -> dict:
     """Detect communities and label them with topics and descriptions."""
-    analyzing_msg = get_console_msg("analyzing_communities") or "Analyzing communities..."
+    analyzing_msg = (
+        get_console_msg("analyzing_communities") or "Analyzing communities..."
+    )
     with console.status(f"[cyan]{analyzing_msg}"):
         g = nx.Graph()
         for e in consolidated.get("entities", []):
@@ -1428,7 +1449,10 @@ def analyze_communities(consolidated: dict, config: Config) -> dict:
                     entity_map[name]["community_id"] = cid
 
         consolidated["communities"] = communities_out
-        detected_msg = get_console_msg("detected_communities", count=len(communities)) or f"Detected {len(communities)} communities"
+        detected_msg = (
+            get_console_msg("detected_communities", count=len(communities))
+            or f"Detected {len(communities)} communities"
+        )
         console.print(f"[white]{detected_msg}[/]")
     return consolidated
 
@@ -1574,59 +1598,88 @@ def print_stats(stats: dict, schema: Schema, consolidated: dict | None = None):
 # ---------------------------------------------------------------------------
 @app.command()
 def main(
+    ctx: typer.Context,
     file: Annotated[
         Optional[Path],
-        typer.Option("--file", "-f", help="Input text file"),
+        typer.Option("--file", "-f", help="Path to a text or PDF file to extract from"),
     ] = None,
     extraction_model: Annotated[
         str,
-        typer.Option("--extraction-model", "-e", help="Model for graph extraction"),
+        typer.Option(
+            "--extraction-model",
+            "-e",
+            help=f"LLM model for graph extraction, default: {DEFAULT_OLLAMA_EXTRACTION_MODEL}",
+        ),
     ] = DEFAULT_OLLAMA_EXTRACTION_MODEL,
     discovery_model: Annotated[
         str,
-        typer.Option("--discovery-model", "-d", help="Model for schema discovery"),
+        typer.Option(
+            "--discovery-model",
+            "-d",
+            help=f"LLM model for schema discovery, default: {DEFAULT_OLLAMA_SCHEMA_MODEL}",
+        ),
     ] = DEFAULT_OLLAMA_SCHEMA_MODEL,
     concurrent: Annotated[
         int,
-        typer.Option("--concurrent", "-c", help="Max concurrent requests"),
+        typer.Option(
+            "--concurrent", "-c", help=f"Max LLM concurrent requests, default: 10"
+        ),
     ] = 10,
     no_discovery: Annotated[
         bool,
         typer.Option(
-            "--no-discovery", help="Skip schema discovery and use the default schema"
+            "--no-discovery",
+            help="Skip schema discovery via LLM and use the default (shallow) schema",
         ),
     ] = False,
     no_cache: Annotated[
         bool,
-        typer.Option("--no-cache", help="Disable LLM response caching"),
+        typer.Option(
+            "--no-cache", help=f"Disable LLM response caching, default: false"
+        ),
     ] = False,
     openai: Annotated[
         bool,
-        typer.Option("--openai", help="Use OpenAI API instead of Ollama"),
+        typer.Option(
+            "--openai",
+            help="Use OpenAI API instead of Ollama (requires the OPENAI_API_KEY set in environment), default: false",
+        ),
     ] = False,
     openai_base_url: Annotated[
         str,
-        typer.Option("--openai-base-url", help="OpenAI API base URL"),
+        typer.Option(
+            "--openai-base-url",
+            help="OpenAI API base URL, default: https://api.openai.com/v1",
+        ),
     ] = "https://api.openai.com/v1",
     output: Annotated[
         Optional[Path],
-        typer.Option("--output", "-o", help="Save results to JSON"),
+        typer.Option(
+            "--output",
+            "-o",
+            help="Directory to save results (defaults to timestamped dir in results/)",
+        ),
     ] = None,
     max_tokens: Annotated[
         int,
-        typer.Option("--max-tokens", help="Max tokens per chunk"),
+        typer.Option("--max-tokens", help="Max tokens per chunk, default: 400"),
     ] = 400,
     html_report: Annotated[
         bool,
-        typer.Option("--html-report", help="Also export an HTML report"),
+        typer.Option("--html-report", help="Also export an HTML report, default: true"),
     ] = True,
     gml_export: Annotated[
         bool,
-        typer.Option("--gml-export", help="Also export a GML graph file"),
+        typer.Option(
+            "--gml-export", help="Also export a GML graph file, default: true"
+        ),
     ] = True,
     html_only: Annotated[
         bool,
-        typer.Option("--html-only", help="Only export HTML from existing results.json"),
+        typer.Option(
+            "--html-only",
+            help="Only export HTML from existing an existing graph JSON file, default: false",
+        ),
     ] = False,
     url: Annotated[
         Optional[str],
@@ -1634,28 +1687,41 @@ def main(
     ] = None,
     language: Annotated[
         Optional[str],
-        typer.Option("--language", "-l", help="Language code (e.g., en, de, fr, es, nl). Auto-detects if not specified."),
+        typer.Option(
+            "--language",
+            "-l",
+            help=f"Language to use (e.g., en, de, fr, es, nl). Auto-detects if not specified. Default: auto-detect",
+        ),
     ] = None,
 ):
     """Extract knowledge graphs from text using LLMs."""
+
     # Determine output path - all outputs go to results/ directory
-    results_dir = Path("results")
-    results_dir.mkdir(exist_ok=True)
 
     if output is None:
-        output = results_dir / "results.json"
+        # temporary timestamp, the title of the document will be used for naming the results dir after extraction
+        results_dir = Path(time.strftime("results/%Y%m%d-%H%M%S"))
+        results_dir.mkdir(parents=True, exist_ok=True)
+
     else:
-        # If user provided a path, put it in results/ directory
-        output = results_dir / output.name
+        # ensure it's a dir and not a file, and create if doesn't exist
+        if output.is_file():
+            raise ValueError(f"Output path must be a directory, not a file: {output}")
+        results_dir = output
+        output.mkdir(parents=True, exist_ok=True)
+    # log recording
 
     if html_only:
-        if not output.exists():
-            raise FileNotFoundError(f"Missing results file: {output}")
-        results_data = json.loads(output.read_text())
+        graph_json_path = results_dir / "graph.json"
+        if not graph_json_path.exists():
+            raise FileNotFoundError(f"Missing results file: {graph_json_path}")
+        results_data = json.loads(graph_json_path.read_text())
         # Set language from saved data or default
         saved_lang = results_data.get("language", DEFAULT_LANGUAGE)
         set_language(saved_lang)
-        html_path = export_html(results_data, output, title=output.stem)
+        html_path = export_html(
+            results_data, results_dir / "index.html", title=results_dir.stem
+        )
         console.print(f"[green]✓[/green] HTML report saved to [cyan]{html_path}[/cyan]")
         return
 
@@ -1671,7 +1737,10 @@ def main(
     )
 
     # Load text
-    file_path = file or Path(DEFAULT_FILE)
+    if file is None:
+        typer.echo(ctx.get_help())
+        raise typer.Exit(1)
+    file_path = file
     # if the file is pdf, extract text using Pymupdf, otherwise read as text
     if file_path.suffix.lower() == ".pdf":
         # if existst in the results dir, use the extracted text to avoid re-extracting from pdf
@@ -1692,10 +1761,11 @@ def main(
     # Load existing graph if output file already exists (augment mode)
     existing_data = None
     existing_result = None
-    if output and output.exists():
-        existing_data = json.loads(output.read_text())
-        consolidated_ents = existing_data.get("consolidated", {}).get("entities", [])
-        consolidated_rels = existing_data.get("consolidated", {}).get("relations", [])
+    graph_json_path = results_dir / "graph.json"
+    if graph_json_path.exists():
+        existing_data = json.loads(graph_json_path.read_text())
+        consolidated_ents = existing_data.get("graph", {}).get("entities", [])
+        consolidated_rels = existing_data.get("graph", {}).get("relations", [])
         existing_result = ExtractionResult(
             entities=consolidated_ents,
             relations=consolidated_rels,
@@ -1711,7 +1781,7 @@ def main(
     else:
         detected_lang = detect_language(text, config)
         set_language(detected_lang)
-    
+
     lang_name = get_lang().get("name", detected_lang)
 
     # Show header
@@ -1749,7 +1819,9 @@ def main(
         )
         console.print("[yellow]Skipped (using defaults)[/yellow]")
     else:
-        discovering_msg = get_console_msg("discovering_schema") or "Discovering schema..."
+        discovering_msg = (
+            get_console_msg("discovering_schema") or "Discovering schema..."
+        )
         with console.status(f"[bold green]{discovering_msg}[/bold green]"):
             schema = discover_schema(text, config)
         console.print(f"Time: [cyan]{schema.discovery_time:.2f}s[/cyan]")
@@ -1830,103 +1902,122 @@ def main(
     print_stats(stats, schema, consolidated)
 
     # Save results
-    if output:
-        if existing_data and "schema" in existing_data:
-            old_schema = existing_data["schema"]
-            entity_types = list(schema.entity_types)
-            relation_types = list(schema.relation_types)
+    if existing_data and "schema" in existing_data:
+        old_schema = existing_data["schema"]
+        entity_types = list(schema.entity_types)
+        relation_types = list(schema.relation_types)
 
-            for et in old_schema.get("entity_types", []):
-                if et.lower() not in {t.lower() for t in entity_types}:
-                    entity_types.append(et)
-            for rt in old_schema.get("relation_types", []):
-                if rt.lower() not in {t.lower() for t in relation_types}:
-                    relation_types.append(rt)
+        for et in old_schema.get("entity_types", []):
+            if et.lower() not in {t.lower() for t in entity_types}:
+                entity_types.append(et)
+        for rt in old_schema.get("relation_types", []):
+            if rt.lower() not in {t.lower() for t in relation_types}:
+                relation_types.append(rt)
 
-            old_reasoning = old_schema.get("reasoning", "")
-            if old_reasoning and old_reasoning != schema.reasoning:
-                reasoning = f"{old_reasoning} | {schema.reasoning}".strip(" |")
-            else:
-                reasoning = schema.reasoning or old_reasoning
+        old_reasoning = old_schema.get("reasoning", "")
+        if old_reasoning and old_reasoning != schema.reasoning:
+            reasoning = f"{old_reasoning} | {schema.reasoning}".strip(" |")
         else:
-            entity_types = schema.entity_types
-            relation_types = schema.relation_types
-            reasoning = schema.reasoning
+            reasoning = schema.reasoning or old_reasoning
+    else:
+        entity_types = schema.entity_types
+        relation_types = schema.relation_types
+        reasoning = schema.reasoning
 
-        stats_entry = dict(stats)
-        stats_entry["run"] = {
-            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-            "file": str(file_path),
-            "backend": "openai" if config.use_openai else "ollama",
-            "extraction_model": config.extraction_model,
-            "discovery_model": config.discovery_model,
-            "max_tokens": config.max_tokens,
-            "overlap_tokens": config.overlap_tokens,
-            "max_concurrent": config.max_concurrent,
-            "use_cache": config.use_cache,
-            "no_discovery": no_discovery,
-        }
+    stats_entry = dict(stats)
+    stats_entry["run"] = {
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "file": str(file_path),
+        "backend": "openai" if config.use_openai else "ollama",
+        "extraction_model": config.extraction_model,
+        "discovery_model": config.discovery_model,
+        "max_tokens": config.max_tokens,
+        "overlap_tokens": config.overlap_tokens,
+        "max_concurrent": config.max_concurrent,
+        "use_cache": config.use_cache,
+        "no_discovery": no_discovery,
+    }
 
-        if existing_data and "stats" in existing_data:
-            prior_stats = existing_data.get("stats")
-            if isinstance(prior_stats, list):
-                stats_list = prior_stats + [stats_entry]
-            else:
-                stats_list = [prior_stats, stats_entry]
+    if existing_data and "stats" in existing_data:
+        prior_stats = existing_data.get("stats")
+        if isinstance(prior_stats, list):
+            stats_list = prior_stats + [stats_entry]
         else:
-            stats_list = [stats_entry]
+            stats_list = [prior_stats, stats_entry]
+    else:
+        stats_list = [stats_entry]
 
-        output_data = {
-            "title": title,
-            "summary": summary,
-            "url": url,
-            "language": detected_lang,
-            "schema": {
-                "entity_types": entity_types,
-                "relation_types": relation_types,
-                "reasoning": reasoning,
-            },
-            "stats": stats_list,
-            "communities": consolidated.get("communities", []),
-            "consolidated": consolidated,
-            "chunks": (existing_data.get("chunks", []) if existing_data else [])
-            + [
-                {
-                    "chunk_idx": r.chunk_idx,
-                    "text": chunks[r.chunk_idx],
-                    "rephrase": (
-                        rephrased[r.chunk_idx] if r.chunk_idx < len(rephrased) else ""
-                    ),
-                    "entities": r.entities,
-                    "relations": r.relations,
-                    "chunk_time": r.chunk_time,
-                    "chunk_tokens": r.chunk_tokens,
-                    "source_file": str(file_path),
-                }
-                for r in results
-            ],
-        }
-        output.write_text(json.dumps(output_data, indent=2))
-        console.print(f"\n[green]✓[/green] Results saved to [cyan]{output}[/cyan]")
+    output_data = {
+        "title": title,
+        "summary": summary,
+        "url": url,
+        "language": detected_lang,
+        "schema": {
+            "entity_types": entity_types,
+            "relation_types": relation_types,
+            "reasoning": reasoning,
+        },
+        "stats": stats_list,
+        "communities": consolidated.get("communities", []),
+        "graph": consolidated,
+        "chunks": (existing_data.get("chunks", []) if existing_data else [])
+        + [
+            {
+                "chunk_idx": r.chunk_idx,
+                "text": chunks[r.chunk_idx],
+                "rephrase": (
+                    rephrased[r.chunk_idx] if r.chunk_idx < len(rephrased) else ""
+                ),
+                "entities": r.entities,
+                "relations": r.relations,
+                "chunk_time": r.chunk_time,
+                "chunk_tokens": r.chunk_tokens,
+                "source_file": str(file_path),
+            }
+            for r in results
+        ],
+    }
+    graph_json_path.write_text(json.dumps(output_data, indent=2))
+    console.print(f"\n[green]✓[/green] Results saved to [cyan]{graph_json_path}[/cyan]")
 
-        # Export to graph formats
-        if gml_export:
-            g = create_network(consolidated)
+    # Export to graph formats
+    if gml_export:
+        g = create_network(consolidated)
 
-            nx.write_gml(g, output.with_suffix(".gml"))
-            console.print(
-                f"[green]✓[/green] Graph saved to [cyan]{output.with_suffix('.gml')}[/cyan]"
-            )
+        nx.write_gml(g, results_dir / "graph.gml")
+        console.print(
+            f"[green]✓[/green] Graph saved to [cyan]{results_dir / 'graph.gml'}[/cyan]"
+        )
 
-        # Export to HTML
-        if html_report:
-            html_path = export_html(output_data, output, title=file_path.stem)
-            console.print(
-                f"[green]✓[/green] HTML report saved to [cyan]{html_path}[/cyan]"
-            )
+    # Export to HTML
+    if html_report:
+        html_path = export_html(
+            output_data, results_dir / "index.html", title=results_dir.stem
+        )
+        console.print(f"[green]✓[/green] HTML report saved to [cyan]{html_path}[/cyan]")
 
-        # nx.write_graphml(g, output.with_suffix(".graphml"))
-        # console.print(f"[green]✓[/green] Graph saved to [cyan]{output.with_suffix('.graphml')}[/cyan]")
+    # nx.write_graphml(g, output.with_suffix(".graphml"))
+    # console.print(f"[green]✓[/green] Graph saved to [cyan]{output.with_suffix('.graphml')}[/cyan]")
+
+    log_path = results_dir / f"log.txt"
+    console.save_text(str(log_path), clear=False)
+    print(f"Console log saved to {log_path}")
+    log_path = results_dir / f"log.html"
+    console.save_html(str(log_path), clear=False)
+    print(f"Console log saved to {log_path}")
+    # rename the results directory to include the title of the document (truncated to 30 chars for readability)
+    if not output:
+        if title and len(title) > 30:
+            new_dir_name = "_".join(title.split(" ")[:3])
+        else:
+            new_dir_name = title.replace(" ", "_")[:30]
+        new_dir_path = results_dir.parent / new_dir_name
+        if new_dir_path.exists():
+            new_dir_path = results_dir.parent / f"{new_dir_name}_{int(time.time())}"
+        results_dir.rename(new_dir_path)
+        console.print(
+            f"[green]✓[/green] Results directory renamed to [cyan]{new_dir_path}[/cyan]"
+        )
 
 
 if __name__ == "__main__":

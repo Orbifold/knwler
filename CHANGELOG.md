@@ -6,6 +6,8 @@
 - Complete refactory of the monolithic main into a proper package
 - MIT license specified
 - knwler script in UV added, you can now use it via pipx
+- Template rendering flitches are fixed
+- Unit tests
 
 ## v0.3.0
 

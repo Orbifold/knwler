@@ -58,7 +58,7 @@ def export_html(
     url = results_data.get("url", "")
     communities = results_data.get("communities", [])
     chunks = results_data.get("chunks", [])
-    consolidated = results_data.get("consolidated", {})
+    consolidated = results_data.get("graph", {})
     entities = consolidated.get("entities", [])
     relations = consolidated.get("relations", [])
 

@@ -3,13 +3,16 @@
 ## v0.4.0
 
 - Import scripts for Neo4j, SurrealDB and HelixDB
+- Complete refactory of the monolithic main into a proper package
+- MIT license specified
+- knwler script in UV added, you can now use it via pipx
 
 ## v0.3.0
 
 - Published knwler to pypi (publishing GH workflow)
 - Renamed `results.json` to `graph.json`, `results.gml` to `graph.gml`, `results.html` to `index.html`
 - Output argument now correctly used to save diverse results
-- Rich console output save to txt and html in the results dir
+- Rich console output saved to txt and html in the results dir
 - Running `uv run main.py` now shows the help system, as should be
 - Removed the examples, they can be found on https://knwler.com
 - Openai key is now picked up from the env

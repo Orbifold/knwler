@@ -1,0 +1,281 @@
+"""
+Graph consolidation: merge chunk results, summarize descriptions, filter.
+"""
+
+import re
+import time
+
+from rich.progress import (
+    BarColumn,
+    Progress,
+    SpinnerColumn,
+    TaskProgressColumn,
+    TextColumn,
+    TimeElapsedColumn,
+)
+
+from knwler.config import Config, ExtractionResult, console
+from knwler.language import get_console_msg, get_prompt
+from knwler.llm import llm_generate, parse_json_response
+
+
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
+def consolidate_graphs(
+    results: list[ExtractionResult],
+    config: Config,
+    summarize: bool = True,
+) -> tuple[dict, float]:
+    """Consolidate chunk graphs with unique (name, type) and summarized descriptions.
+
+    Returns ``(consolidated_graph, consolidation_time)``.
+    """
+    t0 = time.perf_counter()
+
+    # Phase 1: Aggregate by key
+    entity_map: dict[tuple[str, str], dict] = {}
+    relation_map: dict[tuple[str, str, str], dict] = {}
+
+    for r in results:
+        for e in r.entities:
+            name = (e.get("name") or "").strip()
+            etype = (e.get("type") or "").strip()
+            desc = (e.get("description") or "").strip()
+            if not name or not etype:
+                continue
+            key = (name.lower(), etype.lower())
+            if key not in entity_map:
+                entity_map[key] = {
+                    "name": name,
+                    "type": etype,
+                    "descriptions": [],
+                    "chunk_ids": set(),
+                }
+            entity_map[key]["chunk_ids"].add(r.chunk_idx)
+            if desc and desc not in entity_map[key]["descriptions"]:
+                entity_map[key]["descriptions"].append(desc)
+
+        for rel in r.relations:
+            src = (rel.get("source") or "").strip()
+            tgt = (rel.get("target") or "").strip()
+            rtype = (rel.get("type") or "").strip()
+            desc = (rel.get("description") or "").strip()
+            strength = rel.get("strength", 5)
+            if not src or not tgt or not rtype:
+                continue
+            key = (src.lower(), tgt.lower(), rtype.lower())
+            if key not in relation_map:
+                relation_map[key] = {
+                    "source": src,
+                    "target": tgt,
+                    "type": rtype,
+                    "descriptions": [],
+                    "strengths": [],
+                    "chunk_ids": set(),
+                }
+            relation_map[key]["chunk_ids"].add(r.chunk_idx)
+            relation_map[key]["strengths"].append(strength)
+            if desc and desc not in relation_map[key]["descriptions"]:
+                relation_map[key]["descriptions"].append(desc)
+
+    # Phase 2: Summarize descriptions that need merging
+    if summarize:
+        entity_map, relation_map = _summarize_descriptions(
+            entity_map, relation_map, config
+        )
+
+    # Phase 3: Build final output
+    entities = [
+        {
+            "name": e["name"],
+            "type": e["type"],
+            "description": e["descriptions"][0] if e["descriptions"] else "",
+            "chunk_ids": sorted(e["chunk_ids"]),
+        }
+        for e in entity_map.values()
+    ]
+    relations = [
+        {
+            "source": r["source"],
+            "target": r["target"],
+            "type": r["type"],
+            "description": r["descriptions"][0] if r["descriptions"] else "",
+            "strength": round(sum(r["strengths"]) / len(r["strengths"]), 1),
+            "chunk_ids": sorted(r["chunk_ids"]),
+        }
+        for r in relation_map.values()
+    ]
+
+    # Phase 4: Remove low-importance nodes
+    entities, relations = _filter_low_importance_nodes(entities, relations)
+
+    elapsed = time.perf_counter() - t0
+    return {"entities": entities, "relations": relations}, elapsed
+
+
+# ---------------------------------------------------------------------------
+# Internal helpers
+# ---------------------------------------------------------------------------
+def _is_meaningful_name(name: str) -> bool:
+    """Check if an entity name is meaningful (not just numbers, punctuation, etc.)."""
+    name = name.strip()
+    if not name:
+        return False
+    if re.match(r"^[\d.,\-+%$€£¥]+$", name):
+        return False
+    if len(name) == 1 and not name.isalpha():
+        return False
+    if re.match(r"^[\W_]+$", name):
+        return False
+
+    filler_words = {
+        "the",
+        "a",
+        "an",
+        "it",
+        "this",
+        "that",
+        "these",
+        "those",
+        "etc",
+        "n/a",
+        "na",
+        "none",
+    }
+    if name.lower() in filler_words:
+        return False
+
+    return True
+
+
+def _filter_low_importance_nodes(
+    entities: list[dict],
+    relations: list[dict],
+) -> tuple[list[dict], list[dict]]:
+    """Remove low-importance entities: meaningless names or zero degree."""
+    connected = set()
+    for r in relations:
+        connected.add(r["source"].lower())
+        connected.add(r["target"].lower())
+
+    original_count = len(entities)
+    filtered_entities = [
+        e
+        for e in entities
+        if _is_meaningful_name(e["name"]) and e["name"].lower() in connected
+    ]
+
+    removed = original_count - len(filtered_entities)
+    if removed > 0:
+        msg = (
+            get_console_msg("removed_entities", count=removed)
+            or f"Removed {removed} low-importance entities (meaningless name or zero degree)"
+        )
+        console.print(f"[dim]{msg}[/dim]")
+
+    return filtered_entities, relations
+
+
+def _summarize_descriptions(
+    entity_map: dict,
+    relation_map: dict,
+    config: Config,
+) -> tuple[dict, dict]:
+    """Batch summarize entities/relations with multiple descriptions."""
+
+    to_summarize: list[dict] = []
+    for key, e in entity_map.items():
+        if len(e["descriptions"]) > 1:
+            to_summarize.append(
+                {
+                    "id": f"entity:{key[0]}:{key[1]}",
+                    "name": e["name"],
+                    "type": e["type"],
+                    "descriptions": e["descriptions"],
+                }
+            )
+    for key, r in relation_map.items():
+        if len(r["descriptions"]) > 1:
+            to_summarize.append(
+                {
+                    "id": f"relation:{key[0]}:{key[1]}:{key[2]}",
+                    "name": f"{r['source']} -> {r['target']}",
+                    "type": r["type"],
+                    "descriptions": r["descriptions"],
+                }
+            )
+
+    if not to_summarize:
+        return entity_map, relation_map
+
+    batch_size = 20
+    summaries: dict[str, str] = {}
+    total_batches = (len(to_summarize) + batch_size - 1) // batch_size
+    progress_msg = (
+        get_console_msg("summarizing", count=len(to_summarize))
+        or f"Summarizing {len(to_summarize)} items..."
+    )
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TaskProgressColumn(),
+        TextColumn("•"),
+        TimeElapsedColumn(),
+        console=console,
+        transient=False,
+    ) as progress:
+        task = progress.add_task(f"[cyan]{progress_msg}", total=total_batches)
+
+        for i in range(0, len(to_summarize), batch_size):
+            batch = to_summarize[i : i + batch_size]
+            prompt = _build_summarization_prompt(batch)
+            response = llm_generate(prompt, config, model=config.extraction_model)
+            result = parse_json_response(response)
+            summaries.update(result.get("summaries", {}))
+            progress.update(task, advance=1)
+
+    # Apply summaries back
+    for key, e in entity_map.items():
+        sid = f"entity:{key[0]}:{key[1]}"
+        if sid in summaries:
+            e["descriptions"] = [summaries[sid]]
+        elif len(e["descriptions"]) > 1:
+            e["descriptions"] = [" ".join(e["descriptions"])]
+
+    for key, r in relation_map.items():
+        sid = f"relation:{key[0]}:{key[1]}:{key[2]}"
+        if sid in summaries:
+            r["descriptions"] = [summaries[sid]]
+        elif len(r["descriptions"]) > 1:
+            r["descriptions"] = [" ".join(r["descriptions"])]
+
+    return entity_map, relation_map
+
+
+def _build_summarization_prompt(items: list[dict]) -> str:
+    """Build prompt for batch description summarization."""
+    lines = []
+    for item in items:
+        descs = ", ".join(f'"{d}"' for d in item["descriptions"])
+        lines.append(f'- "{item["id"]}": [{descs}]')
+    items_text = "\n".join(lines)
+
+    prompt = get_prompt("summarize_descriptions", items_text=items_text)
+
+    if not prompt:
+        prompt = (
+            "Summarize multiple descriptions for each item into ONE concise "
+            "description (1-2 sentences).\n\n"
+            f"ITEMS:\n{items_text}\n\n"
+            "Return JSON:\n"
+            "{\n"
+            '  "summaries": {\n'
+            '    "<id>": "<merged description>",\n'
+            "    ...\n"
+            "  }\n"
+            "}"
+        )
+    return prompt

@@ -485,10 +485,10 @@
       function transformRawData(rawData, minDegree = 3) {
         // Count degree for each entity based on relations
         const degree = new Map();
-        rawData.consolidated.entities.forEach((entity) => {
+        rawData.graph.entities.forEach((entity) => {
           degree.set(entity.name, 0);
         });
-        rawData.consolidated.relations.forEach((relation) => {
+        rawData.graph.relations.forEach((relation) => {
           degree.set(relation.source, (degree.get(relation.source) || 0) + 1);
           degree.set(relation.target, (degree.get(relation.target) || 0) + 1);
         });
@@ -504,7 +504,7 @@
           edges: [],
         };
 
-        rawData.consolidated.entities.forEach((entity) => {
+        rawData.graph.entities.forEach((entity) => {
           if (kept.has(entity.name)) {
             transformed.nodes.push({
               id: entity.name,
@@ -514,7 +514,7 @@
           }
         });
 
-        rawData.consolidated.relations.forEach((relation) => {
+        rawData.graph.relations.forEach((relation) => {
           if (kept.has(relation.source) && kept.has(relation.target)) {
             transformed.edges.push({
               source: relation.source,

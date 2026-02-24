@@ -13,3 +13,4 @@ cache/
 results/
 uv.lock
 .DS_Store
+.claude

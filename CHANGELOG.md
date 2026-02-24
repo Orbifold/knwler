@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.4.0
+
+- Import scripts for Neo4j, SurrealDB and HelixDB
+
 ## v0.3.0
 
 - Published knwler to pypi (publishing GH workflow)

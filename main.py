@@ -1709,7 +1709,6 @@ def main(
             raise ValueError(f"Output path must be a directory, not a file: {output}")
         results_dir = output
         output.mkdir(parents=True, exist_ok=True)
-    # log recording
 
     if html_only:
         graph_json_path = results_dir / "graph.json"

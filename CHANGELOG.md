@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.4.1
+
+- Fixed package deployment issue not taking the template dir into account
+
 ## v0.4.0
 
 - Import scripts for Neo4j, SurrealDB and HelixDB

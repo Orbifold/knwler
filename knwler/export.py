@@ -10,7 +10,7 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from knwler.config import PROJECT_ROOT, console
+from knwler.config import console
 from knwler.language import get_current_language, get_ui
 
 
@@ -230,7 +230,7 @@ def export_html(
     community_desc = {str(c.get("id")): c.get("description", "") for c in communities}
 
     # Setup Jinja2 environment
-    templates_dir = PROJECT_ROOT / "templates"
+    templates_dir = Path(__file__).parent / "templates"
     env = Environment(
         loader=FileSystemLoader(templates_dir),
         autoescape=select_autoescape(["html", "xml"]),

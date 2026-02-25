@@ -13,15 +13,34 @@ from knwler.llm import llm_generate, parse_json_response
 # ---------------------------------------------------------------------------
 # Network creation
 # ---------------------------------------------------------------------------
-def create_network(consolidated: dict) -> nx.MultiDiGraph:
+def create_network(
+    consolidated: dict,
+    title: str = None,
+    url: str = None,
+    language: str = None,
+    summary: str = None,
+) -> nx.MultiDiGraph:
     """Create a NetworkX graph from consolidated data."""
     g = nx.MultiDiGraph()
+    from knwler.cache import hash_args
+
+    # add a document node so we have a reference from the nodes to the source document
+    doc_hash = hash_args(consolidated.get("title", ""))
+    g.add_node(
+        doc_hash,
+        type="document",
+        title=title,
+        summary=summary,
+        url=consolidated.get("url", ""),
+        language=language,
+    )
     for e in consolidated["entities"]:
         g.add_node(
             e["name"],
             type=e["type"],
             description=e["description"],
             community_id=e.get("community_id"),
+            document=doc_hash,
         )
     for r in consolidated["relations"]:
         g.add_edge(

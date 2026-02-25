@@ -484,6 +484,7 @@
         }
       }
 
+      // the minimum degree threshold helps to keep the amount of nodes on display to only the most connected ones, which usually are the most important ones. You can adjust it as needed.
       function transformRawData(rawData, minDegree = 3) {
         // Count degree for each entity based on relations
         const degree = new Map();

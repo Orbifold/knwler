@@ -12,6 +12,7 @@ import fitz  # PyMuPDF
 import networkx as nx
 import typer
 from rich.panel import Panel
+from rich.padding import Padding
 
 from knwler.config import (
     DEFAULT_OLLAMA_EXTRACTION_MODEL,
@@ -26,6 +27,7 @@ from knwler.language import (
     get_console_msg,
     get_lang,
     set_language,
+    get_current_language,
 )
 from knwler.cache import CACHE_DIR
 from knwler.chunking import chunk_text
@@ -41,108 +43,34 @@ app = typer.Typer(
     help="Extract knowledge graphs from text using Ollama or OpenAI.",
     rich_markup_mode="rich",
     no_args_is_help=True,
+    pretty_exceptions_enable=False,
 )
+from importlib.metadata import version, PackageNotFoundError
 
 
-@app.command()
-def main(
-    ctx: typer.Context,
-    file: Annotated[
-        Optional[Path],
-        typer.Option("--file", "-f", help="Path to a text or PDF file to extract from"),
-    ] = None,
-    extraction_model: Annotated[
-        str,
-        typer.Option(
-            "--extraction-model",
-            "-e",
-            help=f"LLM model for graph extraction, default: {DEFAULT_OLLAMA_EXTRACTION_MODEL}",
-        ),
-    ] = DEFAULT_OLLAMA_EXTRACTION_MODEL,
-    discovery_model: Annotated[
-        str,
-        typer.Option(
-            "--discovery-model",
-            "-d",
-            help=f"LLM model for schema discovery, default: {DEFAULT_OLLAMA_SCHEMA_MODEL}",
-        ),
-    ] = DEFAULT_OLLAMA_SCHEMA_MODEL,
-    concurrent: Annotated[
-        int,
-        typer.Option(
-            "--concurrent", "-c", help="Max LLM concurrent requests, default: 10"
-        ),
-    ] = 10,
-    no_discovery: Annotated[
-        bool,
-        typer.Option(
-            "--no-discovery",
-            help="Skip schema discovery via LLM and use the default (shallow) schema",
-        ),
-    ] = False,
-    no_cache: Annotated[
-        bool,
-        typer.Option("--no-cache", help="Disable LLM response caching, default: false"),
-    ] = False,
-    openai: Annotated[
-        bool,
-        typer.Option(
-            "--openai",
-            help="Use OpenAI API instead of Ollama (requires the OPENAI_API_KEY set in environment), default: false",
-        ),
-    ] = False,
-    openai_base_url: Annotated[
-        str,
-        typer.Option(
-            "--openai-base-url",
-            help="OpenAI API base URL, default: https://api.openai.com/v1",
-        ),
-    ] = "https://api.openai.com/v1",
-    output: Annotated[
-        Optional[Path],
-        typer.Option(
-            "--output",
-            "-o",
-            help="Directory to save results (defaults to timestamped dir in results/)",
-        ),
-    ] = None,
-    max_tokens: Annotated[
-        int,
-        typer.Option("--max-tokens", help="Max tokens per chunk, default: 400"),
-    ] = 400,
-    html_report: Annotated[
-        bool,
-        typer.Option("--html-report", help="Also export an HTML report, default: true"),
-    ] = True,
-    gml_export: Annotated[
-        bool,
-        typer.Option(
-            "--gml-export", help="Also export a GML graph file, default: true"
-        ),
-    ] = True,
-    html_only: Annotated[
-        bool,
-        typer.Option(
-            "--html-only",
-            help="Only export HTML from existing an existing graph JSON file, default: false",
-        ),
-    ] = False,
-    url: Annotated[
-        Optional[str],
-        typer.Option("--url", "-u", help="Origin of the document (for metadata only)"),
-    ] = None,
-    language: Annotated[
-        Optional[str],
-        typer.Option(
-            "--language",
-            "-l",
-            help="Language to use (e.g., en, de, fr, es, nl). Auto-detects if not specified. Default: auto-detect",
-        ),
-    ] = None,
-):
-    """Extract knowledge graphs from text using LLMs."""
+def get_version():
+    try:
+        try:
+            return version("knwler")
+        except PackageNotFoundError:
+            return "unknown"
+    except Exception:
+        return "unknown"
 
-    # Determine output path
+
+def _process_file(
+    file_path: Path,
+    *,
+    output: Optional[Path],
+    config: "Config",
+    no_discovery: bool,
+    language: Optional[str],
+    url: Optional[str],
+    html_report: bool,
+    gml_export: bool,
+) -> None:
+    """Run the full extraction pipeline on a single file."""
+    # Determine this file's results directory
     if output is None:
         results_dir = Path(time.strftime("results/%Y%m%d-%H%M%S"))
         results_dir.mkdir(parents=True, exist_ok=True)
@@ -152,38 +80,7 @@ def main(
         results_dir = output
         output.mkdir(parents=True, exist_ok=True)
 
-    if html_only:
-        graph_json_path = results_dir / "graph.json"
-        if not graph_json_path.exists():
-            raise FileNotFoundError(f"Missing results file: {graph_json_path}")
-        results_data = json.loads(graph_json_path.read_text())
-        saved_lang = results_data.get("language", DEFAULT_LANGUAGE)
-        set_language(saved_lang)
-        html_path = export_html(
-            results_data, results_dir / "index.html", title=results_dir.stem
-        )
-        console.print(
-            f"[green]\u2713[/green] HTML report saved to [cyan]{html_path}[/cyan]"
-        )
-        return
-
-    # Config
-    config = Config(
-        ollama_extraction_model=extraction_model,
-        ollama_discovery_model=discovery_model,
-        max_concurrent=concurrent,
-        max_tokens=max_tokens,
-        use_cache=not no_cache,
-        use_openai=openai,
-        openai_base_url=openai_base_url,
-    )
-
-    # Load text
-    if file is None:
-        typer.echo(ctx.get_help())
-        raise typer.Exit(1)
-    file_path = file
-
+    # Load text from PDF or plain text file
     if file_path.suffix.lower() == ".pdf":
         extracted_text_path = results_dir / f"{file_path.stem}_extracted.txt"
         if extracted_text_path.exists():
@@ -228,7 +125,7 @@ def main(
     # Show header
     backend = "[cyan]OpenAI[/cyan]" if config.use_openai else "[green]Ollama[/green]"
     mode = (
-        f"  \u2022  [yellow]Augmenting[/yellow]: [dim]{output.name}[/dim]"
+        f"  \u2022  [yellow]Augmenting[/yellow]: [dim]{results_dir.name}[/dim]"
         if existing_data
         else ""
     )
@@ -426,7 +323,9 @@ def main(
 
     # GML export
     if gml_export:
-        g = create_network(consolidated)
+        g = create_network(
+            consolidated, title=title, url=url, language=lang_name, summary=summary
+        )
         nx.write_gml(g, results_dir / "graph.gml")
         console.print(
             f"[green]\u2713[/green] Graph saved to "
@@ -445,10 +344,10 @@ def main(
     # Save console log
     log_path = results_dir / "log.txt"
     console.save_text(str(log_path), clear=False)
-    print(f"Console log saved to {log_path}")
+    console.print(f"[green]\u2713[/green] Console log saved to [cyan]{log_path}[/cyan]")
     log_path = results_dir / "log.html"
     console.save_html(str(log_path), clear=False)
-    print(f"Console log saved to {log_path}")
+    console.print(f"[green]\u2713[/green] Console log saved to [cyan]{log_path}[/cyan]")
 
     # Rename results directory to include the title
     if not output:
@@ -464,3 +363,217 @@ def main(
             f"[green]\u2713[/green] Results directory renamed to "
             f"[cyan]{new_dir_path}[/cyan]"
         )
+
+
+@app.command()
+def main(
+    ctx: typer.Context,
+    file: Annotated[
+        Optional[Path],
+        typer.Option("--file", "-f", help="Path to a text or PDF file to extract from"),
+    ] = None,
+    directory: Annotated[
+        Optional[Path],
+        typer.Option(
+            "--directory",
+            "-D",
+            help="Path to a directory containing text or PDF files to extract from",
+        ),
+    ] = None,
+    extraction_model: Annotated[
+        str,
+        typer.Option(
+            "--extraction-model",
+            "-e",
+            help=f"LLM model for graph extraction, default: {DEFAULT_OLLAMA_EXTRACTION_MODEL}",
+        ),
+    ] = DEFAULT_OLLAMA_EXTRACTION_MODEL,
+    discovery_model: Annotated[
+        str,
+        typer.Option(
+            "--discovery-model",
+            "-d",
+            help=f"LLM model for schema discovery, default: {DEFAULT_OLLAMA_SCHEMA_MODEL}",
+        ),
+    ] = DEFAULT_OLLAMA_SCHEMA_MODEL,
+    concurrent: Annotated[
+        int,
+        typer.Option(
+            "--concurrent", "-c", help="Max LLM concurrent requests, default: 10"
+        ),
+    ] = 10,
+    no_discovery: Annotated[
+        bool,
+        typer.Option(
+            "--no-discovery",
+            help="Skip schema discovery via LLM and use the default (shallow) schema",
+        ),
+    ] = False,
+    no_cache: Annotated[
+        bool,
+        typer.Option("--no-cache", help="Disable LLM response caching, default: false"),
+    ] = False,
+    openai: Annotated[
+        bool,
+        typer.Option(
+            "--openai",
+            help="Use OpenAI API instead of Ollama (requires the OPENAI_API_KEY set in environment), default: false",
+        ),
+    ] = False,
+    openai_base_url: Annotated[
+        str,
+        typer.Option(
+            "--openai-base-url",
+            help="OpenAI API base URL, default: https://api.openai.com/v1",
+        ),
+    ] = "https://api.openai.com/v1",
+    output: Annotated[
+        Optional[Path],
+        typer.Option(
+            "--output",
+            "-o",
+            help="Directory to save results (defaults to timestamped dir in results/)",
+        ),
+    ] = None,
+    max_tokens: Annotated[
+        int,
+        typer.Option("--max-tokens", help="Max tokens per chunk, default: 400"),
+    ] = 400,
+    html_report: Annotated[
+        bool,
+        typer.Option("--html-report", help="Also export an HTML report, default: true"),
+    ] = True,
+    gml_export: Annotated[
+        bool,
+        typer.Option(
+            "--gml-export", help="Also export a GML graph file, default: true"
+        ),
+    ] = True,
+    html_only: Annotated[
+        bool,
+        typer.Option(
+            "--html-only",
+            help="Only export HTML from existing an existing graph JSON file, default: false",
+        ),
+    ] = False,
+    url: Annotated[
+        Optional[str],
+        typer.Option("--url", "-u", help="Origin of the document (for metadata only)"),
+    ] = None,
+    language: Annotated[
+        Optional[str],
+        typer.Option(
+            "--language",
+            "-l",
+            help="Language to use (e.g., en, de, fr, es, nl). Auto-detects if not specified. Default: auto-detect",
+        ),
+    ] = None,
+    version: Annotated[
+        bool,
+        typer.Option("--version", "-V", help="Show version and exit", is_eager=True),
+    ] = False,
+):
+    """Extract knowledge graphs from text using LLMs."""
+    # try:
+    if version:
+        console.print(f"[cyan]knwler v{get_version()}[/cyan]")
+        raise typer.Exit(0)
+
+    if html_only:
+        if output is None:
+            raise ValueError(
+                "--html-only requires --output to specify the results directory"
+            )
+        if output.is_file():
+            raise ValueError(f"Output path must be a directory, not a file: {output}")
+        output.mkdir(parents=True, exist_ok=True)
+        graph_json_path = output / "graph.json"
+        if not graph_json_path.exists():
+            raise FileNotFoundError(f"Missing results file: {graph_json_path}")
+        results_data = json.loads(graph_json_path.read_text())
+        saved_lang = results_data.get("language", DEFAULT_LANGUAGE)
+        set_language(saved_lang)
+        html_path = export_html(results_data, output / "index.html", title=output.stem)
+        console.print(
+            f"[green]\u2713[/green] HTML report saved to [cyan]{html_path}[/cyan]"
+        )
+        return
+
+    if file is None and directory is None:
+        typer.echo(ctx.get_help())
+        raise typer.Exit(1)
+
+    # Config
+    config = Config(
+        ollama_extraction_model=extraction_model,
+        ollama_discovery_model=discovery_model,
+        max_concurrent=concurrent,
+        max_tokens=max_tokens,
+        use_cache=not no_cache,
+        use_openai=openai,
+        openai_base_url=openai_base_url,
+    )
+
+    # Build list of files to process
+    if directory is not None:
+        if not directory.is_dir():
+            raise ValueError(f"Not a directory: {directory}")
+        files_to_process = sorted(
+            f
+            for f in directory.iterdir()
+            if f.is_file() and f.suffix.lower() in (".txt", ".pdf", ".md")
+        )
+        if not files_to_process:
+            console.print(
+                f"[yellow]No supported files (.txt, .pdf, .md) found in "
+                f"{directory}[/yellow]"
+            )
+            raise typer.Exit(0)
+    else:
+        files_to_process = [file]
+
+    # Process each file
+    for fp in files_to_process:
+        if directory is not None:
+            fp_output = (output / fp.stem) if output is not None else None
+            console.rule(f"[bold blue]Processing: {fp.name}[/bold blue]")
+        else:
+            fp_output = output
+        # try:
+        _process_file(
+            fp,
+            output=fp_output,
+            config=config,
+            no_discovery=no_discovery,
+            language=language,
+            url=url,
+            html_report=html_report,
+            gml_export=gml_export,
+        )
+        # except Exception as file_err:
+        #     console.print(
+        #         Padding(
+        #             Panel.fit(
+        #                 str(file_err),
+        #                 border_style="red",
+        #                 title=f"Error processing {fp.name}",
+        #             ),
+        #             (1, 2),
+        #         )
+        #     )
+        # if directory is None:
+        #     raise typer.Exit(1)
+        # Directory mode: log error and continue to next file
+
+    # except Exception as e:
+    #     console.print(
+    #         Padding(
+    #             Panel.fit(
+    #                 str(e),
+    #                 border_style="red",
+    #                 title="Error",
+    #             ),
+    #             (1, 2),
+    #         )
+    #     )
+    #     raise typer.Exit(1)

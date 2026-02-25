@@ -77,7 +77,6 @@ def export_html(
             {"other": src, "type": rtype, "description": desc, "dir": "in"}
         )
 
-    # Build node elements for Cytoscape
     node_elements = [
         {
             "data": {
@@ -91,8 +90,6 @@ def export_html(
         }
         for e in entities
     ]
-
-    # Build edge elements for Cytoscape
     edge_elements = [
         {
             "data": {
@@ -156,8 +153,11 @@ def export_html(
                 f'{arrow} <a href="#{other_anchor}" class="entity-link">'
                 f"{html_mod.escape(other)}</a>"
             )
-            if rel["description"]:
-                label += f": {html_mod.escape(rel['description'])}"
+            description = rel["description"]
+            if isinstance(description, list):
+                description = ", ".join(str(d) for d in description)
+            if description:
+                label += f": {html_mod.escape(description)}"
             rel_html.append(label)
 
         chunk_links = " \u2022 ".join(

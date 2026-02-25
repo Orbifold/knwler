@@ -6,7 +6,7 @@ import hashlib
 import json
 import time
 from pathlib import Path
-
+from typing import Any
 from knwler.config import PROJECT_ROOT
 
 # ---------------------------------------------------------------------------
@@ -18,6 +18,39 @@ CACHE_DIR = PROJECT_ROOT / "cache"
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+def hash_args(*args):
+    """
+    Computes an MD5 hash for the given arguments.
+
+    Args:
+        *args: Variable length argument list.
+
+    Returns:
+        str: The MD5 hash of the arguments as a hexadecimal string.
+    """
+    return hashlib.sha256(str(args).encode()).hexdigest()
+
+
+def hash_with_prefix(content: Any, prefix: str = ""):
+    """
+    Computes an MD5 hash of the given content and returns it as a string with an optional prefix.
+
+    Args:
+        content (str): The content to hash.
+        prefix (str, optional): A string to prepend to the hash. Defaults to an empty string.
+
+    Returns:
+        str: The MD5 hash of the content, optionally prefixed.
+    """
+    if isinstance(content, dict):
+        content = json.dumps(content, sort_keys=True)
+    elif hasattr(content, "model_dump_json"):
+        content = content.model_dump_json()
+    else:
+        content = str(content)
+    return prefix + hashlib.sha256(content.encode()).hexdigest()
+
+
 def cache_key(prompt: str, model: str, temperature: float, num_predict: int) -> str:
     """Generate a cache key from prompt and model parameters."""
     content = f"{model}|{temperature}|{num_predict}|{prompt}"

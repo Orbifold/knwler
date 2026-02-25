@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.5.0
+
+- Version info via CLI
+- Stack trace is now hidden on error using CLI
+- You can now specify a whole directory via `--directory` rather than a single file `--file`
+- GML export now carries document info towards multi-document consolidation
+
 ## v0.4.1
 
 - Fixed package deployment issue not taking the template dir into account

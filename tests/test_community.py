@@ -27,7 +27,7 @@ def test_create_network_with_entities_and_relations():
     g = create_network(consolidated)
 
     assert isinstance(g, nx.MultiDiGraph)
-    assert g.number_of_nodes() == 2
+    assert g.number_of_nodes() == 2 + 1  # 2 entities + 1 document node
     assert g.number_of_edges() == 1
     assert "Alice" in g.nodes()
     assert "Bob" in g.nodes()
@@ -76,7 +76,7 @@ def test_create_network_empty():
     g = create_network(consolidated)
 
     assert isinstance(g, nx.MultiDiGraph)
-    assert g.number_of_nodes() == 0
+    assert g.number_of_nodes() == 1  # 0 entities + 1 document node
     assert g.number_of_edges() == 0
 
 
@@ -121,5 +121,5 @@ def test_create_network_multiple_edges():
 
     g = create_network(consolidated)
 
-    assert g.number_of_nodes() == 3
+    assert g.number_of_nodes() == 3 + 1  # 3 entities + 1 document node
     assert g.number_of_edges() == 3

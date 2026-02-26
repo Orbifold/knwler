@@ -47,6 +47,7 @@ def _process_file(
     url: Optional[str],
     html_report: bool,
     gml_export: bool,
+    overwrite_dir: bool = False,
 ) -> None:
     """Run the full extraction pipeline on a single file."""
     # Determine this file's results directory
@@ -336,7 +337,21 @@ def _process_file(
             new_dir_name = title.replace(" ", "_")[:30]
         new_dir_path = results_dir.parent / new_dir_name
         if new_dir_path.exists():
-            new_dir_path = results_dir.parent / f"{new_dir_name}_{int(time.time())}"
+            if overwrite_dir:
+                console.print(
+                    f"[yellow]\u26a0 Overwriting existing directory: "
+                    f"{new_dir_path}[/yellow]"
+                )
+                if new_dir_path.is_dir():
+                    for item in new_dir_path.iterdir():
+                        if item.is_file():
+                            item.unlink()
+                        else:
+                            import shutil
+
+                            shutil.rmtree(item)
+            else:
+                new_dir_path = results_dir.parent / f"{new_dir_name}_{int(time.time())}"
         results_dir.rename(new_dir_path)
         console.print(
             f"[green]\u2713[/green] Results directory renamed to "
@@ -447,6 +462,13 @@ def extract(
             help="Language to use (e.g., en, de, fr, es, nl). Auto-detects if not specified. Default: auto-detect",
         ),
     ] = None,
+    overwrite_dir: Annotated[
+        bool,
+        typer.Option(
+            "--overwrite-dir",
+            help="Allow overwriting the output directory if it already exists (default: false)",
+        ),
+    ] = False,
 ):
     """Extract knowledge graphs from text using LLMs."""
     # try:
@@ -472,7 +494,9 @@ def extract(
         saved_lang = results_data.get("language", DEFAULT_LANGUAGE)
         set_language(saved_lang)
         html_path = export_html(
-            results_data, graph_json_path.parent / "index.html", title=graph_json_path.parent.stem
+            results_data,
+            graph_json_path.parent / "index.html",
+            title=graph_json_path.parent.stem,
         )
         console.print(
             f"[green]\u2713[/green] HTML report saved to [cyan]{html_path}[/cyan]"
@@ -529,6 +553,7 @@ def extract(
             url=url,
             html_report=html_report,
             gml_export=gml_export,
+            overwrite_dir=overwrite_dir,
         )
         # except Exception as file_err:
         #     console.print(

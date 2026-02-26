@@ -8,7 +8,8 @@
 - Graph entities now carry document info (document node) towards multi-document consolidation
 - CLI split in separate apps with `extract` as default for backward compatibility
 - `html_only` now allows a specific `graph.json`, you can render a custom report
-
+- Network viz has a slider to change the degree threshold
+- `--overwrite_dir` flag stops the proliferation of versions
 
 ## v0.4.1
 

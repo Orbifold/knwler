@@ -327,6 +327,65 @@
         height: 18px;
         display: block;
       }
+
+      /* Degree slider */
+      .degree-control {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 5px 0;
+        padding: 8px 14px;
+        background: rgba(90, 90, 90, 0.75);
+        border-radius: 8px;
+        font-size: 13px;
+        color: var(--text);
+        border: 1px solid #333;
+      }
+      .degree-control label {
+        white-space: nowrap;
+        min-width: 170px;
+      }
+      .degree-control input[type="range"] {
+        flex: 1;
+        accent-color: #4e79a7;
+        cursor: pointer;
+      }
+      .degree-control .degree-value {
+        min-width: 20px;
+        text-align: right;
+        font-weight: 600;
+        color: #4e79a7;
+      }
+
+      /* Loading overlay */
+      #graph-loading {
+        display: none;
+        position: absolute;
+        inset: 0;
+        background: rgba(30, 30, 30, 0.72);
+        z-index: 500;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        color: #ccc;
+        pointer-events: none;
+      }
+      #graph-loading.visible {
+        display: flex;
+      }
+      .graph-toolbar {
+        background-color: #2d2d2d;
+        position: absolute;
+        top: 0;
+        left: 8px;
+        z-index: 10000;
+        display: flex;
+        gap: 10px;
+        width: calc(100% - 16px);
+      }
     </style>
   </head>
   <body>
@@ -359,42 +418,57 @@
     {# Graph section #}
     <h2 id="graph-title">{{ labels.network_title }}</h2>
     <div class="graph-container" id="graph-container">
-      <button
-        class="fullscreen-toggle"
-        id="fullscreen-toggle"
-        title="Toggle fullscreen"
-      >
-        <svg
-          id="fs-icon-expand"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="#fff"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
+      <div class="graph-toolbar">
+        <div class="degree-control">
+          <input
+            type="range"
+            id="degree-slider"
+            min="1"
+            max="20"
+            value="3"
+            step="1"
+          />
+          <span class="degree-value" id="degree-value">3</span>
+        </div>
+        <button
+          class="fullscreen-toggle"
+          id="fullscreen-toggle"
+          title="Toggle fullscreen"
         >
-          <polyline points="15 3 21 3 21 9"></polyline>
-          <polyline points="9 21 3 21 3 15"></polyline>
-          <line x1="21" y1="3" x2="14" y2="10"></line>
-          <line x1="3" y1="21" x2="10" y2="14"></line>
-        </svg>
-        <svg
-          id="fs-icon-collapse"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="#fff"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          style="display: none"
-        >
-          <polyline points="4 14 10 14 10 20"></polyline>
-          <polyline points="20 10 14 10 14 4"></polyline>
-          <line x1="14" y1="10" x2="21" y2="3"></line>
-          <line x1="10" y1="14" x2="3" y2="21"></line>
-        </svg>
-      </button>
+          <svg
+            id="fs-icon-expand"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#fff"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polyline points="15 3 21 3 21 9"></polyline>
+            <polyline points="9 21 3 21 3 15"></polyline>
+            <line x1="21" y1="3" x2="14" y2="10"></line>
+            <line x1="3" y1="21" x2="10" y2="14"></line>
+          </svg>
+          <svg
+            id="fs-icon-collapse"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#fff"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            style="display: none"
+          >
+            <polyline points="4 14 10 14 10 20"></polyline>
+            <polyline points="20 10 14 10 14 4"></polyline>
+            <line x1="14" y1="10" x2="21" y2="3"></line>
+            <line x1="10" y1="14" x2="3" y2="21"></line>
+          </svg>
+        </button>
+      </div>
+
       <div id="graph">
+        <div id="graph-loading">Loading&#8230;</div>
         <svg id="graph-svg">
           <g id="viewport">
             <g id="rings-layer"></g>
@@ -561,6 +635,7 @@
 
       // ─── Layer Assignment (BFS from a given or highest-degree node) ──
       function assignLayers(nodes, adj, rootId) {
+        if (nodes.size === 0) return new Map();
         // Use specified root, or fall back to highest-degree node
         let root = rootId || null;
         if (!root) {
@@ -1314,52 +1389,87 @@
       }
 
       // ─── Main ───────────────────────────────────────────────────────
-      function main() {
-        const graphData = transformRawData(rawData);
+      const ringsLayer = document.getElementById("rings-layer");
+      const edgesLayer = document.getElementById("edges-layer");
+      const nodesLayer = document.getElementById("nodes-layer");
+      const graphSvg = document.getElementById("graph-svg");
+      const viewport = document.getElementById("viewport");
+      const graphLoading = document.getElementById("graph-loading");
+      let animating = false;
+      let currentNodes, currentAdj, currentEdges, currentLayers, currentSameLayerSet;
+
+      function buildGraph(minDegree) {
+        const graphData = transformRawData(rawData, minDegree);
         const { nodes, adj, edges } = parseGraph(graphData);
-        let currentLayers = assignLayers(nodes, adj);
-        minimizeCrossings(currentLayers, nodes, adj, edges);
-        computePositions(currentLayers, nodes);
-
-        const ringsLayer = document.getElementById("rings-layer");
-        const edgesLayer = document.getElementById("edges-layer");
-        const nodesLayer = document.getElementById("nodes-layer");
-        const svg = document.getElementById("graph-svg");
-        const viewport = document.getElementById("viewport");
-
+        let layers = assignLayers(nodes, adj);
+        minimizeCrossings(layers, nodes, adj, edges);
+        computePositions(layers, nodes);
         const { sameLayer } = classifyEdges(edges, nodes);
-        let sameLayerSet = new Set(sameLayer);
+
+        currentNodes = nodes;
+        currentAdj = adj;
+        currentEdges = edges;
+        currentLayers = layers;
+        currentSameLayerSet = new Set(sameLayer);
 
         renderRings(ringsLayer, currentLayers);
-        renderEdges(edgesLayer, edges, nodes, sameLayerSet);
-        setEdgeOpacities(edgesLayer, (id) => nodes.get(id));
-        renderNodes(nodesLayer, nodes, adj);
-        setupInteraction(svg, viewport, nodes, adj);
+        renderEdges(edgesLayer, currentEdges, currentNodes, currentSameLayerSet);
+        setEdgeOpacities(edgesLayer, (id) => currentNodes.get(id));
+        renderNodes(nodesLayer, currentNodes, currentAdj);
+      }
+
+      function main() {
+        buildGraph(3);
+        setupInteraction(graphSvg, viewport, currentNodes, currentAdj);
+
+        // ─── Degree slider ─────────────────────────────────────────
+        const slider = document.getElementById("degree-slider");
+        const degreeValueEl = document.getElementById("degree-value");
+        let debounceTimer = null;
+
+        slider.addEventListener("input", () => {
+          const val = parseInt(slider.value, 10);
+          degreeValueEl.textContent = val;
+        });
+
+        slider.addEventListener("change", () => {
+          const val = parseInt(slider.value, 10);
+          degreeValueEl.textContent = val;
+
+          // Show loading overlay, then rebuild on next frame
+          graphLoading.classList.add("visible");
+          clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => {
+            requestAnimationFrame(() => {
+              buildGraph(val);
+              graphLoading.classList.remove("visible");
+            });
+          }, 50);
+        });
 
         // ─── Click-to-recenter ──────────────────────────────────────
-        let animating = false;
 
-        svg.addEventListener("click", (e) => {
+        graphSvg.addEventListener("click", (e) => {
           const circle = e.target.closest(".node-circle");
           if (!circle || animating) return;
 
           const clickedId = circle.dataset.id;
 
           // Snapshot old positions
-          const oldSnap = snapshotPositions(nodes);
+          const oldSnap = snapshotPositions(currentNodes);
           const oldLayers = new Map();
           for (const [k, v] of currentLayers) oldLayers.set(k, [...v]);
 
           // Recompute layout from clicked node
-          currentLayers = assignLayers(nodes, adj, clickedId);
-          minimizeCrossings(currentLayers, nodes, adj, edges);
-          computePositions(currentLayers, nodes);
+          currentLayers = assignLayers(currentNodes, currentAdj, clickedId);
+          minimizeCrossings(currentLayers, currentNodes, currentAdj, currentEdges);
+          computePositions(currentLayers, currentNodes);
 
           // Reclassify same-layer edges for new layout
-          const newClassified = classifyEdges(edges, nodes);
-          sameLayerSet = new Set(newClassified.sameLayer);
+          const newClassified = classifyEdges(currentEdges, currentNodes);
+          currentSameLayerSet = new Set(newClassified.sameLayer);
 
-          const newSnap = snapshotPositions(nodes);
+          const newSnap = snapshotPositions(currentNodes);
           const newLayers = new Map();
           for (const [k, v] of currentLayers) newLayers.set(k, [...v]);
 
@@ -1375,7 +1485,7 @@
 
             // Interpolate positions
             const interpPos = new Map();
-            for (const [id] of nodes) {
+            for (const [id] of currentNodes) {
               interpPos.set(id, lerpNode(oldSnap.get(id), newSnap.get(id), t));
             }
 
@@ -1383,13 +1493,13 @@
             renderRingsAnimated(ringsLayer, oldLayers, newLayers, t);
             renderEdgesFromPositions(
               edgesLayer,
-              edges,
+              currentEdges,
               interpPos,
-              nodes,
-              sameLayerSet,
+              currentNodes,
+              currentSameLayerSet,
             );
             setEdgeOpacities(edgesLayer, (id) => interpPos.get(id));
-            renderNodesFromPositions(nodesLayer, interpPos, nodes, adj);
+            renderNodesFromPositions(nodesLayer, interpPos, currentNodes, currentAdj);
 
             if (rawT < 1) {
               requestAnimationFrame(frame);
@@ -1397,9 +1507,9 @@
               animating = false;
               // Final clean render
               renderRings(ringsLayer, currentLayers);
-              renderEdges(edgesLayer, edges, nodes, sameLayerSet);
-              setEdgeOpacities(edgesLayer, (id) => nodes.get(id));
-              renderNodes(nodesLayer, nodes, adj);
+              renderEdges(edgesLayer, currentEdges, currentNodes, currentSameLayerSet);
+              setEdgeOpacities(edgesLayer, (id) => currentNodes.get(id));
+              renderNodes(nodesLayer, currentNodes, currentAdj);
             }
           }
 

@@ -5,7 +5,10 @@
 - Version info via CLI
 - Stack trace is now hidden on error using CLI
 - You can now specify a whole directory via `--directory` rather than a single file `--file`
-- GML export now carries document info towards multi-document consolidation
+- Graph entities now carry document info (document node) towards multi-document consolidation
+- CLI split in separate apps with `extract` as default for backward compatibility
+- `html_only` now allows a specific `graph.json`, you can render a custom report
+
 
 ## v0.4.1
 

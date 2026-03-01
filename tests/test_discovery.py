@@ -1,6 +1,8 @@
 import pytest
 from unittest.mock import patch, MagicMock
-from knwler.config import Config, Schema
+from knwler.config import Config
+from knwler.models import ExtractionResult, Schema, Graph
+
 from knwler.discovery import detect_language, discover_schema
 
 """

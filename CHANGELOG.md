@@ -10,6 +10,8 @@
 - `html_only` now allows a specific `graph.json`, you can render a custom report
 - Network viz has a slider to change the degree threshold
 - `--overwrite_dir` flag stops the proliferation of versions
+- description summarization tuned to ensure correct use of mapping <id>
+- graph consolidation of multiple extractions, both as a post-processing step and standalone
 
 ## v0.4.1
 

@@ -101,35 +101,3 @@ class Config:
             if self.use_openai
             else self.ollama_discovery_model
         )
-
-
-# ---------------------------------------------------------------------------
-# Data classes
-# ---------------------------------------------------------------------------
-@dataclass
-class ExtractionResult:
-    """Result from extracting a single chunk."""
-
-    entities: list[dict]
-    relations: list[dict]
-    chunk_idx: int
-    chunk_time: float
-    chunk_tokens: int
-
-    @property
-    def entities_count(self) -> int:
-        return len(self.entities)
-
-    @property
-    def relations_count(self) -> int:
-        return len(self.relations)
-
-
-@dataclass
-class Schema:
-    """Discovered or default entity/relation schema."""
-
-    entity_types: list[str]
-    relation_types: list[str]
-    reasoning: str = ""
-    discovery_time: float = 0.0

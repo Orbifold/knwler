@@ -28,7 +28,6 @@ def show_version():
     """Show the version of Knwler."""
     console.print(f"[bold blue]Knwler [/][bold yellow]v{get_version()}[/]")
 
-
 @info_app.callback(invoke_without_command=True)
 def _app_callback(ctx: typer.Context):
     """

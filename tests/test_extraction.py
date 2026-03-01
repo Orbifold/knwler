@@ -3,7 +3,9 @@ import json
 import pytest
 from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock
-from knwler.config import ExtractionResult, Schema, Config
+from knwler.config import Config
+from knwler.models import ExtractionResult, Schema, Graph
+
 
 """
 Tests for knwler.extraction module.

@@ -6,7 +6,9 @@ from statistics import mean, median
 
 from rich.table import Table
 
-from knwler.config import ExtractionResult, Schema, console
+from knwler.config import  console
+from knwler.models import ExtractionResult, Schema, Graph
+
 
 
 # ---------------------------------------------------------------------------

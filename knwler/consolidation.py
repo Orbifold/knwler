@@ -4,7 +4,7 @@ Graph consolidation: merge chunk results, summarize descriptions, filter.
 
 import re
 import time
-
+from uuid import uuid4
 from rich.progress import (
     BarColumn,
     Progress,
@@ -13,17 +13,94 @@ from rich.progress import (
     TextColumn,
     TimeElapsedColumn,
 )
+import json
+from knwler.config import Config, console
+from knwler.models import ExtractionResult, Schema, Graph
 
-from knwler.config import Config, ExtractionResult, console
 from knwler.language import get_console_msg, get_prompt
 from knwler.llm import llm_generate, parse_json_response
+from knwler.models import Schema, Graph
 
 
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 def consolidate_graphs(
-    results: list[ExtractionResult],
+    graphs: list[dict], cluster: bool = False, config: Config = Config()
+) -> dict:
+    """
+    Consolidate multiple chunk graphs into one, with summarization and filtering.
+    This reuses the same consolidation logic as the one to merge chunk graphs into a document graph, but at a higher level to merge multiple document graphs into a single consolidated graph.
+
+    The clustering flag is False by default since it's assumed that the merge of a a large amount of graphs is towards a database ingestion where clustering is more scalable.
+    The clustering is also a reuse of the same community detection and labeling logic as in the community analysis step, but applied at the consolidation level to group similar entities together across documents.
+    """
+    if not graphs or len(graphs) == 0:
+        return None
+    if len(graphs) == 1:
+        return graphs[0]
+
+    # concatenate the chunks
+    all_chunks = []
+    for g in graphs:
+        chunks = g.get("chunks", [])
+        console.print(
+            f"[green]\u2713[/green] Graph [cyan]{g.get('id', 'unknown')}[/cyan]: "
+            f"{len(chunks)} chunk(s), {len(g.get('graph', {}).get('entities', []))} entities, "
+            f"{len(g.get('graph', {}).get('relations', []))} relations."
+        )
+        all_chunks.extend(chunks)
+    all_documents = []
+    for g in graphs:
+        all_documents.append(
+            {
+                "id": g.get("id"),
+                "title": g.get("title"),
+                "summary": g.get("summary"),
+                "url": g.get("url"),
+                "language": g.get("language"),
+            }
+        )
+    all_schema = {
+        "entity_types": set(),
+        "relation_types": set(),
+    }
+    for g in graphs:
+        schema = g.get("schema", {})
+        all_schema["entity_types"].update(schema.get("entity_types", []))
+        all_schema["relation_types"].update(schema.get("relation_types", []))
+    all_schema["entity_types"] = sorted(all_schema["entity_types"])
+    all_schema["relation_types"] = sorted(all_schema["relation_types"])
+    console.print(
+        f"[green]\u2713[/green] Aggregated [cyan]{len(all_chunks)}[/cyan] chunks, [cyan]{len(all_documents)}[/cyan] documents, "
+        f"[cyan]{len(all_schema['entity_types'])}[/cyan] entity types, [cyan]{len(all_schema['relation_types'])}[/cyan] relation types from all graphs."
+    )
+    consolidated, consolidation_time = consolidate_extracted_graphs(
+        [
+            Graph(
+                entities=g.get("graph", {}).get("entities", []),
+                relations=g.get("graph", {}).get("relations", []),
+            )
+            for g in graphs
+        ],
+        config,
+        summarize=True,
+    )
+    if cluster:
+        from knwler.community import analyze_communities
+
+        consolidated = analyze_communities(consolidated, config)
+
+    return {
+        "id": str(uuid4()),
+        "documents": all_documents,
+        "schema": all_schema,
+        "graph": consolidated,
+    }
+
+
+def consolidate_extracted_graphs(
+    results: list[Graph],
     config: Config,
     summarize: bool = True,
 ) -> tuple[dict, float]:
@@ -52,7 +129,7 @@ def consolidate_graphs(
                     "descriptions": [],
                     "chunk_ids": set(),
                 }
-            entity_map[key]["chunk_ids"].add(r.chunk_idx)
+            entity_map[key]["chunk_ids"].update(e.get("chunk_ids", set()))
             if desc and desc not in entity_map[key]["descriptions"]:
                 entity_map[key]["descriptions"].append(desc)
 
@@ -74,7 +151,7 @@ def consolidate_graphs(
                     "strengths": [],
                     "chunk_ids": set(),
                 }
-            relation_map[key]["chunk_ids"].add(r.chunk_idx)
+            relation_map[key]["chunk_ids"].update(rel.get("chunk_ids", set()))
             relation_map[key]["strengths"].append(strength)
             if desc and desc not in relation_map[key]["descriptions"]:
                 relation_map[key]["descriptions"].append(desc)

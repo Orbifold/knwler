@@ -17,7 +17,9 @@ from rich.progress import (
     TimeElapsedColumn,
 )
 
-from knwler.config import Config, ExtractionResult, Schema, console
+from knwler.config import Config,  console
+from knwler.models import ExtractionResult, Schema, Graph
+
 from knwler.chunking import get_encoder
 from knwler.language import get_console_msg, get_prompt
 from knwler.llm import llm_generate, parse_json_response

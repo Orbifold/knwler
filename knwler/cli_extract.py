@@ -13,7 +13,7 @@ import fitz  # pymupdf4llm
 from knwler.cache import CACHE_DIR, hash_args
 from knwler.chunking import chunk_text
 from knwler.community import analyze_communities, create_network
-from knwler.consolidation import consolidate_graphs
+from knwler.consolidation import consolidate_extracted_graphs, consolidate_graphs
 from knwler.discovery import detect_language, discover_schema
 from knwler.language import (
     DEFAULT_LANGUAGE,
@@ -30,10 +30,10 @@ from knwler.config import (
     DEFAULT_OLLAMA_EXTRACTION_MODEL,
     DEFAULT_OLLAMA_SCHEMA_MODEL,
     Config,
-    ExtractionResult,
-    Schema,
     console,
 )
+from knwler.models import ExtractionResult, Schema, Graph
+from knwler.cli_consolidate import cli_consolidate_graphs
 
 extract_app = typer.Typer(help="Utility to manage documents.")
 
@@ -210,7 +210,7 @@ def _process_file(
         if existing_result
         else extraction_results
     )
-    consolidated, consolidation_time = consolidate_graphs(
+    consolidated, consolidation_time = consolidate_extracted_graphs(
         all_results, config, summarize=True
     )
 
@@ -388,7 +388,7 @@ def extract(
     directory: Annotated[
         Optional[Path],
         typer.Option(
-            "--directory",
+            "--dir",
             "-D",
             help="Path to a directory containing text or PDF files to extract from",
         ),
@@ -486,6 +486,13 @@ def extract(
         typer.Option(
             "--overwrite-dir",
             help="Allow overwriting the output directory if it already exists (default: false)",
+        ),
+    ] = False,
+    consolidate: Annotated[
+        bool,
+        typer.Option(
+            "--consolidate",
+            help="Whether to consolidate extracted graphs when multiple documents are processed (default: false)",
         ),
     ] = False,
 ):
@@ -588,6 +595,8 @@ def extract(
         # if directory is None:
         #     raise typer.Exit(1)
         # Directory mode: log error and continue to next file
+    if consolidate and len(files_to_process) > 1:
+        cli_consolidate_graphs(directory=output, output=output, config=config)
 
     # except Exception as e:
     #     console.print(

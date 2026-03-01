@@ -1,0 +1,102 @@
+{
+  "id": "39964123-f5b6-42f1-8114-4a80ff03fe1a",
+  "documents": [
+    {
+      "id": "doc1",
+      "title": "On the origin of species",
+      "summary": null,
+      "url": "https://en.wikipedia.org/wiki/On_the_Origin_of_Species",
+      "language": "en"
+    },
+    {
+      "id": "doc2",
+      "title": "On the origin of species (second edition)",
+      "summary": null,
+      "url": "https://en.wikipedia.org/wiki/On_the_Origin_of_Species",
+      "language": "en"
+    }
+  ],
+  "schema": {
+    "entity_types": [
+      "Concept",
+      "Person",
+      "Place"
+    ],
+    "relation_types": [
+      "discovered",
+      "lived_in",
+      "obsessed_with",
+      "related_to"
+    ]
+  },
+  "graph": {
+    "entities": [
+      {
+        "name": "Charles Darwin",
+        "type": "Person",
+        "description": "English naturalist Charles Darwin, known for his contributions to evolutionary biology, spent the summer of 1825 as an apprentice doctor in Shropshire and later studied at the University of Edinburgh Medical School. He learned taxidermy from John Edmonstone, a Black Briton who had been taught by Charles Waterton, and found lectures dull and surgery distressing.",
+        "chunk_ids": [
+          "doc1-chunk1",
+          "doc2-chunk1"
+        ],
+        "community_id": 0
+      },
+      {
+        "name": "theory of evolution",
+        "type": "Concept",
+        "description": "A scientific theory explaining the process of natural selection.",
+        "chunk_ids": [
+          "doc1-chunk2"
+        ],
+        "community_id": 0
+      },
+      {
+        "name": "barnacles",
+        "type": "Concept",
+        "description": "A group of marine crustaceans that Darwin studied obsessively.",
+        "chunk_ids": [
+          "doc2-chunk2"
+        ],
+        "community_id": 0
+      }
+    ],
+    "relations": [
+      {
+        "source": "Charles Darwin",
+        "target": "theory of evolution",
+        "type": "related_to",
+        "description": "Charles Darwin is related to the theory of evolution.",
+        "strength": 0.8,
+        "chunk_ids": [
+          "doc1-chunk2"
+        ]
+      },
+      {
+        "source": "Charles Darwin",
+        "target": "barnacles",
+        "type": "obsessed_with",
+        "description": "Charles Darwin was obsessed with the study of barnacles.",
+        "strength": 0.1,
+        "chunk_ids": [
+          "doc2-chunk2"
+        ]
+      }
+    ],
+    "communities": [
+      {
+        "id": 0,
+        "topics": [
+          "theory of evolution",
+          "Charles Darwin",
+          "barnacles"
+        ],
+        "description": "This community focuses on Charles Darwin's work, his studies of barnacles, and the theory of evolution that he developed.",
+        "members": [
+          "Charles Darwin",
+          "barnacles",
+          "theory of evolution"
+        ]
+      }
+    ]
+  }
+}

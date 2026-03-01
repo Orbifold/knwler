@@ -5,17 +5,21 @@ from collections.abc import Mapping
 # ---------------------------------------------------------------------------
 # Data classes
 # ---------------------------------------------------------------------------
+@dataclass
+class Graph:
+    """Extracted graph for a single chunk."""
+
+    entities: list[dict]
+    relations: list[dict]
 
 
 @dataclass
-class ExtractionResult:
+class ExtractionResult(Graph):
     """Result from extracting a single chunk."""
 
-    entities: list[Entity] = field(default_factory=list)
-    relations: list[Relation] = field(default_factory=list)
-    chunk_idx: int = -1
-    chunk_time: float = 0.0
-    chunk_tokens: int = 0
+    chunk_idx: int
+    chunk_time: float
+    chunk_tokens: int
 
     @property
     def entities_count(self) -> int:
@@ -26,11 +30,13 @@ class ExtractionResult:
         return len(self.relations)
 
 
+ 
+
 @dataclass
 class Schema:
     """Discovered or default entity/relation schema."""
 
-    entity_types: list[str]
-    relation_types: list[str]
+    entity_types: list[str] = field(default_factory=list)
+    relation_types: list[str] = field(default_factory=list)
     reasoning: str = ""
     discovery_time: float = 0.0

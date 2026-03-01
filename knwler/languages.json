@@ -26,11 +26,11 @@
       "show_original": "Show original text",
       "show_rephrased": "Show rephrased text",
       "appears_in": "Appears in",
-      "chunk_label": "Chunk",
+      "chunk_label": "Section",
       "type_label": "Type",
       "description_label": "Description",
       "community_label": "Community",
-      "chunks_label": "Chunks",
+      "chunks_label": "Sections",
       "disclaimer": "The information contained in this document has been extracted and processed using automated artificial intelligence tools (Knwl.AI). While we strive for accuracy, this data is generated via machine learning algorithms and natural language processing, which may result in errors, omissions, or misinterpretations of the original source material. This document is provided \"as is\" and for informational purposes only. Orbifold Consulting makes no warranties, express or implied, regarding the accuracy, completeness, or reliability of this information. Users are advised to independently verify any critical data against original source documents before making business, legal, or financial decisions. Orbifold Consulting assumes no liability for any actions taken in reliance upon this information."
     },
     "console": {

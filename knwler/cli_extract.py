@@ -7,9 +7,10 @@ import networkx as nx
 
 from pathlib import Path
 import json
+from uuid import uuid4
 from typing import Annotated, Optional
 import fitz  # pymupdf4llm
-from knwler.cache import CACHE_DIR
+from knwler.cache import CACHE_DIR, hash_args
 from knwler.chunking import chunk_text
 from knwler.community import analyze_communities, create_network
 from knwler.consolidation import consolidate_graphs
@@ -196,13 +197,19 @@ def _process_file(
     console.print(f"Model: [green]{config.extraction_model}[/green]")
 
     t0 = time.perf_counter()
-    results = asyncio.run(extract_all(chunks, schema, config, output_path=output))
+    extraction_results = asyncio.run(
+        extract_all(chunks, schema, config, output_path=output)
+    )
     wall_time = time.perf_counter() - t0
 
     # ── Consolidation ──
     console.print()
     console.rule("[bold cyan]Consolidation[/bold cyan]")
-    all_results = ([existing_result] + results) if existing_result else results
+    all_results = (
+        ([existing_result] + extraction_results)
+        if existing_result
+        else extraction_results
+    )
     consolidated, consolidation_time = consolidate_graphs(
         all_results, config, summarize=True
     )
@@ -215,7 +222,9 @@ def _process_file(
     community_time = time.perf_counter() - community_t0
 
     # ── Stats ──
-    stats = compute_stats(results, schema.discovery_time, wall_time, consolidation_time)
+    stats = compute_stats(
+        extraction_results, schema.discovery_time, wall_time, consolidation_time
+    )
     stats["community_detection_time"] = round(community_time, 2)
     stats["communities"] = compute_community_stats(consolidated)
     print_stats(stats, schema, consolidated)
@@ -265,8 +274,34 @@ def _process_file(
             stats_list = [prior_stats, stats_entry]
     else:
         stats_list = [stats_entry]
-
+    document_id = str(uuid4())  # hash_args(title, url)
+    final_chunks = (existing_data.get("chunks", []) if existing_data else []) + [
+        {
+            "chunk_idx": r.chunk_idx,
+            "text": chunks[r.chunk_idx],
+            "rephrase": (
+                rephrased[r.chunk_idx] if r.chunk_idx < len(rephrased) else ""
+            ),
+            "entities": r.entities,
+            "relations": r.relations,
+            "chunk_time": r.chunk_time,
+            "chunk_tokens": r.chunk_tokens,
+            "document": document_id,
+        }
+        for r in extraction_results
+    ]
+    # towards multiple documents
+    chunk_mapping = {}
+    for chunk in final_chunks:
+        chunk["id"] = str(uuid4())
+        chunk_mapping[chunk["chunk_idx"]] = chunk["id"]
+    for ent in consolidated["entities"]:
+        ent["chunk_ids"] = [chunk_mapping.get(id, None) for id in ent["chunk_ids"]]
+    for rel in consolidated["relations"]:
+        rel["chunk_ids"] = [chunk_mapping.get(id, None) for id in rel["chunk_ids"]]
+    # note that communities are not unique and can span multiple chunks, so we won't assign them to specific chunks
     output_data = {
+        "id": document_id,
         "title": title,
         "summary": summary,
         "url": url,
@@ -277,24 +312,8 @@ def _process_file(
             "reasoning": reasoning,
         },
         "stats": stats_list,
-        "communities": consolidated.get("communities", []),
         "graph": consolidated,
-        "chunks": (existing_data.get("chunks", []) if existing_data else [])
-        + [
-            {
-                "chunk_idx": r.chunk_idx,
-                "text": chunks[r.chunk_idx],
-                "rephrase": (
-                    rephrased[r.chunk_idx] if r.chunk_idx < len(rephrased) else ""
-                ),
-                "entities": r.entities,
-                "relations": r.relations,
-                "chunk_time": r.chunk_time,
-                "chunk_tokens": r.chunk_tokens,
-                "source_file": str(file_path),
-            }
-            for r in results
-        ],
+        "chunks": final_chunks,
     }
     graph_json_path.write_text(json.dumps(output_data, indent=2))
     console.print(

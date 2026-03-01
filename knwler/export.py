@@ -56,14 +56,16 @@ def export_html(
     title = results_data.get("title") or title
     summary = results_data.get("summary", "")
     url = results_data.get("url", "")
-    communities = results_data.get("communities", [])
     chunks = results_data.get("chunks", [])
     consolidated = results_data.get("graph", {})
     entities = consolidated.get("entities", [])
     relations = consolidated.get("relations", [])
+    communities = consolidated.get("communities", [])
 
     entity_names = {e["name"] for e in entities}
-
+    chunk_mapping = {
+        c["id"]: c["chunk_idx"] for c in chunks if "id" in c and "chunk_idx" in c
+    }
     # Build relation lookup: entity -> list of (other, type, description, direction)
     rel_map: dict[str, list[dict]] = {}
     for r in relations:
@@ -130,14 +132,14 @@ def export_html(
         display = rephrase if rephrase else original
         chunks_display.append(
             {
-                "id": f"chunk-{i}",
+                "id": f"chunk-{chunk.get('id')}",
                 "linkified": _linkify_entities(display, entity_names),
                 "original": original,
             }
         )
 
     # Prepare entities display data
-    chunk_label = get_ui("chunk_label") or "Chunk"
+    chunk_label = get_ui("chunk_label") or "Part"
     entities_display = []
     for e in sorted(entities, key=lambda x: x.get("name", "").lower()):
         name = e.get("name", "")
@@ -161,9 +163,9 @@ def export_html(
             rel_html.append(label)
 
         chunk_links = " \u2022 ".join(
-            f'<a href="#chunk-{cid}-rephrase">{chunk_label} {cid}</a>'
+            f'<a href="#chunk-{cid}-rephrase">{chunk_label} {chunk_mapping.get(cid)}</a>'
             for cid in chunk_ids
-            if cid >= 0
+            if cid is not None
         )
 
         entities_display.append(

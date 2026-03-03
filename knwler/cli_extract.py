@@ -29,6 +29,10 @@ from knwler.stats import compute_community_stats, compute_stats, print_stats
 from knwler.config import (
     DEFAULT_OLLAMA_EXTRACTION_MODEL,
     DEFAULT_OLLAMA_SCHEMA_MODEL,
+    DEFAULT_OPENAI_EXTRACTION_MODEL,
+    DEFAULT_OPENAI_DISCOVERY_MODEL,
+    DEFAULT_ANTHROPIC_EXTRACTION_MODEL,
+    DEFAULT_ANTHROPIC_DISCOVERY_MODEL,
     Config,
     console,
 )
@@ -88,6 +92,7 @@ def _process_file(
         existing_result = ExtractionResult(
             entities=consolidated_ents,
             relations=consolidated_rels,
+            id=existing_data.get("id", str(uuid4())),
             chunk_idx=-1,
             chunk_time=0.0,
             chunk_tokens=0,
@@ -104,7 +109,12 @@ def _process_file(
     lang_name = get_lang().get("name", detected_lang)
 
     # Show header
-    backend = "[cyan]OpenAI[/cyan]" if config.use_openai else "[green]Ollama[/green]"
+    _backend_labels = {
+        "openai": "[cyan]OpenAI[/cyan]",
+        "anthropic": "[magenta]Anthropic[/magenta]",
+        "ollama": "[green]Ollama[/green]",
+    }
+    backend = _backend_labels.get(config.backend, "[green]Ollama[/green]")
     mode = (
         f"  \u2022  [yellow]Augmenting[/yellow]: [dim]{results_dir.name}[/dim]"
         if existing_data
@@ -197,7 +207,7 @@ def _process_file(
     console.print(f"Model: [green]{config.extraction_model}[/green]")
 
     t0 = time.perf_counter()
-    extraction_results = asyncio.run(
+    extraction_results: list[ExtractionResult] = asyncio.run(
         extract_all(chunks, schema, config, output_path=output)
     )
     wall_time = time.perf_counter() - t0
@@ -256,7 +266,7 @@ def _process_file(
     stats_entry["run"] = {
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
         "file": str(file_path),
-        "backend": "openai" if config.use_openai else "ollama",
+        "backend": config.backend,
         "extraction_model": config.extraction_model,
         "discovery_model": config.discovery_model,
         "max_tokens": config.max_tokens,
@@ -277,6 +287,7 @@ def _process_file(
     document_id = str(uuid4())  # hash_args(title, url)
     final_chunks = (existing_data.get("chunks", []) if existing_data else []) + [
         {
+            "id": r.id,
             "chunk_idx": r.chunk_idx,
             "text": chunks[r.chunk_idx],
             "rephrase": (
@@ -290,15 +301,6 @@ def _process_file(
         }
         for r in extraction_results
     ]
-    # towards multiple documents
-    chunk_mapping = {}
-    for chunk in final_chunks:
-        chunk["id"] = str(uuid4())
-        chunk_mapping[chunk["chunk_idx"]] = chunk["id"]
-    for ent in consolidated["entities"]:
-        ent["chunk_ids"] = [chunk_mapping.get(id, None) for id in ent["chunk_ids"]]
-    for rel in consolidated["relations"]:
-        rel["chunk_ids"] = [chunk_mapping.get(id, None) for id in rel["chunk_ids"]]
     # note that communities are not unique and can span multiple chunks, so we won't assign them to specific chunks
     output_data = {
         "id": document_id,
@@ -394,21 +396,31 @@ def extract(
         ),
     ] = None,
     extraction_model: Annotated[
-        str,
+        Optional[str],
         typer.Option(
             "--extraction-model",
             "-e",
-            help=f"LLM model for graph extraction, default: {DEFAULT_OLLAMA_EXTRACTION_MODEL}",
+            help=(
+                "Model for extraction. Applies to Ollama and OpenAI backends. "
+                f"Defaults: Ollama={DEFAULT_OLLAMA_EXTRACTION_MODEL}, "
+                f"OpenAI={DEFAULT_OPENAI_EXTRACTION_MODEL}. "
+                "Use --anthropic-extraction-model for Anthropic."
+            ),
         ),
-    ] = DEFAULT_OLLAMA_EXTRACTION_MODEL,
+    ] = None,
     discovery_model: Annotated[
-        str,
+        Optional[str],
         typer.Option(
             "--discovery-model",
             "-d",
-            help=f"LLM model for schema discovery, default: {DEFAULT_OLLAMA_SCHEMA_MODEL}",
+            help=(
+                "Model for schema discovery. Applies to Ollama and OpenAI backends. "
+                f"Defaults: Ollama={DEFAULT_OLLAMA_SCHEMA_MODEL}, "
+                f"OpenAI={DEFAULT_OPENAI_DISCOVERY_MODEL}. "
+                "Use --anthropic-discovery-model for Anthropic."
+            ),
         ),
-    ] = DEFAULT_OLLAMA_SCHEMA_MODEL,
+    ] = None,
     concurrent: Annotated[
         int,
         typer.Option(
@@ -430,7 +442,7 @@ def extract(
         bool,
         typer.Option(
             "--openai",
-            help="Use OpenAI API instead of Ollama (requires the OPENAI_API_KEY set in environment), default: false",
+            help="Use OpenAI API instead of Ollama (requires OPENAI_API_KEY env var), default: false",
         ),
     ] = False,
     openai_base_url: Annotated[
@@ -440,6 +452,27 @@ def extract(
             help="OpenAI API base URL, default: https://api.openai.com/v1",
         ),
     ] = "https://api.openai.com/v1",
+    anthropic: Annotated[
+        bool,
+        typer.Option(
+            "--anthropic",
+            help="Use Anthropic API instead of Ollama (requires ANTHROPIC_API_KEY env var), default: false",
+        ),
+    ] = False,
+    anthropic_extraction_model: Annotated[
+        str,
+        typer.Option(
+            "--anthropic-extraction-model",
+            help=f"Anthropic model for graph extraction, default: {DEFAULT_ANTHROPIC_EXTRACTION_MODEL}",
+        ),
+    ] = DEFAULT_ANTHROPIC_EXTRACTION_MODEL,
+    anthropic_discovery_model: Annotated[
+        str,
+        typer.Option(
+            "--anthropic-discovery-model",
+            help=f"Anthropic model for schema discovery, default: {DEFAULT_ANTHROPIC_DISCOVERY_MODEL}",
+        ),
+    ] = DEFAULT_ANTHROPIC_DISCOVERY_MODEL,
     output: Annotated[
         Optional[Path],
         typer.Option(
@@ -534,13 +567,39 @@ def extract(
         raise typer.Exit(1)
 
     # Config
+    if openai and anthropic:
+        typer.echo("Error: --openai and --anthropic are mutually exclusive.")
+        raise typer.Exit(1)
+    backend = "openai" if openai else ("anthropic" if anthropic else "ollama")
+    resolved_extraction = extraction_model or (
+        DEFAULT_OPENAI_EXTRACTION_MODEL
+        if openai
+        else (
+            DEFAULT_ANTHROPIC_EXTRACTION_MODEL
+            if anthropic
+            else DEFAULT_OLLAMA_EXTRACTION_MODEL
+        )
+    )
+    resolved_discovery = discovery_model or (
+        DEFAULT_OPENAI_DISCOVERY_MODEL
+        if openai
+        else (
+            DEFAULT_ANTHROPIC_DISCOVERY_MODEL
+            if anthropic
+            else DEFAULT_OLLAMA_SCHEMA_MODEL
+        )
+    )
     config = Config(
-        ollama_extraction_model=extraction_model,
-        ollama_discovery_model=discovery_model,
+        backend=backend,
+        ollama_extraction_model=resolved_extraction,
+        ollama_discovery_model=resolved_discovery,
+        openai_extraction_model=resolved_extraction,
+        openai_discovery_model=resolved_discovery,
+        anthropic_extraction_model=extraction_model or anthropic_extraction_model,
+        anthropic_discovery_model=discovery_model or anthropic_discovery_model,
         max_concurrent=concurrent,
         max_tokens=max_tokens,
         use_cache=not no_cache,
-        use_openai=openai,
         openai_base_url=openai_base_url,
     )
 

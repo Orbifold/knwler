@@ -79,3 +79,21 @@ def save_to_cache(key: str, response: str, model: str):
         "cached_at": time.strftime("%Y-%m-%d %H:%M:%S"),
     }
     cache_file.write_text(json.dumps(data, indent=2))
+
+def find_cache_items(model: str = None) -> list[dict]:
+    """Find all cache items, optionally filtered by model."""
+    items = []
+    if not CACHE_DIR.exists():
+        return items
+    for cache_file in CACHE_DIR.glob("*.json"):
+        try:
+            data = json.loads(cache_file.read_text())
+            if model is None or data.get("model") == model:
+                items.append({
+                    "key": cache_file.stem,
+                    "model": data.get("model"),
+                    "cached_at": data.get("cached_at"),
+                })
+        except (json.JSONDecodeError, IOError):
+            continue
+    return items

@@ -101,6 +101,7 @@ class TestExtractChunk:
         result = extract_chunk("test chunk", 0, mock_schema, mock_config)
 
         assert isinstance(result, ExtractionResult)
+        assert result.id is not None and isinstance(result.id, str)
         assert result.chunk_idx == 0
         assert result.chunk_tokens == 3
         assert result.chunk_time >= 0

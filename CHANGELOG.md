@@ -12,6 +12,7 @@
 - `--overwrite_dir` flag stops the proliferation of versions
 - description summarization tuned to ensure correct use of mapping <id>
 - graph consolidation of multiple extractions, both as a post-processing step and standalone
+- Anthropic as LLM provider added
 
 ## v0.4.1
 

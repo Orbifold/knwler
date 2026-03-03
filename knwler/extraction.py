@@ -71,7 +71,7 @@ def extract_chunk(
     t0 = time.perf_counter()
     result = extract_graph(chunk, schema, config)
     elapsed = time.perf_counter() - t0
-
+    # an ExtractionResult couples a chunk with a graph
     return ExtractionResult(
         entities=result["entities"],
         relations=result["relations"],
@@ -103,6 +103,7 @@ def _save_partial_results(
         },
         "results": [
             {
+                "id": r.id,
                 "chunk_idx": r.chunk_idx,
                 "entities": r.entities,
                 "relations": r.relations,

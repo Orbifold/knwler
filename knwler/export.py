@@ -163,7 +163,7 @@ def export_html(
             rel_html.append(label)
 
         chunk_links = " \u2022 ".join(
-            f'<a href="#chunk-{cid}-rephrase">{chunk_label} {chunk_mapping.get(cid)}</a>'
+            f'<a href="#chunk-{cid}-rephrase">{chunk_label} {chunk_mapping.get(cid)+1}</a>'  # index is 0-based, so add 1 for display
             for cid in chunk_ids
             if cid is not None
         )

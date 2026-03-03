@@ -1,5 +1,6 @@
 from dataclasses import dataclass, asdict, fields, field
 from collections.abc import Mapping
+from uuid import uuid4
 
 
 # ---------------------------------------------------------------------------
@@ -20,6 +21,7 @@ class ExtractionResult(Graph):
     chunk_idx: int
     chunk_time: float
     chunk_tokens: int
+    id: str = field(default_factory=lambda: str(uuid4()))
 
     @property
     def entities_count(self) -> int:
@@ -29,8 +31,6 @@ class ExtractionResult(Graph):
     def relations_count(self) -> int:
         return len(self.relations)
 
-
- 
 
 @dataclass
 class Schema:

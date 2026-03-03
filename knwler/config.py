@@ -25,6 +25,8 @@ DEFAULT_OLLAMA_SCHEMA_MODEL = "qwen2.5:14b"
 DEFAULT_OLLAMA_EXTRACTION_MODEL = "qwen2.5:3b"
 DEFAULT_OPENAI_DISCOVERY_MODEL = "gpt-4o"
 DEFAULT_OPENAI_EXTRACTION_MODEL = "gpt-4o-mini"
+DEFAULT_ANTHROPIC_DISCOVERY_MODEL = "claude-sonnet-4-6"
+DEFAULT_ANTHROPIC_EXTRACTION_MODEL = "claude-haiku-4-5-20251001"
 
 
 # ---------------------------------------------------------------------------
@@ -34,8 +36,8 @@ DEFAULT_OPENAI_EXTRACTION_MODEL = "gpt-4o-mini"
 class Config:
     """Pipeline configuration."""
 
-    # Backend selection
-    use_openai: bool = False
+    # Backend selection: "ollama" | "openai" | "anthropic"
+    backend: str = "ollama"
 
     # Ollama settings
     ollama_url: str = "http://localhost:11434/api/generate"
@@ -44,11 +46,16 @@ class Config:
     openai_api_key: str = None
     openai_base_url: str = "https://api.openai.com/v1"
 
+    # Anthropic settings
+    anthropic_api_key: str = None
+
     # Model settings
     ollama_extraction_model: str = DEFAULT_OLLAMA_EXTRACTION_MODEL
     ollama_discovery_model: str = DEFAULT_OLLAMA_SCHEMA_MODEL
     openai_extraction_model: str = DEFAULT_OPENAI_EXTRACTION_MODEL
     openai_discovery_model: str = DEFAULT_OPENAI_DISCOVERY_MODEL
+    anthropic_extraction_model: str = DEFAULT_ANTHROPIC_EXTRACTION_MODEL
+    anthropic_discovery_model: str = DEFAULT_ANTHROPIC_DISCOVERY_MODEL
     max_tokens: int = 400
     overlap_tokens: int = 50
     max_concurrent: int = 8
@@ -85,19 +92,27 @@ class Config:
     )
 
     @property
+    def use_openai(self) -> bool:
+        return self.backend == "openai"
+
+    @property
+    def use_anthropic(self) -> bool:
+        return self.backend == "anthropic"
+
+    @property
     def extraction_model(self) -> str:
         """Return the extraction model for the active backend."""
-        return (
-            self.openai_extraction_model
-            if self.use_openai
-            else self.ollama_extraction_model
-        )
+        if self.backend == "openai":
+            return self.openai_extraction_model
+        if self.backend == "anthropic":
+            return self.anthropic_extraction_model
+        return self.ollama_extraction_model
 
     @property
     def discovery_model(self) -> str:
         """Return the discovery model for the active backend."""
-        return (
-            self.openai_discovery_model
-            if self.use_openai
-            else self.ollama_discovery_model
-        )
+        if self.backend == "openai":
+            return self.openai_discovery_model
+        if self.backend == "anthropic":
+            return self.anthropic_discovery_model
+        return self.ollama_discovery_model

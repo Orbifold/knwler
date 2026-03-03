@@ -100,9 +100,10 @@ def consolidate_graphs(
 
 
 def consolidate_extracted_graphs(
-    results: list[Graph],
-    config: Config,
+    little_graphs: list[Graph],
+    config: Config = Config(),
     summarize: bool = True,
+    filter_low_importance: bool = True,
 ) -> tuple[dict, float]:
     """Consolidate chunk graphs with unique (name, type) and summarized descriptions.
 
@@ -114,7 +115,7 @@ def consolidate_extracted_graphs(
     entity_map: dict[tuple[str, str], dict] = {}
     relation_map: dict[tuple[str, str, str], dict] = {}
 
-    for r in results:
+    for r in little_graphs:
         for e in r.entities:
             name = (e.get("name") or "").strip()
             etype = (e.get("type") or "").strip()
@@ -129,11 +130,25 @@ def consolidate_extracted_graphs(
                     "descriptions": [],
                     "chunk_ids": set(),
                 }
-            entity_map[key]["chunk_ids"].update(e.get("chunk_ids", set()))
+            # ============================================================================================
+            # This method is used both for consolidating chunks and consolidating document graphs.
+            # In the first case, the chunk_ids are used to keep track of which chunks contributed to the consolidated entity,
+            # and in the second case, the chunk_ids are used to keep track of which documents contributed to the consolidated entity (since we reuse the same consolidation logic at both levels).
+            # ============================================================================================
+            if e.get("chunk_ids"):
+                entity_map[key]["chunk_ids"].update(e.get("chunk_ids", set()))
+            else:
+                if isinstance(r, ExtractionResult):
+                    entity_map[key]["chunk_ids"].add(r.id)
             if desc and desc not in entity_map[key]["descriptions"]:
                 entity_map[key]["descriptions"].append(desc)
 
         for rel in r.relations:
+            if isinstance(rel, str):
+                console.print(
+                    f"[yellow]\u26a0 Skipping badly formatted relation string: {rel}[/yellow]"
+                )
+                continue
             src = (rel.get("source") or "").strip()
             tgt = (rel.get("target") or "").strip()
             rtype = (rel.get("type") or "").strip()
@@ -151,7 +166,11 @@ def consolidate_extracted_graphs(
                     "strengths": [],
                     "chunk_ids": set(),
                 }
-            relation_map[key]["chunk_ids"].update(rel.get("chunk_ids", set()))
+            if rel.get("chunk_ids"):
+                relation_map[key]["chunk_ids"].update(rel.get("chunk_ids", set()))
+            else:
+                if isinstance(r, ExtractionResult):
+                    relation_map[key]["chunk_ids"].add(r.id)
             relation_map[key]["strengths"].append(strength)
             if desc and desc not in relation_map[key]["descriptions"]:
                 relation_map[key]["descriptions"].append(desc)
@@ -161,6 +180,14 @@ def consolidate_extracted_graphs(
         entity_map, relation_map = _summarize_descriptions(
             entity_map, relation_map, config
         )
+    else:
+        # if not summarizing, just merge multiple descriptions into one string to avoid losing information, but without hitting the LLM
+        for e in entity_map:
+            if len(entity_map[e]["descriptions"]) > 1:
+                entity_map[e]["descriptions"] = [" ".join(entity_map[e]["descriptions"])]
+        for r in relation_map:
+            if len(relation_map[r]["descriptions"]) > 1:
+                relation_map[r]["descriptions"] = [" ".join(relation_map[r]["descriptions"])]
 
     # Phase 3: Build final output
     entities = [
@@ -185,7 +212,8 @@ def consolidate_extracted_graphs(
     ]
 
     # Phase 4: Remove low-importance nodes
-    entities, relations = _filter_low_importance_nodes(entities, relations)
+    if filter_low_importance:
+        entities, relations = _filter_low_importance_nodes(entities, relations)
 
     elapsed = time.perf_counter() - t0
     return {"entities": entities, "relations": relations}, elapsed

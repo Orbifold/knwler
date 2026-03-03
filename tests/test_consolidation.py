@@ -1,7 +1,7 @@
 import pytest
 import json
 
-from knwler import consolidate_graphs, Graph
+from knwler import consolidate_graphs, Graph, consolidate_extracted_graphs
 
 
 def test_graph_consolidation():
@@ -12,3 +12,32 @@ def test_graph_consolidation():
     result = consolidate_graphs([doc1, doc2], True)
     with open("tests/data/consolidated.json", "w") as f:
         json.dump(result, f, indent=2)
+
+
+@pytest.mark.asyncio
+async def test_no_summary():
+    g1 = Graph(
+        entities=[
+            {"name": "Alice", "type": "Person", "description": "A1"},
+            {"name": "Bob", "type": "Person", "description": "B"},
+        ],
+        relations=[],
+    )
+    g2 = Graph(
+        entities=[
+            {"name": "Alice", "type": "Person", "description": "A2"},
+        ],
+        relations=[],
+    )
+    # if low importance filtering is on, you will get empty
+    consolidated, consolidation_time = consolidate_extracted_graphs(
+        [g1, g2], summarize=False, filter_low_importance=False
+    )
+    assert isinstance(consolidated, dict)
+    assert "entities" in consolidated and "relations" in consolidated
+    assert len(consolidated["entities"]) == 2
+    print(json.dumps(consolidated, indent=2))
+    assert consolidated["entities"][0]["name"] == "Alice"
+    assert consolidated["entities"][0]["type"] == "Person"
+    # not summary means concatenating descriptions, so we expect both A1 and A2 to be in the description of Alice
+    assert consolidated["entities"][0]["description"] == "A1 A2"

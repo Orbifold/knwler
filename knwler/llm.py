@@ -102,6 +102,65 @@ def openai_generate(
 
 
 # ---------------------------------------------------------------------------
+# Anthropic
+# ---------------------------------------------------------------------------
+def anthropic_generate(
+    prompt: str,
+    config: Config,
+    model: str | None = None,
+    format_json: bool = True,
+) -> str:
+    """Call Anthropic API and return the response text (cached)."""
+    import anthropic as _anthropic
+
+    actual_model = model or config.anthropic_extraction_model
+    api_key = config.anthropic_api_key or os.environ.get("ANTHROPIC_API_KEY", "")
+
+    if not api_key:
+        raise ValueError(
+            "Anthropic API key not set. Set ANTHROPIC_API_KEY env var or config.anthropic_api_key"
+        )
+
+    if config.use_cache:
+        key = cache_key(prompt, actual_model, config.temperature, config.num_predict)
+        cached = get_cached_response(key)
+        if cached is not None:
+            return cached
+
+    client = _anthropic.Anthropic(api_key=api_key)
+
+    system = (
+        "You are a data extraction assistant. "
+        "Always respond with valid JSON only — no markdown, no explanation, no code blocks."
+        if format_json
+        else "You are a helpful assistant."
+    )
+
+    # Assistant prefill with "{" nudges the model to return raw JSON.
+    messages = [{"role": "user", "content": prompt}]
+    if format_json:
+        messages.append({"role": "assistant", "content": "{"})
+
+    response = client.messages.create(
+        model=actual_model,
+        max_tokens=config.num_predict,
+        system=system,
+        messages=messages,
+        temperature=config.temperature,
+    )
+    content = response.content[0].text
+
+    # Restore the prefilled "{" that Anthropic strips from its own response.
+    if format_json:
+        content = "{" + content
+
+    if config.use_cache:
+        save_to_cache(key, content, actual_model)
+
+    return content
+
+
+# ---------------------------------------------------------------------------
 # Dispatcher
 # ---------------------------------------------------------------------------
 def llm_generate(
@@ -111,7 +170,9 @@ def llm_generate(
     format_json: bool = True,
 ) -> str:
     """Dispatch to appropriate LLM backend based on config."""
-    if config.use_openai:
+    if config.backend == "anthropic":
+        return anthropic_generate(prompt, config, model, format_json)
+    if config.backend == "openai":
         return openai_generate(prompt, config, model, format_json)
     return ollama_generate(prompt, config, model, format_json)
 

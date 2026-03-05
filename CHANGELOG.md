@@ -4,15 +4,20 @@
 
 - Version info via CLI
 - Stack trace is now hidden on error using CLI
-- You can now specify a whole directory via `--directory` rather than a single file `--file`
-- Graph entities now carry document info (document node) towards multi-document consolidation
+- You can now specify **a whole directory** via `--directory` rather than a single file `--file`
+- Graph entities now carry document info (document node) towards **multi-document consolidation**
 - CLI split in separate apps with `extract` as default for backward compatibility
 - `html_only` now allows a specific `graph.json`, you can render a custom report
 - Network viz has a slider to change the degree threshold
 - `--overwrite_dir` flag stops the proliferation of versions
 - description summarization tuned to ensure correct use of mapping <id>
-- graph consolidation of multiple extractions, both as a post-processing step and standalone
-- Anthropic as LLM provider added
+- **graph consolidation of multiple extractions**, both as a post-processing step and standalone
+- **Anthropic** as LLM provider added
+- Ollama thinking disabled by default, really does not help with graph extraction
+- export template renders only what's available, sections without content are omitted
+- **disambiguation of entities** with the same name but different type, also emphasized in the export via type badges
+- dark/light **theme toggle**
+- **new 3-column report template**
 
 ## v0.4.1
 

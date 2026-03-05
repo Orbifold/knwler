@@ -26,6 +26,7 @@ def ollama_generate(
 
     if config.use_cache:
         key = cache_key(prompt, actual_model, config.temperature, config.num_predict)
+
         cached = get_cached_response(key)
         if cached is not None:
             return cached
@@ -34,6 +35,7 @@ def ollama_generate(
         "model": actual_model,
         "prompt": prompt,
         "stream": False,
+        "think": False,
         "options": {
             "temperature": config.temperature,
             "num_predict": config.num_predict,

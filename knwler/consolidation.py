@@ -20,13 +20,18 @@ from knwler.models import ExtractionResult, Schema, Graph
 from knwler.language import get_console_msg, get_prompt
 from knwler.llm import llm_generate, parse_json_response
 from knwler.models import Schema, Graph
+from dataclasses import dataclass, asdict, fields, field
 
 
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 def consolidate_graphs(
-    graphs: list[dict], cluster: bool = False, config: Config = Config()
+    graphs: list[dict],
+    cluster: bool = False,
+    include_chunks: bool = False,
+    filter_low_importance: bool = True,
+    config: Config = Config(),
 ) -> dict:
     """
     Consolidate multiple chunk graphs into one, with summarization and filtering.
@@ -34,12 +39,17 @@ def consolidate_graphs(
 
     The clustering flag is False by default since it's assumed that the merge of a a large amount of graphs is towards a database ingestion where clustering is more scalable.
     The clustering is also a reuse of the same community detection and labeling logic as in the community analysis step, but applied at the consolidation level to group similar entities together across documents.
+
+    The chunks can be consolidated as well but typically one would move the chunks into a vector database.
     """
     if not graphs or len(graphs) == 0:
         return None
     if len(graphs) == 1:
         return graphs[0]
-
+    # ensure we have dicts
+    for i in range(len(graphs)):
+        if isinstance(graphs[i], Graph):
+            graphs[i] = asdict(graphs[i])
     # concatenate the chunks
     all_chunks = []
     for g in graphs:
@@ -85,6 +95,7 @@ def consolidate_graphs(
         ],
         config,
         summarize=True,
+        filter_low_importance=filter_low_importance,
     )
     if cluster:
         from knwler.community import analyze_communities
@@ -96,6 +107,7 @@ def consolidate_graphs(
         "documents": all_documents,
         "schema": all_schema,
         "graph": consolidated,
+        "chunks": all_chunks if include_chunks else [],
     }
 
 
@@ -120,11 +132,16 @@ def consolidate_extracted_graphs(
             name = (e.get("name") or "").strip()
             etype = (e.get("type") or "").strip()
             desc = (e.get("description") or "").strip()
+            id = e.get("id", str(uuid4()))
             if not name or not etype:
                 continue
+            # this is crucial for disambiguation: we consider that two entities with the same name but different types are different,
+            # and two entities with the same type but different names are different,
+            # but if both name and type are the same, then they are the same entity and we will merge their descriptions and chunk_ids.
             key = (name.lower(), etype.lower())
             if key not in entity_map:
                 entity_map[key] = {
+                    "id": id,
                     "name": name,
                     "type": etype,
                     "descriptions": [],
@@ -150,17 +167,30 @@ def consolidate_extracted_graphs(
                 )
                 continue
             src = (rel.get("source") or "").strip()
+            src_type = (rel.get("source_type") or "").strip()
             tgt = (rel.get("target") or "").strip()
+            tgt_type = (rel.get("target_type") or "").strip()
             rtype = (rel.get("type") or "").strip()
             desc = (rel.get("description") or "").strip()
             strength = rel.get("strength", 5)
+            id = rel.get("id", str(uuid4()))
+
             if not src or not tgt or not rtype:
                 continue
-            key = (src.lower(), tgt.lower(), rtype.lower())
+            key = (
+                src.lower(),
+                src_type.lower(),
+                tgt.lower(),
+                tgt_type.lower(),
+                rtype.lower(),
+            )
             if key not in relation_map:
                 relation_map[key] = {
+                    "id": id,
                     "source": src,
+                    "source_type": src_type,
                     "target": tgt,
+                    "target_type": tgt_type,
                     "type": rtype,
                     "descriptions": [],
                     "strengths": [],
@@ -184,10 +214,14 @@ def consolidate_extracted_graphs(
         # if not summarizing, just merge multiple descriptions into one string to avoid losing information, but without hitting the LLM
         for e in entity_map:
             if len(entity_map[e]["descriptions"]) > 1:
-                entity_map[e]["descriptions"] = [" ".join(entity_map[e]["descriptions"])]
+                entity_map[e]["descriptions"] = [
+                    " ".join(entity_map[e]["descriptions"])
+                ]
         for r in relation_map:
             if len(relation_map[r]["descriptions"]) > 1:
-                relation_map[r]["descriptions"] = [" ".join(relation_map[r]["descriptions"])]
+                relation_map[r]["descriptions"] = [
+                    " ".join(relation_map[r]["descriptions"])
+                ]
 
     # Phase 3: Build final output
     entities = [
@@ -196,17 +230,21 @@ def consolidate_extracted_graphs(
             "type": e["type"],
             "description": e["descriptions"][0] if e["descriptions"] else "",
             "chunk_ids": sorted(e["chunk_ids"]),
+            "id": e.get("id", str(uuid4())),
         }
         for e in entity_map.values()
     ]
     relations = [
         {
             "source": r["source"],
+            "source_type": r.get("source_type", ""),
             "target": r["target"],
+            "target_type": r.get("target_type", ""),
             "type": r["type"],
             "description": r["descriptions"][0] if r["descriptions"] else "",
             "strength": round(sum(r["strengths"]) / len(r["strengths"]), 1),
             "chunk_ids": sorted(r["chunk_ids"]),
+            "id": r.get("id", str(uuid4())),
         }
         for r in relation_map.values()
     ]

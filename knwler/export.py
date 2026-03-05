@@ -12,25 +12,30 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from knwler.config import console
 from knwler.language import get_current_language, get_ui
+from typing import Tuple, List, Dict, Any
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-def _linkify_entities(text: str, entity_names: set[str]) -> str:
-    """Replace known entity names in text with hyperlinks to ``#entity-<name>``."""
+def _linkify_entities(text: str, entities: list[dict]) -> str:
+    """Replace known entity names in text with hyperlinks to ``#entity-<name>::<type>``."""
     esc = html_mod.escape(text)
-    if not entity_names:
+    if not entities:
         return esc
 
     esc_to_anchor: dict[str, str] = {}
     esc_names: list[str] = []
-    for name in entity_names:
+    for entity in entities:
+        name = entity.get("name", "")
+        type = entity.get("type", "")
         esc_name = html_mod.escape(name)
         key = esc_name.lower()
         if key in esc_to_anchor:
             continue
-        esc_to_anchor[key] = f"entity-{name.lower().replace(' ', '-')}"
+        esc_to_anchor[key] = (
+            f"entity-{name.lower().replace(' ', '-')}::{type.lower().replace(' ', '-')}"
+        )
         esc_names.append(esc_name)
 
     esc_names.sort(key=len, reverse=True)
@@ -50,7 +55,10 @@ def _linkify_entities(text: str, entity_names: set[str]) -> str:
 # Export
 # ---------------------------------------------------------------------------
 def export_html(
-    results_data: dict, output_path: Path, title: str = "Knowledge Graph"
+    results_data: dict,
+    output_path: Path,
+    title: str = "Knowledge Graph",
+    template: str = "default",
 ) -> Path:
     """Export results.json data to an HTML report using Jinja2 template."""
     title = results_data.get("title") or title
@@ -67,9 +75,10 @@ def export_html(
         c["id"]: c["chunk_idx"] for c in chunks if "id" in c and "chunk_idx" in c
     }
     # Build relation lookup: entity -> list of (other, type, description, direction)
-    rel_map: dict[str, list[dict]] = {}
+    rel_map: dict[Tuple[str, str], list[dict]] = {}
     for r in relations:
-        src, tgt = r.get("source", ""), r.get("target", "")
+        src = (r.get("source", ""), r.get("source_type", ""))
+        tgt = (r.get("target", ""), r.get("target_type", ""))
         rtype = r.get("type", "")
         desc = r.get("description", "")
         rel_map.setdefault(src, []).append(
@@ -97,7 +106,9 @@ def export_html(
             "data": {
                 "id": f"e{idx}",
                 "source": r.get("source", ""),
+                "source_type": r.get("source_type", ""),
                 "target": r.get("target", ""),
+                "target_type": r.get("target_type", ""),
                 "type": r.get("type", ""),
                 "description": r.get("description", ""),
             }
@@ -133,7 +144,7 @@ def export_html(
         chunks_display.append(
             {
                 "id": f"chunk-{chunk.get('id')}",
-                "linkified": _linkify_entities(display, entity_names),
+                "linkified": _linkify_entities(display, chunk.get("entities", [])),
                 "original": original,
             }
         )
@@ -143,17 +154,18 @@ def export_html(
     entities_display = []
     for e in sorted(entities, key=lambda x: x.get("name", "").lower()):
         name = e.get("name", "")
+        entity_type = e.get("type", "")
         chunk_ids = e.get("chunk_ids", [])
-        rels = rel_map.get(name, [])
+        rels = rel_map.get((name, entity_type), [])
 
         rel_html = []
         for rel in rels:
             other = rel["other"]
-            other_anchor = f"entity-{other.lower().replace(' ', '-')}"
+            other_anchor = f"entity-{'::'.join(other).lower().replace(' ', '-')}"
             arrow = "\u2192" if rel["dir"] == "out" else "\u2190"
             label = (
                 f'{arrow} <a href="#{other_anchor}" class="entity-link">'
-                f"{html_mod.escape(other)}</a>"
+                f"{html_mod.escape(other[0])}</a>"
             )
             description = rel["description"]
             if isinstance(description, list):
@@ -171,7 +183,8 @@ def export_html(
         entities_display.append(
             {
                 "name": name,
-                "anchor": f"entity-{name.lower().replace(' ', '-')}",
+                "type": e.get("type", ""),
+                "anchor": f"entity-{name.lower().replace(' ', '-')}::{entity_type.lower().replace(' ', '-')}",
                 "description": e.get("description", ""),
                 "relations": rel_html,
                 "chunk_links": chunk_links,
@@ -237,7 +250,7 @@ def export_html(
         loader=FileSystemLoader(templates_dir),
         autoescape=select_autoescape(["html", "xml"]),
     )
-    template = env.get_template("report.html")
+    template = env.get_template(f"{template}.html")
 
     html_content = template.render(
         html_lang=get_current_language() or "en",

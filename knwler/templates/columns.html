@@ -1,0 +1,670 @@
+<!doctype html>
+<html lang="{{ html_lang }}">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ title }}</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #f5f5f5;
+        --card: #bbc7c9;
+        --card-text: #303030;
+        --border: #26c6da;
+        --link: #3c506b;
+        --entity-bg: #fff;
+        --entity-border: #96b9bd;
+        --body-color: #333;
+        --h2-border: #ccc;
+        --toggle-bg: #e0e0e0;
+        --toggle-track: #bbb;
+        --footer-color: #696969;
+        --footer-border: #ddd;
+        --detail-color: #555;
+        --chunk-orig-bg: #e0e0e0;
+        --toolbar-bg: #e8e8e8;
+        --toolbar-border: #ccc;
+        --entity-badge-bg: #e0e0e0;
+        --entity-badge-color: #464646;
+        --header-bg: #dde6e8;
+        --header-border: #c0cfd2;
+        --splitter-bg: #9ecdd2;
+        --splitter-hover: #26c6da;
+        --col-header-bg: #cdd8da;
+      }
+      [data-theme="dark"] {
+        --bg: #1a1a1a;
+        --card: #2a3a3d;
+        --card-text: #d0d0d0;
+        --border: #26c6da;
+        --link: #7ab3c8;
+        --entity-bg: #242424;
+        --entity-border: #393939;
+        --body-color: #ccc;
+        --h2-border: #444;
+        --toggle-bg: #333;
+        --toggle-track: #555;
+        --footer-color: #888;
+        --footer-border: #333;
+        --detail-color: #999;
+        --chunk-orig-bg: #2a2a2a;
+        --toolbar-bg: #111;
+        --toolbar-border: #333;
+        --entity-badge-bg: #4b4b4b;
+        --entity-badge-color: #b5b5b5;
+        --header-bg: #1e2c2e;
+        --header-border: #2d3f42;
+        --splitter-bg: #2a4447;
+        --splitter-hover: #26c6da;
+        --col-header-bg: #1e2c2e;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        height: 100%;
+        overflow: hidden;
+      }
+      body {
+        font-family:
+          "Inter",
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          Roboto,
+          sans-serif;
+        background: var(--bg);
+        color: var(--body-color);
+        line-height: 1.6;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* ── Header ───────────────────────────────────────────────── */
+      .page-header {
+        flex: 0 0 auto;
+        background: var(--header-bg);
+        border-bottom: 2px solid var(--header-border);
+        padding: 0.6rem 1.2rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+      }
+      .header-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        flex-wrap: wrap;
+      }
+      .header-toolbar h1 {
+        font-size: 1.3rem;
+        flex: 1 1 auto;
+      }
+      .header-meta {
+        font-size: 0.85rem;
+        color: var(--detail-color);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem 1.4rem;
+      }
+      .header-meta a {
+        color: var(--link);
+        text-decoration: none;
+        word-break: break-all;
+      }
+      .header-meta a:hover {
+        text-decoration: underline;
+      }
+      .header-summary {
+        font-size: 0.9rem;
+        color: var(--card-text);
+        background: var(--card);
+        border-radius: 6px;
+        padding: 0.45rem 0.8rem;
+      }
+
+      /* ── Theme toggle ─────────────────────────────────────────── */
+      .theme-switch {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        user-select: none;
+        flex-shrink: 0;
+      }
+      .theme-switch input {
+        display: none;
+      }
+      .theme-track {
+        width: 36px;
+        height: 20px;
+        background: var(--toggle-track);
+        border-radius: 10px;
+        position: relative;
+        transition: background 0.2s;
+        flex-shrink: 0;
+      }
+      .theme-track::after {
+        content: "";
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: #fff;
+        transition: transform 0.2s;
+      }
+      .theme-switch input:checked + .theme-track {
+        background: #4e79a7;
+      }
+      .theme-switch input:checked + .theme-track::after {
+        transform: translateX(16px);
+      }
+
+      /* ── Columns layout ───────────────────────────────────────── */
+      .columns-wrapper {
+        flex: 1 1 auto;
+        display: flex;
+        overflow: hidden;
+        min-height: 0;
+      }
+      .col {
+        flex: 1 1 0;
+        min-width: 80px;
+        overflow-y: auto;
+        padding: 5px;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+      }
+      .col-header {
+        position: sticky;
+        top: 0;
+        background: var(--col-header-bg);
+        padding: 2px 7px;
+        margin-bottom: 0.8rem;
+        z-index: 10;
+      }
+      .col-header h2 {
+        font-size: 1.1rem;
+        color: var(--body-color);
+      }
+      .splitter {
+        flex: 0 0 6px;
+        background: var(--splitter-bg);
+        cursor: col-resize;
+        transition: background 0.15s;
+        position: relative;
+      }
+      .splitter::after {
+        content: "";
+        position: absolute;
+        inset: 0 -3px;
+      }
+      .splitter:hover,
+      .splitter.dragging {
+        background: var(--splitter-hover);
+      }
+
+      /* ── Cards ────────────────────────────────────────────────── */
+      .card {
+        background: var(--card);
+        color: var(--card-text);
+        border-radius: 8px;
+        padding: 1rem 1.2rem;
+        margin-bottom: 0.8rem;
+      }
+      .card .tags {
+        font-weight: 900;
+        margin-bottom: 0.4rem;
+      }
+      .card ul {
+        margin: 0.4rem 0 0 1.2rem;
+      }
+      .card li {
+        margin-bottom: 0.2rem;
+      }
+      .card a {
+        color: var(--link);
+        text-decoration: none;
+      }
+      .card a:hover {
+        color: white;
+        background: var(--link);
+        padding: 0.2rem;
+        border-radius: 2px;
+      }
+      .toggle {
+        text-align: right;
+        font-size: 0.85rem;
+        color: var(--detail-color);
+        cursor: pointer;
+        user-select: none;
+        margin-bottom: 0.2rem;
+      }
+      .toggle:hover {
+        color: var(--link);
+      }
+      .chunk-original {
+        display: none;
+        background: var(--chunk-orig-bg);
+        border-radius: 8px;
+        padding: 1rem 1.2rem;
+        margin-bottom: 0.8rem;
+        white-space: pre-wrap;
+        font-size: 0.9rem;
+      }
+      a.entity-link {
+        color: var(--link);
+        text-decoration: none;
+        border-bottom: 1px dashed var(--link);
+      }
+      a.entity-link:hover {
+        color: white;
+        background: rgba(60, 60, 60, 0.9);
+        border-bottom-style: solid;
+        padding: 0 2px;
+        border-radius: 3px;
+      }
+      .entity-card {
+        background: var(--entity-bg);
+        border: 1px solid var(--entity-border);
+        border-radius: 8px;
+        padding: 1rem 1.2rem;
+        margin-bottom: 0.8rem;
+      }
+      .entity-card h3 {
+        color: #00796b;
+        font-size: 1rem;
+      }
+      .entity-label {
+        display: inline-block;
+        font-size: 0.5em;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        background: var(--entity-badge-bg);
+        color: var(--entity-badge-color);
+        padding: 0.15em 0.55em;
+        border-radius: 1em;
+        margin-left: 0.4em;
+        vertical-align: middle;
+      }
+      .entity-card .desc {
+        color: var(--detail-color);
+        margin: 0.3rem 0 0.6rem;
+        font-size: 0.9rem;
+      }
+      .entity-card ul {
+        margin: 0 0 0.6rem 1.2rem;
+        font-size: 0.9rem;
+      }
+      .entity-card li {
+        margin-bottom: 0.2rem;
+      }
+      .chunk-links {
+        font-size: 0.85rem;
+        color: var(--detail-color);
+      }
+      .chunk-links a {
+        color: var(--link);
+        text-decoration: none;
+      }
+      .chunk-links a:hover {
+        text-decoration: underline;
+      }
+      .empty-col {
+        color: var(--detail-color);
+        font-size: 0.9rem;
+        font-style: italic;
+        padding: 0.5rem 0;
+      }
+
+      /* ── Footer ───────────────────────────────────────────────── */
+      .page-footer {
+        flex: 0 0 auto;
+        font-size: 0.8rem;
+        color: var(--footer-color);
+        border-top: 1px solid var(--footer-border);
+        padding: 0.5rem 1.2rem;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.4rem;
+        background: var(--toolbar-bg);
+      }
+      .page-footer a {
+        color: var(--link);
+        text-decoration: none;
+      }
+      .page-footer a:hover {
+        text-decoration: underline;
+      }
+      .footer-disclaimer {
+        width: 100%;
+        font-size: 0.7rem;
+        color: var(--footer-color);
+        border-top: 1px solid var(--footer-border);
+        padding-top: 0.4rem;
+        margin-top: 0.2rem;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ── Header ───────────────────────────────────────────────── -->
+    <header class="page-header">
+      <div class="header-toolbar">
+        <h1>{{ title }}</h1>
+        <label class="theme-switch" title="Toggle dark/light theme">
+          <input type="checkbox" id="theme-toggle" />
+          <span class="theme-track"></span>
+          <span id="theme-label">&#9790;</span>
+        </label>
+      </div>
+      {% if summary %}
+      <div class="header-summary">{{ summary }}</div>
+      {% endif %}
+      <div class="header-meta">
+        <span>{{ extracted_info }}</span>
+        {% if url %}
+        <span>
+          {{ labels.source }}:
+          <a href="{{ url }}" target="_blank" rel="noopener noreferrer"
+            >{{ url }}</a
+          >
+        </span>
+        {% endif %}
+      </div>
+    </header>
+
+    <!-- ── Three-column layout ──────────────────────────────────── -->
+    <div class="columns-wrapper" id="columns-wrapper">
+      <!-- Topics column -->
+      <div class="col" id="col-topics" style="flex-basis: 33.333%">
+        <div class="col-header">
+          <h2>{{ labels.topics_title }}</h2>
+        </div>
+        {% if communities %} {% for community in communities %}
+        <div class="card">
+          <div class="tags">{{ community.topics | join(', ') }}</div>
+          <ul>
+            {% if community.description %}
+            <li>{{ community.description }}</li>
+            {% endif %} {% if community.member_links %}
+            <li>{{ community.member_links | safe }}</li>
+            {% endif %}
+          </ul>
+        </div>
+        {% endfor %} {% else %}
+        <p class="empty-col">No topics available.</p>
+        {% endif %}
+      </div>
+
+      <div class="splitter" id="splitter-1" title="Drag to resize"></div>
+
+      <!-- Chunks column -->
+      <div class="col" id="col-chunks" style="flex-basis: 33.333%">
+        <div class="col-header">
+          <h2>{{ labels.content_title }}</h2>
+        </div>
+        {% if chunks_display %} {% for chunk in chunks_display %}
+        <div class="toggle" onclick="toggleChunk('{{ chunk.id }}')">
+          {{ labels.show_original }}
+        </div>
+        <div class="card" id="{{ chunk.id }}-rephrase">
+          {{ chunk.linkified | safe }}
+        </div>
+        <div class="chunk-original" id="{{ chunk.id }}-original">
+          {{ chunk.original }}
+        </div>
+        {% endfor %} {% else %}
+        <p class="empty-col">No content chunks available.</p>
+        {% endif %}
+      </div>
+
+      <div class="splitter" id="splitter-2" title="Drag to resize"></div>
+
+      <!-- Entities column -->
+      <div class="col" id="col-entities" style="flex-basis: 33.334%">
+        <div class="col-header">
+          <h2>{{ labels.entities_title }}</h2>
+        </div>
+        {% if entities_display %} {% for entity in entities_display %}
+        <div class="entity-card" id="{{ entity.anchor }}">
+          <h3>
+            {{ entity.name }}
+            <span class="entity-label">{{ entity.type }}</span>
+          </h3>
+          {% if entity.description %}
+          <div class="desc">{{ entity.description }}</div>
+          {% endif %} {% if entity.relations %}
+          <ul>
+            {% for rel in entity.relations %}
+            <li>{{ rel | safe }}</li>
+            {% endfor %}
+          </ul>
+          {% endif %} {% if entity.chunk_links %}
+          <div class="chunk-links">
+            {{ labels.appears_in }}: {{ entity.chunk_links | safe }}
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %} {% else %}
+        <p class="empty-col">No entities available.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- ── Footer ───────────────────────────────────────────────── -->
+    <footer class="page-footer">
+      <span>
+        Generated by
+        <a title="Knwl AI" target="_blank" href="https://knwl.ai">Knwl</a>,
+        &copy; 2026
+        <a
+          href="https://graphsandnetworks.com"
+          title="Orbifold Consulting"
+          target="_blank"
+          >Orbifold Consulting</a
+        >.
+      </span>
+      <div class="footer-disclaimer">{{ disclaimer }}</div>
+    </footer>
+
+    <script>
+      // ─── Theme toggle ────────────────────────────────────────────────
+      (function () {
+        const toggle = document.getElementById("theme-toggle");
+        const label = document.getElementById("theme-label");
+        const saved = localStorage.getItem("knwler-theme");
+        if (saved === "dark") {
+          document.documentElement.setAttribute("data-theme", "dark");
+          toggle.checked = true;
+          label.textContent = "☀";
+        }
+        toggle.addEventListener("change", () => {
+          if (toggle.checked) {
+            document.documentElement.setAttribute("data-theme", "dark");
+            localStorage.setItem("knwler-theme", "dark");
+            label.textContent = "☀";
+          } else {
+            document.documentElement.removeAttribute("data-theme");
+            localStorage.setItem("knwler-theme", "light");
+            label.textContent = "☾";
+          }
+        });
+      })();
+
+      // ─── Chunk toggle ────────────────────────────────────────────────
+      const labels = {{ js_labels | tojson }};
+
+      function toggleChunk(id) {
+        const reph = document.getElementById(id + "-rephrase");
+        const orig = document.getElementById(id + "-original");
+        const toggle = reph.previousElementSibling;
+        if (orig.style.display === "block") {
+          orig.style.display = "none";
+          reph.style.display = "block";
+          toggle.textContent = labels.showOriginal;
+        } else {
+          orig.style.display = "block";
+          reph.style.display = "none";
+          toggle.textContent = labels.showRephrased;
+        }
+      }
+
+      // ─── Draggable splitters ─────────────────────────────────────────
+      (function () {
+        const wrapper = document.getElementById("columns-wrapper");
+        const colTopics = document.getElementById("col-topics");
+        const colChunks = document.getElementById("col-chunks");
+        const colEntities = document.getElementById("col-entities");
+        const splitter1 = document.getElementById("splitter-1");
+        const splitter2 = document.getElementById("splitter-2");
+
+        let dragging = null; // { splitter, startX, leftCol, rightCol, leftBasis, rightBasis }
+
+        function onMouseDown(e, splitter, leftCol, rightCol) {
+          e.preventDefault();
+          const totalW = wrapper.getBoundingClientRect().width;
+          dragging = {
+            splitter,
+            startX: e.clientX,
+            leftCol,
+            rightCol,
+            leftBasis: leftCol.getBoundingClientRect().width,
+            rightBasis: rightCol.getBoundingClientRect().width,
+            totalW,
+          };
+          splitter.classList.add("dragging");
+          document.body.style.cursor = "col-resize";
+          document.body.style.userSelect = "none";
+        }
+
+        splitter1.addEventListener("mousedown", (e) =>
+          onMouseDown(e, splitter1, colTopics, colChunks)
+        );
+        splitter2.addEventListener("mousedown", (e) =>
+          onMouseDown(e, splitter2, colChunks, colEntities)
+        );
+
+        window.addEventListener("mousemove", (e) => {
+          if (!dragging) return;
+          const dx = e.clientX - dragging.startX;
+          const { totalW, leftBasis, rightBasis, leftCol, rightCol } = dragging;
+
+          const minPx = 80;
+          const newLeft = Math.max(minPx, Math.min(leftBasis + dx, leftBasis + rightBasis - minPx));
+          const newRight = leftBasis + rightBasis - newLeft;
+
+          leftCol.style.flexBasis = (newLeft / totalW * 100).toFixed(3) + "%";
+          rightCol.style.flexBasis = (newRight / totalW * 100).toFixed(3) + "%";
+        });
+
+        window.addEventListener("mouseup", () => {
+          if (!dragging) return;
+          dragging.splitter.classList.remove("dragging");
+          dragging = null;
+          document.body.style.cursor = "";
+          document.body.style.userSelect = "";
+        });
+
+        // Touch support
+        function onTouchStart(e, splitter, leftCol, rightCol) {
+          const touch = e.touches[0];
+          const totalW = wrapper.getBoundingClientRect().width;
+          dragging = {
+            splitter,
+            startX: touch.clientX,
+            leftCol,
+            rightCol,
+            leftBasis: leftCol.getBoundingClientRect().width,
+            rightBasis: rightCol.getBoundingClientRect().width,
+            totalW,
+          };
+          splitter.classList.add("dragging");
+        }
+
+        splitter1.addEventListener("touchstart", (e) =>
+          onTouchStart(e, splitter1, colTopics, colChunks), { passive: true }
+        );
+        splitter2.addEventListener("touchstart", (e) =>
+          onTouchStart(e, splitter2, colChunks, colEntities), { passive: true }
+        );
+
+        window.addEventListener("touchmove", (e) => {
+          if (!dragging) return;
+          const touch = e.touches[0];
+          const dx = touch.clientX - dragging.startX;
+          const { totalW, leftBasis, rightBasis, leftCol, rightCol } = dragging;
+
+          const minPx = 80;
+          const newLeft = Math.max(minPx, Math.min(leftBasis + dx, leftBasis + rightBasis - minPx));
+          const newRight = leftBasis + rightBasis - newLeft;
+
+          leftCol.style.flexBasis = (newLeft / totalW * 100).toFixed(3) + "%";
+          rightCol.style.flexBasis = (newRight / totalW * 100).toFixed(3) + "%";
+        }, { passive: true });
+
+        window.addEventListener("touchend", () => {
+          if (!dragging) return;
+          dragging.splitter.classList.remove("dragging");
+          dragging = null;
+        });
+      })();
+
+      // ─── Entity-link scroll-into-view ────────────────────────────────
+      // Entity cards live inside an overflow:auto column, so normal anchor
+      // navigation scrolls <body> instead of the column. Intercept every
+      // a.entity-link click (from any column) and scroll the overflow
+      // container that owns the target card into view.
+      (function () {
+        // Find the nearest scrollable ancestor column
+        function scrollableColumn(el) {
+          while (el && el !== document.body) {
+            if (el.classList && el.classList.contains("col")) return el;
+            el = el.parentElement;
+          }
+          return null;
+        }
+
+        document.addEventListener("click", (e) => {
+          const link = e.target.closest("a.entity-link");
+          if (!link) return;
+
+          const hash = link.getAttribute("href");
+          if (!hash || !hash.startsWith("#")) return;
+
+          const target = document.getElementById(hash.slice(1));
+          if (!target) return;
+
+          // The target must live inside a .col scroll container
+          const col = scrollableColumn(target);
+          if (!col) return;
+
+          e.preventDefault();
+
+          // Scroll the owning column so the card appears near the top
+          const containerTop = col.getBoundingClientRect().top;
+          const targetTop = target.getBoundingClientRect().top;
+          col.scrollBy({ top: targetTop - containerTop - 16, behavior: "smooth" });
+
+          // Brief highlight so the user's eye lands on it
+          target.style.transition = "outline 0s";
+          target.style.outline = "2px solid var(--border)";
+          setTimeout(() => {
+            target.style.outline = "";
+          }, 1500);
+        });
+      })();
+    </script>
+  </body>
+</html>

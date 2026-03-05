@@ -17,7 +17,7 @@ from rich.progress import (
     TimeElapsedColumn,
 )
 
-from knwler.config import Config,  console
+from knwler.config import Config, console
 from knwler.models import ExtractionResult, Schema, Graph
 
 from knwler.chunking import get_encoder
@@ -45,12 +45,14 @@ def extract_graph(text: str, schema: Schema, config: Config) -> dict[str, Any]:
             "RULES:\n"
             "- Only extract entities and relations clearly stated in the text\n"
             "- Each entity: name, type, 1-2 sentence description\n"
-            "- Each relation: source, target, type, brief description, strength (1-10)\n\n"
+            "- Each relation: source, source_type, target, target_type, type, brief description, strength (1-10)\n"
+            "- IMPORTANT: source_type and target_type must match the type of the corresponding entity to disambiguate entities with the same name but different types\n\n"
             f'TEXT:\n"""{text}"""\n\n'
             "Return JSON:\n"
             "{\n"
             '  "entities": [{"name": "...", "type": "...", "description": "..."}],\n'
-            '  "relations": [{"source": "...", "target": "...", "type": "...", '
+            '  "relations": [{"source": "...", "source_type": "...", "target": "...", '
+            '"target_type": "...", "type": "...", '
             '"description": "...", "strength": 8}]\n'
             "}"
         )
@@ -122,7 +124,7 @@ def _save_partial_results(
 async def extract_all(
     chunks: list[str],
     schema: Schema,
-    config: Config,
+    config: Config = Config(),
     output_path: Path | None = None,
 ) -> list[ExtractionResult]:
     """Extract from all chunks with concurrency control and incremental saving."""

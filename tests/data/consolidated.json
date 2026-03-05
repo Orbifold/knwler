@@ -1,5 +1,5 @@
 {
-  "id": "39964123-f5b6-42f1-8114-4a80ff03fe1a",
+  "id": "95076df1-1965-4028-9654-aedd4f951df5",
   "documents": [
     {
       "id": "doc1",
@@ -39,6 +39,7 @@
           "doc1-chunk1",
           "doc2-chunk1"
         ],
+        "id": "149741b0-ea61-4b89-ad8b-4a921bad33c8",
         "community_id": 0
       },
       {
@@ -48,7 +49,8 @@
         "chunk_ids": [
           "doc1-chunk2"
         ],
-        "community_id": 0
+        "id": "87db5c04-594a-45aa-a9bf-fff61b95f45a",
+        "community_id": 1
       },
       {
         "name": "barnacles",
@@ -57,40 +59,79 @@
         "chunk_ids": [
           "doc2-chunk2"
         ],
-        "community_id": 0
+        "id": "cd182da1-31f1-45d1-b669-9ba9b593faac",
+        "community_id": 2
       }
     ],
     "relations": [
       {
         "source": "Charles Darwin",
+        "source_type": "",
         "target": "theory of evolution",
+        "target_type": "",
         "type": "related_to",
         "description": "Charles Darwin is related to the theory of evolution.",
         "strength": 0.8,
         "chunk_ids": [
           "doc1-chunk2"
-        ]
+        ],
+        "id": "5745c997-635e-48aa-893c-b23604ae330a"
       },
       {
         "source": "Charles Darwin",
+        "source_type": "",
         "target": "barnacles",
+        "target_type": "",
         "type": "obsessed_with",
         "description": "Charles Darwin was obsessed with the study of barnacles.",
         "strength": 0.1,
         "chunk_ids": [
           "doc2-chunk2"
-        ]
+        ],
+        "id": "cff8845c-ed03-4bef-801b-1458910c63af"
       }
     ],
     "communities": [
       {
         "id": 0,
         "topics": [
-          "theory of evolution",
           "Charles Darwin",
-          "barnacles"
+          "Barnacles",
+          "Theory of Evolution"
         ],
-        "description": "This community focuses on Charles Darwin's work, his studies of barnacles, and the theory of evolution that he developed.",
+        "description": "This community includes Charles Darwin, his studies of barnacles, and his theory of evolution, which were all interconnected aspects of his work.",
+        "members": [
+          "Charles Darwin::Person"
+        ]
+      },
+      {
+        "id": 1,
+        "topics": [
+          "Theory of Evolution"
+        ],
+        "description": "This community focuses solely on the theory of evolution, a central concept in Darwin's work.",
+        "members": [
+          "theory of evolution::Concept"
+        ]
+      },
+      {
+        "id": 2,
+        "topics": [
+          "Barnacles"
+        ],
+        "description": "This community is dedicated to the study of barnacles, a group of marine crustaceans that Darwin studied extensively.",
+        "members": [
+          "barnacles::Concept"
+        ]
+      },
+      {
+        "id": 3,
+        "topics": [
+          "Charles Darwin",
+          "Barnacles",
+          "Theory of Evolution"
+        ],
+        "description": "This community encompasses all aspects of Darwin's work, including his studies of barnacles and his theory of evolution.",
         "members": [
           "Charles Darwin",
           "barnacles",
@@ -98,5 +139,6 @@
         ]
       }
     ]
-  }
+  },
+  "chunks": []
 }

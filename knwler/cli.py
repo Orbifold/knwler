@@ -131,6 +131,21 @@ def consolidate_graphs_command(
             help="Base URL for OpenAI API (useful for OpenAI-compatible APIs like Azure OpenAI).",
         ),
     ] = None,
+    output: Annotated[
+        Optional[Path],
+        typer.Option(
+            "--output",
+            "-O",
+            help="Directory to save the consolidated graph (defaults to 'results/').",
+        ),
+    ] = None,
+    include_chunks: Annotated[
+        bool,
+        typer.Option(
+            "--include-chunks",
+            help="Whether to include chunks in the consolidation process (useful when merging towards a vector database ingestion).",
+        ),
+    ] = False,
 ):
     """Consolidate extracted graphs into a single graph."""
     if openai and anthropic:
@@ -168,7 +183,9 @@ def consolidate_graphs_command(
         use_cache=not no_cache,
         openai_base_url=openai_base_url,
     )
-    cli_consolidate_graphs(directory=directory)
+    cli_consolidate_graphs(
+        directory=directory, include_chunks=include_chunks, output=output, config=config
+    )
 
 
 def _version_callback(value: bool) -> None:

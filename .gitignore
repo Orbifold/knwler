@@ -15,3 +15,6 @@ uv.lock
 .DS_Store
 .claude
 pdfs/
+tests/graph.json
+tests/graph.html
+tests/data/consolidated.json

@@ -599,10 +599,11 @@
     {% for community in communities %}
     <div class="card">
       <div class="tags">{{ community.topics | join(', ') }}</div>
+      <div>
+        {% if community.description %} {{ community.description }} {% endif %}
+      </div>
       <ul>
-        {% if community.description %}
-        <li>{{ community.description }}</li>
-        {% endif %} {% if community.member_links %}
+        {% if community.member_links %}
         <li>{{ community.member_links | safe }}</li>
         {% endif %}
       </ul>

@@ -184,8 +184,13 @@ def consolidate_graphs_command(
         use_cache=not no_cache,
         openai_base_url=openai_base_url,
     )
-    cli_consolidate_graphs(
-        directory=directory, include_chunks=include_chunks, output=output, config=config
+    asyncio.run(
+        cli_consolidate_graphs(
+            directory=directory,
+            include_chunks=include_chunks,
+            output=output,
+            config=config,
+        )
     )
 
 

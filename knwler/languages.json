@@ -185,7 +185,7 @@
       "rephrase_chunk": "Herschrijf de volgende tekst zodat deze gemakkelijk te begrijpen is. Behoud alle belangrijke feiten en namen. Breng de informatie duidelijk en beknopt over.\n\nTEKST:\n\"\"\"{chunk}\"\"\"\n\nReturneer JSON:\n{{\n  \"rephrase\": \"...\"\n}}",
       "extract_title": "Maak een korte, duidelijke documenttitel op basis van de onderstaande tekst. Retourneer alleen een JSON-object.\n\nTEKST:\n\"\"\"{sample}\"\"\"\n\nReturneer JSON:\n{{\n  \"title\": \"...\"\n}}",
       "extract_summary": "Vat het onderstaande document samen in 3-5 zinnen. Focus op het hoofdonderwerp en de belangrijkste punten. Retourneer alleen JSON.\n\nTEKST:\n\"\"\"{sample}\"\"\"\n\nReturneer JSON:\n{{\n  \"summary\": \"...\"\n}}",
-      "community_labeling": "Je labelt graafgemeenschappen. Geef voor elke gemeenschap 1-3 korte onderwerpen en een beschrijving van 1-2 zinnen.\n\nGEMEENSCHAPPEN:\n{communities_text}\n\nReturneer JSON:\n{{\n  \"communities\": {{\n    \"<id>\": {{\"topics\": [\"onderwerp1\", \"onderwerp2\"], \"description\": \"...\"}},\n    ...\n  }}\n}}"
+      "community_labeling": "Je labelt netwerk clusters. Geef voor elke cluster 1-3 korte onderwerpen en een beschrijving van 1-2 zinnen.\n\nCLUSTERS:\n{communities_text}\n\nRetourneer JSON:\n{{\n  \"communities\": {{\n    \"<id>\": {{\"topics\": [\"onderwerp1\", \"onderwerp2\"], \"description\": \"...\"}},\n    ...\n  }}\n}}"
     },
     "ui": {
       "title": "Kennisgraaf",
@@ -205,7 +205,7 @@
       "chunk_label": "Sectie",
       "type_label": "Type",
       "description_label": "Beschrijving",
-      "community_label": "Gemeenschap",
+      "community_label": "Clusters",
       "chunks_label": "Secties",
       "disclaimer": "De informatie in dit document is geëxtraheerd en verwerkt met behulp van geautomatiseerde kunstmatige intelligentie-tools (Knwl.AI). Hoewel we streven naar nauwkeurigheid, worden deze gegevens gegenereerd via machine learning-algoritmen en natuurlijke taalverwerking, wat kan resulteren in fouten, weglatingen of verkeerde interpretaties van het originele bronmateriaal. Dit document wordt \"zoals het is\" en alleen voor informatieve doeleinden verstrekt. Orbifold Consulting geeft geen garanties, expliciet of impliciet, met betrekking tot de nauwkeurigheid, volledigheid of betrouwbaarheid van deze informatie. Gebruikers wordt geadviseerd om kritieke gegevens onafhankelijk te verifiëren aan de hand van originele brondocumenten voordat zij zakelijke, juridische of financiële beslissingen nemen. Orbifold Consulting aanvaardt geen aansprakelijkheid voor acties die worden ondernomen op basis van deze informatie."
     },
@@ -213,9 +213,9 @@
       "extracting": "Extraheren...",
       "rephrasing": "Herformuleren...",
       "summarizing": "{count} items samenvatten...",
-      "analyzing_communities": "Gemeenschappen analyseren...",
+      "analyzing_communities": "Clusters analyse...",
       "discovering_schema": "Schema ontdekken...",
-      "detected_communities": "{count} gemeenschappen gedetecteerd",
+      "detected_communities": "{count} clusters gedetecteerd",
       "removed_entities": "{count} onbelangrijke entiteiten verwijderd (betekenisloze naam of graad nul)"
     }
   }

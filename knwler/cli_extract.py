@@ -42,7 +42,7 @@ from knwler.cli_consolidate import cli_consolidate_graphs
 extract_app = typer.Typer(help="Utility to manage documents.")
 
 
-def _process_file(
+async def _process_file(
     file_path: Path,
     *,
     output: Optional[Path],
@@ -103,7 +103,7 @@ def _process_file(
         set_language(language)
         detected_lang = language
     else:
-        detected_lang = detect_language(text, config)
+        detected_lang = await detect_language(text, config)
         set_language(detected_lang)
 
     lang_name = get_lang().get("name", detected_lang)
@@ -153,7 +153,7 @@ def _process_file(
             get_console_msg("discovering_schema") or "Discovering schema..."
         )
         with console.status(f"[bold green]{discovering_msg}[/bold green]"):
-            schema = discover_schema(text, config)
+            schema = await discover_schema(text, config)
         console.print(f"Time: [cyan]{schema.discovery_time:.2f}s[/cyan]")
 
     # Merge existing schema types
@@ -180,13 +180,13 @@ def _process_file(
     # ── Title ──
     console.print()
     console.rule("[bold cyan]Title Extraction[/bold cyan]")
-    title = extract_title(chunks, config) or file_path.stem
+    title = await extract_title(chunks, config) or file_path.stem
     console.print(f"Title: [green]{title}[/green]")
 
     # ── Summary ──
     console.print()
     console.rule("[bold cyan]Document Summary[/bold cyan]")
-    summary = extract_summary(chunks, config)
+    summary = await extract_summary(chunks, config)
     if summary:
         console.print(f"Summary: [green]{summary}[/green]")
     else:
@@ -197,7 +197,7 @@ def _process_file(
     console.rule("[bold cyan]Chunk Rephrase[/bold cyan]")
     console.print(f"Model: [green]{config.extraction_model}[/green]")
     rephrase_t0 = time.perf_counter()
-    rephrased = rephrase_chunks(chunks, config)
+    rephrased = await rephrase_chunks(chunks, config)
     rephrase_time = time.perf_counter() - rephrase_t0
     console.print(f"Time: [cyan]{rephrase_time:.2f}s[/cyan]")
 
@@ -207,8 +207,8 @@ def _process_file(
     console.print(f"Model: [green]{config.extraction_model}[/green]")
 
     t0 = time.perf_counter()
-    extraction_results: list[ExtractionResult] = asyncio.run(
-        extract_all(chunks, schema, config, output_path=output)
+    extraction_results: list[ExtractionResult] = await extract_all(
+        chunks, schema, config, output_path=output
     )
     wall_time = time.perf_counter() - t0
 
@@ -220,7 +220,7 @@ def _process_file(
         if existing_result
         else extraction_results
     )
-    consolidated, consolidation_time = consolidate_extracted_graphs(
+    consolidated, consolidation_time = await consolidate_extracted_graphs(
         all_results, config, summarize=True
     )
 
@@ -228,7 +228,7 @@ def _process_file(
     console.print()
     console.rule("[bold cyan]Community Analysis[/bold cyan]")
     community_t0 = time.perf_counter()
-    consolidated = analyze_communities(consolidated, config)
+    consolidated = await analyze_communities(consolidated, config)
     community_time = time.perf_counter() - community_t0
 
     # ── Stats ──
@@ -629,16 +629,18 @@ def extract(
         else:
             fp_output = output
         # try:
-        _process_file(
-            fp,
-            output=fp_output,
-            config=config,
-            no_discovery=no_discovery,
-            language=language,
-            url=url,
-            html_report=html_report,
-            gml_export=gml_export,
-            overwrite_dir=overwrite_dir,
+        asyncio.run(
+            _process_file(
+                fp,
+                output=fp_output,
+                config=config,
+                no_discovery=no_discovery,
+                language=language,
+                url=url,
+                html_report=html_report,
+                gml_export=gml_export,
+                overwrite_dir=overwrite_dir,
+            )
         )
         # except Exception as file_err:
         #     console.print(
@@ -655,7 +657,9 @@ def extract(
         #     raise typer.Exit(1)
         # Directory mode: log error and continue to next file
     if consolidate and len(files_to_process) > 1:
-        cli_consolidate_graphs(directory=output, output=output, config=config)
+        asyncio.run(
+            cli_consolidate_graphs(directory=output, output=output, config=config)
+        )
 
     # except Exception as e:
     #     console.print(

@@ -62,7 +62,7 @@ def create_network(
 # ---------------------------------------------------------------------------
 # Community analysis
 # ---------------------------------------------------------------------------
-def analyze_communities(consolidated: dict, config: Config) -> dict:
+async def analyze_communities(consolidated: dict, config: Config) -> dict:
     """Detect communities and label them with topics and descriptions."""
     analyzing_msg = (
         get_console_msg("analyzing_communities") or "Analyzing communities..."
@@ -112,7 +112,7 @@ def analyze_communities(consolidated: dict, config: Config) -> dict:
         labels: dict = {}
         if community_payload:
             prompt = _build_community_prompt(community_payload)
-            response = llm_generate(prompt, config, model=config.extraction_model)
+            response = await llm_generate(prompt, config, model=config.extraction_model)
             parsed = parse_json_response(response)
             labels = parsed.get("communities", {})
 

@@ -6,7 +6,7 @@ from pathlib import Path
 import os
 
 
-def cli_consolidate_graphs(
+async def cli_consolidate_graphs(
     directory: Optional[Path] = None,
     output: Optional[Path] = None,
     include_chunks: bool = False,
@@ -56,7 +56,7 @@ def cli_consolidate_graphs(
     )
     if all_graphs:
         # note that clustering is also applied at the consolidation level to group similar entities together across documents, which is useful when merging a large amount of graphs towards a database ingestion
-        consolidated = consolidate_graphs(
+        consolidated = await consolidate_graphs(
             all_graphs, cluster=True, include_chunks=include_chunks, config=config
         )
         if output and output.suffix:

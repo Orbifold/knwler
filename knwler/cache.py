@@ -7,12 +7,11 @@ import json
 import time
 from pathlib import Path
 from typing import Any
-from knwler.config import PROJECT_ROOT
 
 # ---------------------------------------------------------------------------
 # Cache directory
 # ---------------------------------------------------------------------------
-CACHE_DIR = PROJECT_ROOT / "cache"
+CACHE_DIR = Path.home() / ".knwler" / "cache"
 
 
 # ---------------------------------------------------------------------------
@@ -80,6 +79,7 @@ def save_to_cache(key: str, response: str, model: str):
     }
     cache_file.write_text(json.dumps(data, indent=2))
 
+
 def find_cache_items(model: str = None) -> list[dict]:
     """Find all cache items, optionally filtered by model."""
     items = []
@@ -89,11 +89,13 @@ def find_cache_items(model: str = None) -> list[dict]:
         try:
             data = json.loads(cache_file.read_text())
             if model is None or data.get("model") == model:
-                items.append({
-                    "key": cache_file.stem,
-                    "model": data.get("model"),
-                    "cached_at": data.get("cached_at"),
-                })
+                items.append(
+                    {
+                        "key": cache_file.stem,
+                        "model": data.get("model"),
+                        "cached_at": data.get("cached_at"),
+                    }
+                )
         except (json.JSONDecodeError, IOError):
             continue
     return items

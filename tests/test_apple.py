@@ -43,7 +43,7 @@ async def test_disambiguation():
             print(
                 f"- {r['source']}::{r['source_type']} -> {r['target']}::{r['target_type']} ({r['type']}): {r['description']} [Strength: {r['strength']}]"
             )
-    g, _ = consolidate_extracted_graphs(
+    g, _ = await consolidate_extracted_graphs(
         extraction_results,
         config=config,
     )

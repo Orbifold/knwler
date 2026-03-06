@@ -4,18 +4,33 @@ LLM backends (Ollama, OpenAI) and JSON response parsing.
 
 import json
 import os
-import re
+from typing import Any
 
-import requests
+import aiohttp
 
 from knwler.config import Config
 from knwler.cache import cache_key, get_cached_response, save_to_cache
 
 
+async def _post_json(
+    url: str,
+    *,
+    payload: dict[str, Any],
+    headers: dict[str, str] | None = None,
+    timeout_seconds: int = 360,
+) -> dict[str, Any]:
+    """POST JSON payload and parse JSON response using aiohttp."""
+    timeout = aiohttp.ClientTimeout(total=timeout_seconds)
+    async with aiohttp.ClientSession(timeout=timeout) as session:
+        async with session.post(url, headers=headers, json=payload) as resp:
+            resp.raise_for_status()
+            return await resp.json()
+
+
 # ---------------------------------------------------------------------------
 # Ollama
 # ---------------------------------------------------------------------------
-def ollama_generate(
+async def ollama_generate(
     prompt: str,
     config: Config,
     model: str | None = None,
@@ -44,9 +59,8 @@ def ollama_generate(
     if format_json:
         payload["format"] = "json"
 
-    resp = requests.post(config.ollama_url, json=payload, timeout=360)
-    resp.raise_for_status()
-    response = resp.json()["response"]
+    response_json = await _post_json(config.ollama_url, payload=payload)
+    response = response_json["response"]
 
     if config.use_cache:
         save_to_cache(key, response, actual_model)
@@ -57,7 +71,7 @@ def ollama_generate(
 # ---------------------------------------------------------------------------
 # OpenAI
 # ---------------------------------------------------------------------------
-def openai_generate(
+async def openai_generate(
     prompt: str,
     config: Config,
     model: str | None = None,
@@ -93,9 +107,8 @@ def openai_generate(
         payload["response_format"] = {"type": "json_object"}
 
     url = f"{config.openai_base_url.rstrip('/')}/chat/completions"
-    resp = requests.post(url, headers=headers, json=payload, timeout=360)
-    resp.raise_for_status()
-    response = resp.json()["choices"][0]["message"]["content"]
+    response_json = await _post_json(url, payload=payload, headers=headers)
+    response = response_json["choices"][0]["message"]["content"]
 
     if config.use_cache:
         save_to_cache(key, response, actual_model)
@@ -106,7 +119,7 @@ def openai_generate(
 # ---------------------------------------------------------------------------
 # Anthropic
 # ---------------------------------------------------------------------------
-def anthropic_generate(
+async def anthropic_generate(
     prompt: str,
     config: Config,
     model: str | None = None,
@@ -165,7 +178,7 @@ def anthropic_generate(
 # ---------------------------------------------------------------------------
 # Dispatcher
 # ---------------------------------------------------------------------------
-def llm_generate(
+async def llm_generate(
     prompt: str,
     config: Config,
     model: str | None = None,
@@ -173,10 +186,10 @@ def llm_generate(
 ) -> str:
     """Dispatch to appropriate LLM backend based on config."""
     if config.backend == "anthropic":
-        return anthropic_generate(prompt, config, model, format_json)
+        return await anthropic_generate(prompt, config, model, format_json)
     if config.backend == "openai":
-        return openai_generate(prompt, config, model, format_json)
-    return ollama_generate(prompt, config, model, format_json)
+        return await openai_generate(prompt, config, model, format_json)
+    return await ollama_generate(prompt, config, model, format_json)
 
 
 # ---------------------------------------------------------------------------

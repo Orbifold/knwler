@@ -26,7 +26,7 @@ from dataclasses import dataclass, asdict, fields, field
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
-def consolidate_graphs(
+async def consolidate_graphs(
     graphs: list[dict],
     cluster: bool = False,
     include_chunks: bool = False,
@@ -85,7 +85,7 @@ def consolidate_graphs(
         f"[green]\u2713[/green] Aggregated [cyan]{len(all_chunks)}[/cyan] chunks, [cyan]{len(all_documents)}[/cyan] documents, "
         f"[cyan]{len(all_schema['entity_types'])}[/cyan] entity types, [cyan]{len(all_schema['relation_types'])}[/cyan] relation types from all graphs."
     )
-    consolidated, consolidation_time = consolidate_extracted_graphs(
+    consolidated, consolidation_time = await consolidate_extracted_graphs(
         [
             Graph(
                 entities=g.get("graph", {}).get("entities", []),
@@ -100,7 +100,7 @@ def consolidate_graphs(
     if cluster:
         from knwler.community import analyze_communities
 
-        consolidated = analyze_communities(consolidated, config)
+        consolidated = await analyze_communities(consolidated, config)
 
     return {
         "id": str(uuid4()),
@@ -111,7 +111,7 @@ def consolidate_graphs(
     }
 
 
-def consolidate_extracted_graphs(
+async def consolidate_extracted_graphs(
     little_graphs: list[Graph],
     config: Config = Config(),
     summarize: bool = True,
@@ -207,7 +207,7 @@ def consolidate_extracted_graphs(
 
     # Phase 2: Summarize descriptions that need merging
     if summarize:
-        entity_map, relation_map = _summarize_descriptions(
+        entity_map, relation_map = await _summarize_descriptions(
             entity_map, relation_map, config
         )
     else:
@@ -320,7 +320,7 @@ def _filter_low_importance_nodes(
     return filtered_entities, relations
 
 
-def _summarize_descriptions(
+async def _summarize_descriptions(
     entity_map: dict,
     relation_map: dict,
     config: Config,
@@ -375,7 +375,7 @@ def _summarize_descriptions(
         for i in range(0, len(to_summarize), batch_size):
             batch = to_summarize[i : i + batch_size]
             prompt = _build_summarization_prompt(batch)
-            response = llm_generate(prompt, config, model=config.extraction_model)
+            response = await llm_generate(prompt, config, model=config.extraction_model)
             result = parse_json_response(response)
             summaries.update(result.get("summaries", {}))
             progress.update(task, advance=1)

@@ -36,12 +36,12 @@ async def test_ada():
 
     print(f"\n-------Discovery-------\n")
     # detect language
-    lang = detect_language(text, config)
+    lang = await detect_language(text, config)
     assert isinstance(lang, str) and len(lang) == 2 and lang == "en"
     print(f"\nDetected language: {lang}")
 
     # discover schema
-    schema = discover_schema(text, config)
+    schema = await discover_schema(text, config)
     assert schema is not None
     assert isinstance(schema.entity_types, list)
     assert isinstance(schema.relation_types, list)
@@ -50,16 +50,16 @@ async def test_ada():
     print(f"\nReasoning: {schema.reasoning}")
 
     print(f"\n-------Extras-------\n")
-    title = extract_title(chunks, config)
+    title = await extract_title(chunks, config)
     assert isinstance(title, str) and len(title) > 0
     print(f"\nTitle: {title}")
 
-    rephrased_chunk1 = rephrase_chunks([chunks[1]], config)
+    rephrased_chunk1 = await rephrase_chunks([chunks[1]], config)
     assert isinstance(rephrased_chunk1, list) and len(rephrased_chunk1) > 0
     print("\n-----Rephrased chunk 1-------\n")
     print(f"\n {rephrased_chunk1[0]}")
 
-    summary = extract_summary(chunks, config)
+    summary = await extract_summary(chunks, config)
     assert isinstance(summary, str) and len(summary) > 0
     print("\n-----Summary using Qwen 2.5:3B-------\n")
     print(f"\n {summary}")
@@ -67,7 +67,7 @@ async def test_ada():
     # as an example, let's change the LLM model used for the summary extraction
     config = Config(ollama_extraction_model="qwen2.5:14b")
     print("\n-----Summary using Qwen 2.5:14b-------\n")
-    summary = extract_summary(chunks, config)
+    summary = await extract_summary(chunks, config)
     print(f"\n {summary}")
 
     fourteen_items = find_cache_items(model="qwen2.5:14b")
@@ -75,7 +75,7 @@ async def test_ada():
 
     chunk1 = chunks[0]
     config = Config()  # back to the smaller model
-    many_little_graphs = extract_chunk(chunk1, 142, schema, config)
+    many_little_graphs = await extract_chunk(chunk1, 142, schema, config)
     assert isinstance(many_little_graphs, ExtractionResult)
     print("\n-----Graph of chunk 1-------\n")
     assert (
@@ -102,7 +102,7 @@ async def test_ada():
     assert isinstance(many_little_graphs[0], ExtractionResult)
 
     # now you can consolidate the list of little graphs into one big graph
-    consolidated, consolidation_time = consolidate_extracted_graphs(
+    consolidated, consolidation_time = await consolidate_extracted_graphs(
         many_little_graphs,
         config,
         summarize=False,
@@ -124,7 +124,7 @@ async def test_ada():
         )
 
     # you can also keep the singletons and low-value entities
-    consolidated, consolidation_time = consolidate_extracted_graphs(
+    consolidated, consolidation_time = await consolidate_extracted_graphs(
         many_little_graphs, config, summarize=False, filter_low_importance=False
     )
     print("\n-----Consolidated graph with low-value entities-------\n")

@@ -4,12 +4,13 @@ import json
 from knwler import consolidate_graphs, Graph, consolidate_extracted_graphs
 
 
-def test_graph_consolidation():
+@pytest.mark.asyncio
+async def test_graph_consolidation():
     with open("tests/data/doc1.json", "r") as f:
         doc1 = json.loads(f.read())
     with open("tests/data/doc2.json", "r") as f:
         doc2 = json.loads(f.read())
-    result = consolidate_graphs([doc1, doc2], True)
+    result = await consolidate_graphs([doc1, doc2], True)
     with open("tests/data/consolidated.json", "w") as f:
         json.dump(result, f, indent=2)
 
@@ -30,7 +31,7 @@ async def test_no_summary():
         relations=[],
     )
     # if low importance filtering is on, you will get empty
-    consolidated, consolidation_time = consolidate_extracted_graphs(
+    consolidated, consolidation_time = await consolidate_extracted_graphs(
         [g1, g2], summarize=False, filter_low_importance=False
     )
     assert isinstance(consolidated, dict)

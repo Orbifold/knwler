@@ -20,6 +20,9 @@
 - **new 3-column report template**
 - uv optional dependencies
 - poetry install issues fixed
+- async await (as should be) across the board
+- quite of bit of documentation and TLC towards adoption and usability
+- cache and results dirs have moved to user dir 
 
 ## v0.4.1
 

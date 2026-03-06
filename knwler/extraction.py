@@ -28,7 +28,7 @@ from knwler.llm import llm_generate, parse_json_response
 # ---------------------------------------------------------------------------
 # Single-chunk extraction
 # ---------------------------------------------------------------------------
-def extract_graph(text: str, schema: Schema, config: Config) -> dict[str, Any]:
+async def extract_graph(text: str, schema: Schema, config: Config) -> dict[str, Any]:
     """Extract entities and relations from text."""
     prompt = get_prompt(
         "extract_graph",
@@ -57,7 +57,7 @@ def extract_graph(text: str, schema: Schema, config: Config) -> dict[str, Any]:
             "}"
         )
 
-    response = llm_generate(prompt, config)
+    response = await llm_generate(prompt, config)
     result = parse_json_response(response)
 
     return {
@@ -66,12 +66,12 @@ def extract_graph(text: str, schema: Schema, config: Config) -> dict[str, Any]:
     }
 
 
-def extract_chunk(
+async def extract_chunk(
     chunk: str, idx: int, schema: Schema, config: Config
 ) -> ExtractionResult:
     """Extract from a single chunk with timing."""
     t0 = time.perf_counter()
-    result = extract_graph(chunk, schema, config)
+    result = await extract_graph(chunk, schema, config)
     elapsed = time.perf_counter() - t0
     # an ExtractionResult couples a chunk with a graph
     return ExtractionResult(
@@ -129,7 +129,6 @@ async def extract_all(
 ) -> list[ExtractionResult]:
     """Extract from all chunks with concurrency control and incremental saving."""
     semaphore = asyncio.Semaphore(config.max_concurrent)
-    loop = asyncio.get_event_loop()
     total = len(chunks)
     results: list[ExtractionResult] = []
     lock = asyncio.Lock()
@@ -149,9 +148,7 @@ async def extract_all(
 
         async def bounded(chunk: str, idx: int) -> ExtractionResult:
             async with semaphore:
-                result = await loop.run_in_executor(
-                    None, extract_chunk, chunk, idx, schema, config
-                )
+                result = await extract_chunk(chunk, idx, schema, config)
                 async with lock:
                     results.append(result)
                     if output_path:

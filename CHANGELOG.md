@@ -18,6 +18,8 @@
 - **disambiguation of entities** with the same name but different type, also emphasized in the export via type badges
 - dark/light **theme toggle**
 - **new 3-column report template**
+- uv optional dependencies
+- poetry install issues fixed
 
 ## v0.4.1
 

@@ -4,6 +4,7 @@ CLI entry point — Typer application.
 
 import asyncio
 import json
+import sys
 import time
 from pathlib import Path
 from typing import Annotated, Optional
@@ -225,4 +226,26 @@ app.add_typer(
 
 def main():
     set_language(DEFAULT_LANGUAGE)
+
+    _KNOWN_SUBCOMMANDS = {"extract", "info", "consolidate"}
+    _GLOBAL_FLAGS = {"--version", "-V", "--help", "-h"}
+    args = sys.argv[1:]
+    if (
+        args
+        and args[0] == "extract"
+        and (len(args) == 1 or args[1].startswith("-"))
+        and (len(args) == 1 or args[1] != "extract")
+    ):
+        # 'knwler extract [-f ...]' → 'knwler extract extract [-f ...]'
+        sys.argv.insert(2, "extract")
+    elif (
+        args
+        and args[0] not in _KNOWN_SUBCOMMANDS
+        and args[0] not in _GLOBAL_FLAGS
+        and args[0].startswith("-")
+    ):
+        # 'knwler -f ...' → 'knwler extract extract -f ...'
+        sys.argv.insert(1, "extract")
+        sys.argv.insert(2, "extract")
+
     app()

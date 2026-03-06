@@ -1,0 +1,319 @@
+{
+  "id": "Apples",
+  "title": "Apple Test",
+  "summary": "This graph tests disambiguation of entities with the same name but different types (Apple as a company and Apple as a fruit). It should correctly identify two separate entities for Apple and extract the relation that Apple Inc. was founded by Steve Jobs, while Gala is a variety of Apple fruit.",
+  "graph": {
+    "entities": [
+      {
+        "name": "Apple",
+        "type": "Company",
+        "description": "A technology company known for iconic products like the Macintosh, iPod, iPhone, and iPad, operating a tightly integrated ecosystem of hardware, software, and services.",
+        "chunk_ids": [
+          "6e8f79de-85c8-4945-8829-7e682b68fd55"
+        ],
+        "id": "0d73d5d2-8d71-49f3-9353-17d288dfcb65"
+      },
+      {
+        "name": "Steve Jobs",
+        "type": "Person",
+        "description": "One of the co-founders of Apple who helped establish the company in Cupertino, California.",
+        "chunk_ids": [
+          "6e8f79de-85c8-4945-8829-7e682b68fd55"
+        ],
+        "id": "90a3e1d7-c229-46b5-9e61-46ab50cb6e4b"
+      },
+      {
+        "name": "Steve Wozniak",
+        "type": "Person",
+        "description": "A co-founder of Apple who contributed to the company's founding in 1976.",
+        "chunk_ids": [
+          "6e8f79de-85c8-4945-8829-7e682b68fd55"
+        ],
+        "id": "850f03d6-139c-4f59-a134-e9ffa23c8db2"
+      },
+      {
+        "name": "Ronald Wayne",
+        "type": "Person",
+        "description": "The third co-founder of Apple, involved in establishing the company on April 1, 1976.",
+        "chunk_ids": [
+          "6e8f79de-85c8-4945-8829-7e682b68fd55"
+        ],
+        "id": "be519a9b-2553-4b6f-9d23-e75a88fa8229"
+      },
+      {
+        "name": "Apple",
+        "type": "Fruit",
+        "description": "A deciduous fruit tree in the rose family, originally cultivated in Central Asia and now grown worldwide.",
+        "chunk_ids": [
+          "f1df78dc-a35f-4946-b7f4-8a9c9c6f450f"
+        ],
+        "id": "54628336-872d-4353-ac9b-003a654306c6"
+      },
+      {
+        "name": "Fuji",
+        "type": "Fruit",
+        "description": "One of the thousands of cultivated apple varieties differing in color, flavor, size, and texture.",
+        "chunk_ids": [
+          "f1df78dc-a35f-4946-b7f4-8a9c9c6f450f"
+        ],
+        "id": "bda0a691-cc68-4e7c-998f-607885d89f8a"
+      },
+      {
+        "name": "Gala",
+        "type": "Fruit",
+        "description": "One of the thousands of cultivated apple varieties differing in color, flavor, size, and texture.",
+        "chunk_ids": [
+          "f1df78dc-a35f-4946-b7f4-8a9c9c6f450f"
+        ],
+        "id": "4b932f92-7836-4ee0-9835-2f5a81a48229"
+      },
+      {
+        "name": "Granny Smith",
+        "type": "Fruit",
+        "description": "One of the thousands of cultivated apple varieties differing in color, flavor, size, and texture.",
+        "chunk_ids": [
+          "f1df78dc-a35f-4946-b7f4-8a9c9c6f450f"
+        ],
+        "id": "3609e0a1-0945-481a-810c-d7be0ac14ebb"
+      },
+      {
+        "name": "Honeycrisp",
+        "type": "Fruit",
+        "description": "One of the thousands of cultivated apple varieties differing in color, flavor, size, and texture.",
+        "chunk_ids": [
+          "f1df78dc-a35f-4946-b7f4-8a9c9c6f450f"
+        ],
+        "id": "4d7e3ce0-ca35-4d13-8fd0-642256a93a5c"
+      }
+    ],
+    "relations": [
+      {
+        "source": "Apple",
+        "source_type": "Company",
+        "target": "Steve Jobs",
+        "target_type": "Person",
+        "type": "founded_by",
+        "description": "Steve Jobs is one of the three individuals who founded Apple on April 1, 1976.",
+        "strength": 10.0,
+        "chunk_ids": [
+          "6e8f79de-85c8-4945-8829-7e682b68fd55"
+        ],
+        "id": "c2818601-570b-4699-822f-339eac5bc756"
+      },
+      {
+        "source": "Apple",
+        "source_type": "Company",
+        "target": "Steve Wozniak",
+        "target_type": "Person",
+        "type": "founded_by",
+        "description": "Steve Wozniak is one of the three individuals who founded Apple on April 1, 1976.",
+        "strength": 10.0,
+        "chunk_ids": [
+          "6e8f79de-85c8-4945-8829-7e682b68fd55"
+        ],
+        "id": "60968b1e-232d-434f-b00b-52a3de830645"
+      },
+      {
+        "source": "Apple",
+        "source_type": "Company",
+        "target": "Ronald Wayne",
+        "target_type": "Person",
+        "type": "founded_by",
+        "description": "Ronald Wayne is one of the three individuals who founded Apple on April 1, 1976.",
+        "strength": 10.0,
+        "chunk_ids": [
+          "6e8f79de-85c8-4945-8829-7e682b68fd55"
+        ],
+        "id": "ced7f099-04b9-4583-8a73-90425834a106"
+      },
+      {
+        "source": "Apple",
+        "source_type": "Fruit",
+        "target": "Fuji",
+        "target_type": "Fruit",
+        "type": "is_a",
+        "description": "Fuji is a cultivated variety of the apple.",
+        "strength": 10.0,
+        "chunk_ids": [
+          "f1df78dc-a35f-4946-b7f4-8a9c9c6f450f"
+        ],
+        "id": "47085b5d-8d79-47d6-862d-8ee29495b187"
+      },
+      {
+        "source": "Apple",
+        "source_type": "Fruit",
+        "target": "Gala",
+        "target_type": "Fruit",
+        "type": "is_a",
+        "description": "Gala is a cultivated variety of the apple.",
+        "strength": 10.0,
+        "chunk_ids": [
+          "f1df78dc-a35f-4946-b7f4-8a9c9c6f450f"
+        ],
+        "id": "818c179e-8d12-4886-b38a-3c012383dd30"
+      },
+      {
+        "source": "Apple",
+        "source_type": "Fruit",
+        "target": "Granny Smith",
+        "target_type": "Fruit",
+        "type": "is_a",
+        "description": "Granny Smith is a cultivated variety of the apple.",
+        "strength": 10.0,
+        "chunk_ids": [
+          "f1df78dc-a35f-4946-b7f4-8a9c9c6f450f"
+        ],
+        "id": "6373e49a-b87f-44bb-8f9b-e7c887d5b0e8"
+      },
+      {
+        "source": "Apple",
+        "source_type": "Fruit",
+        "target": "Honeycrisp",
+        "target_type": "Fruit",
+        "type": "is_a",
+        "description": "Honeycrisp is a cultivated variety of the apple.",
+        "strength": 10.0,
+        "chunk_ids": [
+          "f1df78dc-a35f-4946-b7f4-8a9c9c6f450f"
+        ],
+        "id": "e9ceebfc-81b6-49d9-9971-ae5c774ee389"
+      }
+    ]
+  },
+  "chunks": [
+    {
+      "id": "6e8f79de-85c8-4945-8829-7e682b68fd55",
+      "chunk_idx": 0,
+      "text": "Apple was founded on April 1, 1976, by Steve Jobs, Steve Wozniak, and Ronald Wayne in Cupertino, California. It has grown into one of the world's most valuable and recognizable technology companies, known for iconic products such as the Macintosh computer, the iPod, the iPhone, the iPad, and the Mac. Apple operates a tightly integrated ecosystem of hardware, software, and services \u2014 including the App Store, iCloud, Apple Music, and Apple Pay \u2014 and is renowned for its emphasis on design, user experience, and privacy. As of the mid-2020s, Apple consistently ranks among the top companies by market capitalization globally, with operations spanning retail stores, online services, and a vast supply chain across dozens of countries.",
+      "rephrase": "Apple was founded on April 1, 1976, by Steve Jobs, Steve Wozniak, and Ronald Wayne in Cupertino, California. It has grown into one of the world's most valuable and recognizable technology companies, known for iconic products such as the Macintosh computer, the iPod, the iPhone, the iPad, and the Mac. Apple operates a tightly integrated ecosystem of hardware, software, and services \u2014 including the App Store, iCloud, Apple Music, and Apple Pay \u2014 and is renowned for its emphasis on design, user experience, and privacy. As of the mid-2020s, Apple consistently ranks among the top companies by market capitalization globally, with operations spanning retail stores, online services, and a vast supply chain across dozens of countries.",
+      "entities": [
+        {
+          "name": "Apple",
+          "type": "Company",
+          "description": "A technology company known for iconic products like the Macintosh, iPod, iPhone, and iPad, operating a tightly integrated ecosystem of hardware, software, and services."
+        },
+        {
+          "name": "Steve Jobs",
+          "type": "Person",
+          "description": "One of the co-founders of Apple who helped establish the company in Cupertino, California."
+        },
+        {
+          "name": "Steve Wozniak",
+          "type": "Person",
+          "description": "A co-founder of Apple who contributed to the company's founding in 1976."
+        },
+        {
+          "name": "Ronald Wayne",
+          "type": "Person",
+          "description": "The third co-founder of Apple, involved in establishing the company on April 1, 1976."
+        }
+      ],
+      "relations": [
+        {
+          "source": "Apple",
+          "source_type": "Company",
+          "target": "Steve Jobs",
+          "target_type": "Person",
+          "type": "founded_by",
+          "description": "Steve Jobs is one of the three individuals who founded Apple on April 1, 1976.",
+          "strength": 10
+        },
+        {
+          "source": "Apple",
+          "source_type": "Company",
+          "target": "Steve Wozniak",
+          "target_type": "Person",
+          "type": "founded_by",
+          "description": "Steve Wozniak is one of the three individuals who founded Apple on April 1, 1976.",
+          "strength": 10
+        },
+        {
+          "source": "Apple",
+          "source_type": "Company",
+          "target": "Ronald Wayne",
+          "target_type": "Person",
+          "type": "founded_by",
+          "description": "Ronald Wayne is one of the three individuals who founded Apple on April 1, 1976.",
+          "strength": 10
+        }
+      ],
+      "chunk_time": 0.00014120899140834808,
+      "chunk_tokens": 154,
+      "document": "Apples"
+    },
+    {
+      "id": "f1df78dc-a35f-4946-b7f4-8a9c9c6f450f",
+      "chunk_idx": 1,
+      "text": "The apple (Malus domestica) is a deciduous fruit tree in the rose family (Rosaceae), originally cultivated in Central Asia and now grown worldwide. It produces sweet to tart round fruits with a thin edible skin, crisp flesh, and a core containing seeds. Apples come in thousands of cultivated varieties \u2014 including Fuji, Gala, Granny Smith, and Honeycrisp \u2014 differing in color, flavor, size, and texture. Rich in dietary fiber, vitamin C, and various antioxidants, apples are associated with numerous health benefits and are commonly consumed fresh, juiced, or used in cooking and baking. The fruit holds deep cultural significance across many civilizations, appearing in mythology, religion, and literature, from the biblical garden of Eden to Newton's legendary encounter with gravity.\n",
+      "rephrase": "The apple (Malus domestica) is a deciduous fruit tree in the rose family (Rosaceae), originally cultivated in Central Asia and now grown worldwide. It produces sweet to tart round fruits with a thin edible skin, crisp flesh, and a core containing seeds. Apples come in thousands of cultivated varieties \u2014 including Fuji, Gala, Granny Smith, and Honeycrisp \u2014 differing in color, flavor, size, and texture. Rich in dietary fiber, vitamin C, and various antioxidants, apples are associated with numerous health benefits and are commonly consumed fresh, juiced, or used in cooking and baking. The fruit holds deep cultural significance across many civilizations, appearing in mythology, religion, and literature, from the biblical garden of Eden to Newton's legendary encounter with gravity.\n",
+      "entities": [
+        {
+          "name": "Apple",
+          "type": "Fruit",
+          "description": "A deciduous fruit tree in the rose family, originally cultivated in Central Asia and now grown worldwide."
+        },
+        {
+          "name": "Fuji",
+          "type": "Fruit",
+          "description": "One of the thousands of cultivated apple varieties differing in color, flavor, size, and texture."
+        },
+        {
+          "name": "Gala",
+          "type": "Fruit",
+          "description": "One of the thousands of cultivated apple varieties differing in color, flavor, size, and texture."
+        },
+        {
+          "name": "Granny Smith",
+          "type": "Fruit",
+          "description": "One of the thousands of cultivated apple varieties differing in color, flavor, size, and texture."
+        },
+        {
+          "name": "Honeycrisp",
+          "type": "Fruit",
+          "description": "One of the thousands of cultivated apple varieties differing in color, flavor, size, and texture."
+        }
+      ],
+      "relations": [
+        {
+          "source": "Apple",
+          "source_type": "Fruit",
+          "target": "Fuji",
+          "target_type": "Fruit",
+          "type": "is_a",
+          "description": "Fuji is a cultivated variety of the apple.",
+          "strength": 10
+        },
+        {
+          "source": "Apple",
+          "source_type": "Fruit",
+          "target": "Gala",
+          "target_type": "Fruit",
+          "type": "is_a",
+          "description": "Gala is a cultivated variety of the apple.",
+          "strength": 10
+        },
+        {
+          "source": "Apple",
+          "source_type": "Fruit",
+          "target": "Granny Smith",
+          "target_type": "Fruit",
+          "type": "is_a",
+          "description": "Granny Smith is a cultivated variety of the apple.",
+          "strength": 10
+        },
+        {
+          "source": "Apple",
+          "source_type": "Fruit",
+          "target": "Honeycrisp",
+          "target_type": "Fruit",
+          "type": "is_a",
+          "description": "Honeycrisp is a cultivated variety of the apple.",
+          "strength": 10
+        }
+      ],
+      "chunk_time": 0.00010295900574419647,
+      "chunk_tokens": 156,
+      "document": "Apples"
+    }
+  ]
+}

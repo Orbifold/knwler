@@ -1,0 +1,830 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Apple Test</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #f5f5f5;
+        --card: #bbc7c9;
+        --card-text: #303030;
+        --border: #26c6da;
+        --link: #3c506b;
+        --entity-bg: #fff;
+        --entity-border: #96b9bd;
+        --body-color: #333;
+        --h2-border: #ccc;
+        --toggle-bg: #e0e0e0;
+        --toggle-track: #bbb;
+        --footer-color: #696969;
+        --footer-border: #ddd;
+        --detail-color: #555;
+        --chunk-orig-bg: #e0e0e0;
+        --toolbar-bg: #e8e8e8;
+        --toolbar-border: #ccc;
+        --entity-badge-bg: #e0e0e0;
+        --entity-badge-color: #464646;
+        --header-bg: #dde6e8;
+        --header-border: #c0cfd2;
+        --splitter-bg: #9ecdd2;
+        --splitter-hover: #26c6da;
+        --col-header-bg: #cdd8da;
+      }
+      [data-theme="dark"] {
+        --bg: #1a1a1a;
+        --card: #2a3a3d;
+        --card-text: #d0d0d0;
+        --border: #26c6da;
+        --link: #7ab3c8;
+        --entity-bg: #242424;
+        --entity-border: #393939;
+        --body-color: #ccc;
+        --h2-border: #444;
+        --toggle-bg: #333;
+        --toggle-track: #555;
+        --footer-color: #888;
+        --footer-border: #333;
+        --detail-color: #999;
+        --chunk-orig-bg: #2a2a2a;
+        --toolbar-bg: #111;
+        --toolbar-border: #333;
+        --entity-badge-bg: #4b4b4b;
+        --entity-badge-color: #b5b5b5;
+        --header-bg: #1e2c2e;
+        --header-border: #2d3f42;
+        --splitter-bg: #2a4447;
+        --splitter-hover: #26c6da;
+        --col-header-bg: #1e2c2e;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        height: 100%;
+        overflow: hidden;
+      }
+      body {
+        font-family:
+          "Inter",
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          Roboto,
+          sans-serif;
+        background: var(--bg);
+        color: var(--body-color);
+        line-height: 1.6;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* ── Header ───────────────────────────────────────────────── */
+      .page-header {
+        flex: 0 0 auto;
+        background: var(--header-bg);
+        border-bottom: 2px solid var(--header-border);
+        padding: 0.6rem 1.2rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+      }
+      .header-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        flex-wrap: wrap;
+      }
+      .header-toolbar h1 {
+        font-size: 1.3rem;
+        flex: 1 1 auto;
+      }
+      .header-meta {
+        font-size: 0.85rem;
+        color: var(--detail-color);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem 1.4rem;
+      }
+      .header-meta a {
+        color: var(--link);
+        text-decoration: none;
+        word-break: break-all;
+      }
+      .header-meta a:hover {
+        text-decoration: underline;
+      }
+      .header-summary {
+        font-size: 0.9rem;
+        color: var(--card-text);
+        background: var(--card);
+        border-radius: 6px;
+        padding: 0.45rem 0.8rem;
+      }
+
+      /* ── Theme toggle ─────────────────────────────────────────── */
+      .theme-switch {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        user-select: none;
+        flex-shrink: 0;
+      }
+      .theme-switch input {
+        display: none;
+      }
+      .theme-track {
+        width: 36px;
+        height: 20px;
+        background: var(--toggle-track);
+        border-radius: 10px;
+        position: relative;
+        transition: background 0.2s;
+        flex-shrink: 0;
+      }
+      .theme-track::after {
+        content: "";
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: #fff;
+        transition: transform 0.2s;
+      }
+      .theme-switch input:checked + .theme-track {
+        background: #4e79a7;
+      }
+      .theme-switch input:checked + .theme-track::after {
+        transform: translateX(16px);
+      }
+
+      /* ── Columns layout ───────────────────────────────────────── */
+      .columns-wrapper {
+        flex: 1 1 auto;
+        display: flex;
+        overflow: hidden;
+        min-height: 0;
+      }
+      .col {
+        flex: 1 1 0;
+        min-width: 80px;
+        overflow-y: auto;
+        padding: 5px;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+      }
+      .col-header {
+        position: sticky;
+        top: 0;
+        background: var(--col-header-bg);
+        padding: 2px 7px;
+        margin-bottom: 0.8rem;
+        z-index: 10;
+      }
+      .col-header h2 {
+        font-size: 1.1rem;
+        color: var(--body-color);
+      }
+      .splitter {
+        flex: 0 0 6px;
+        background: var(--splitter-bg);
+        cursor: col-resize;
+        transition: background 0.15s;
+        position: relative;
+      }
+      .splitter::after {
+        content: "";
+        position: absolute;
+        inset: 0 -3px;
+      }
+      .splitter:hover,
+      .splitter.dragging {
+        background: var(--splitter-hover);
+      }
+
+      /* ── Cards ────────────────────────────────────────────────── */
+      .card {
+        background: var(--card);
+        color: var(--card-text);
+        border-radius: 8px;
+        padding: 1rem 1.2rem;
+        margin-bottom: 0.8rem;
+      }
+      .card .tags {
+        font-weight: 900;
+        margin-bottom: 0.4rem;
+      }
+      .card ul {
+        margin: 0.4rem 0 0 1.2rem;
+      }
+      .card li {
+        margin-bottom: 0.2rem;
+      }
+      .card a {
+        color: var(--link);
+        text-decoration: none;
+      }
+      .card a:hover {
+        color: white;
+        background: var(--link);
+        padding: 0.2rem;
+        border-radius: 2px;
+      }
+      .toggle {
+        text-align: right;
+        font-size: 0.85rem;
+        color: var(--detail-color);
+        cursor: pointer;
+        user-select: none;
+        margin-bottom: 0.2rem;
+      }
+      .toggle:hover {
+        color: var(--link);
+      }
+      .chunk-original {
+        display: none;
+        background: var(--chunk-orig-bg);
+        border-radius: 8px;
+        padding: 1rem 1.2rem;
+        margin-bottom: 0.8rem;
+        white-space: pre-wrap;
+        font-size: 0.9rem;
+      }
+      a.entity-link {
+        color: var(--link);
+        text-decoration: none;
+        border-bottom: 1px dashed var(--link);
+      }
+      a.entity-link:hover {
+        color: white;
+        background: rgba(60, 60, 60, 0.9);
+        border-bottom-style: solid;
+        padding: 0 2px;
+        border-radius: 3px;
+      }
+      .entity-card {
+        background: var(--entity-bg);
+        border: 1px solid var(--entity-border);
+        border-radius: 8px;
+        padding: 1rem 1.2rem;
+        margin-bottom: 0.8rem;
+      }
+      .entity-card h3 {
+        color: #00796b;
+        font-size: 1rem;
+      }
+      .entity-label {
+        display: inline-block;
+        font-size: 0.5em;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        background: var(--entity-badge-bg);
+        color: var(--entity-badge-color);
+        padding: 0.15em 0.55em;
+        border-radius: 1em;
+        margin-left: 0.4em;
+        vertical-align: middle;
+      }
+      .entity-card .desc {
+        color: var(--detail-color);
+        margin: 0.3rem 0 0.6rem;
+        font-size: 0.9rem;
+      }
+      .entity-card ul {
+        margin: 0 0 0.6rem 1.2rem;
+        font-size: 0.9rem;
+      }
+      .entity-card li {
+        margin-bottom: 0.2rem;
+      }
+      .chunk-links {
+        font-size: 0.85rem;
+        color: var(--detail-color);
+      }
+      .chunk-links a {
+        color: var(--link);
+        text-decoration: none;
+      }
+      .chunk-links a:hover {
+        text-decoration: underline;
+      }
+      .empty-col {
+        color: var(--detail-color);
+        font-size: 0.9rem;
+        font-style: italic;
+        padding: 0.5rem 0;
+      }
+
+      /* ── Footer ───────────────────────────────────────────────── */
+      .page-footer {
+        flex: 0 0 auto;
+        font-size: 0.8rem;
+        color: var(--footer-color);
+        border-top: 1px solid var(--footer-border);
+        padding: 0.5rem 1.2rem;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.4rem;
+        background: var(--toolbar-bg);
+      }
+      .page-footer a {
+        color: var(--link);
+        text-decoration: none;
+      }
+      .page-footer a:hover {
+        text-decoration: underline;
+      }
+      .footer-disclaimer {
+        width: 100%;
+        font-size: 0.7rem;
+        color: var(--footer-color);
+        border-top: 1px solid var(--footer-border);
+        padding-top: 0.4rem;
+        margin-top: 0.2rem;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ── Header ───────────────────────────────────────────────── -->
+    <header class="page-header">
+      <div class="header-toolbar">
+        <h1>Apple Test</h1>
+        <label class="theme-switch" title="Toggle dark/light theme">
+          <input type="checkbox" id="theme-toggle" />
+          <span class="theme-track"></span>
+          <span id="theme-label">&#9790;</span>
+        </label>
+      </div>
+      
+      <div class="header-summary">This graph tests disambiguation of entities with the same name but different types (Apple as a company and Apple as a fruit). It should correctly identify two separate entities for Apple and extract the relation that Apple Inc. was founded by Steve Jobs, while Gala is a variety of Apple fruit.</div>
+      
+      <div class="header-meta">
+        <span>Extracted 9 entities, 7 relations and 0 topics on Mar 06, 2026</span>
+        
+      </div>
+    </header>
+
+    <!-- ── Three-column layout ──────────────────────────────────── -->
+    <div class="columns-wrapper" id="columns-wrapper">
+      <!-- Topics column -->
+      <div class="col" id="col-topics" style="flex-basis: 33.333%">
+        <div class="col-header">
+          <h2>Topics</h2>
+        </div>
+        
+        <p class="empty-col">No topics available.</p>
+        
+      </div>
+
+      <div class="splitter" id="splitter-1" title="Drag to resize"></div>
+
+      <!-- Chunks column -->
+      <div class="col" id="col-chunks" style="flex-basis: 33.333%">
+        <div class="col-header">
+          <h2>Content</h2>
+        </div>
+         
+        <div class="toggle" onclick="toggleChunk('chunk-6e8f79de-85c8-4945-8829-7e682b68fd55')">
+          Show original text
+        </div>
+        <div class="card" id="chunk-6e8f79de-85c8-4945-8829-7e682b68fd55-rephrase">
+          <a href="#entity-apple::company" class="entity-link">Apple</a> was founded on April 1, 1976, by <a href="#entity-steve-jobs::person" class="entity-link">Steve Jobs</a>, <a href="#entity-steve-wozniak::person" class="entity-link">Steve Wozniak</a>, and <a href="#entity-ronald-wayne::person" class="entity-link">Ronald Wayne</a> in Cupertino, California. It has grown into one of the world&#x27;s most valuable and recognizable technology companies, known for iconic products such as the Macintosh computer, the iPod, the iPhone, the iPad, and the Mac. <a href="#entity-apple::company" class="entity-link">Apple</a> operates a tightly integrated ecosystem of hardware, software, and services — including the App Store, iCloud, <a href="#entity-apple::company" class="entity-link">Apple</a> Music, and <a href="#entity-apple::company" class="entity-link">Apple</a> Pay — and is renowned for its emphasis on design, user experience, and privacy. As of the mid-2020s, <a href="#entity-apple::company" class="entity-link">Apple</a> consistently ranks among the top companies by market capitalization globally, with operations spanning retail stores, online services, and a vast supply chain across dozens of countries.
+        </div>
+        <div class="chunk-original" id="chunk-6e8f79de-85c8-4945-8829-7e682b68fd55-original">
+          Apple was founded on April 1, 1976, by Steve Jobs, Steve Wozniak, and Ronald Wayne in Cupertino, California. It has grown into one of the world&#39;s most valuable and recognizable technology companies, known for iconic products such as the Macintosh computer, the iPod, the iPhone, the iPad, and the Mac. Apple operates a tightly integrated ecosystem of hardware, software, and services — including the App Store, iCloud, Apple Music, and Apple Pay — and is renowned for its emphasis on design, user experience, and privacy. As of the mid-2020s, Apple consistently ranks among the top companies by market capitalization globally, with operations spanning retail stores, online services, and a vast supply chain across dozens of countries.
+        </div>
+        
+        <div class="toggle" onclick="toggleChunk('chunk-f1df78dc-a35f-4946-b7f4-8a9c9c6f450f')">
+          Show original text
+        </div>
+        <div class="card" id="chunk-f1df78dc-a35f-4946-b7f4-8a9c9c6f450f-rephrase">
+          The <a href="#entity-apple::fruit" class="entity-link">apple</a> (Malus domestica) is a deciduous fruit tree in the rose family (Rosaceae), originally cultivated in Central Asia and now grown worldwide. It produces sweet to tart round fruits with a thin edible skin, crisp flesh, and a core containing seeds. Apples come in thousands of cultivated varieties — including <a href="#entity-fuji::fruit" class="entity-link">Fuji</a>, <a href="#entity-gala::fruit" class="entity-link">Gala</a>, <a href="#entity-granny-smith::fruit" class="entity-link">Granny Smith</a>, and <a href="#entity-honeycrisp::fruit" class="entity-link">Honeycrisp</a> — differing in color, flavor, size, and texture. Rich in dietary fiber, vitamin C, and various antioxidants, apples are associated with numerous health benefits and are commonly consumed fresh, juiced, or used in cooking and baking. The fruit holds deep cultural significance across many civilizations, appearing in mythology, religion, and literature, from the biblical garden of Eden to Newton&#x27;s legendary encounter with gravity.
+
+        </div>
+        <div class="chunk-original" id="chunk-f1df78dc-a35f-4946-b7f4-8a9c9c6f450f-original">
+          The apple (Malus domestica) is a deciduous fruit tree in the rose family (Rosaceae), originally cultivated in Central Asia and now grown worldwide. It produces sweet to tart round fruits with a thin edible skin, crisp flesh, and a core containing seeds. Apples come in thousands of cultivated varieties — including Fuji, Gala, Granny Smith, and Honeycrisp — differing in color, flavor, size, and texture. Rich in dietary fiber, vitamin C, and various antioxidants, apples are associated with numerous health benefits and are commonly consumed fresh, juiced, or used in cooking and baking. The fruit holds deep cultural significance across many civilizations, appearing in mythology, religion, and literature, from the biblical garden of Eden to Newton&#39;s legendary encounter with gravity.
+
+        </div>
+         
+      </div>
+
+      <div class="splitter" id="splitter-2" title="Drag to resize"></div>
+
+      <!-- Entities column -->
+      <div class="col" id="col-entities" style="flex-basis: 33.334%">
+        <div class="col-header">
+          <h2>Entities</h2>
+        </div>
+         
+        <div class="entity-card" id="entity-apple::company">
+          <h3>
+            Apple
+            <span class="entity-label">Company</span>
+          </h3>
+          
+          <div class="desc">A technology company known for iconic products like the Macintosh, iPod, iPhone, and iPad, operating a tightly integrated ecosystem of hardware, software, and services.</div>
+           
+          <ul>
+            
+            <li>→ <a href="#entity-steve-jobs::person" class="entity-link">Steve Jobs</a>: Steve Jobs is one of the three individuals who founded Apple on April 1, 1976.</li>
+            
+            <li>→ <a href="#entity-steve-wozniak::person" class="entity-link">Steve Wozniak</a>: Steve Wozniak is one of the three individuals who founded Apple on April 1, 1976.</li>
+            
+            <li>→ <a href="#entity-ronald-wayne::person" class="entity-link">Ronald Wayne</a>: Ronald Wayne is one of the three individuals who founded Apple on April 1, 1976.</li>
+            
+          </ul>
+           
+          <div class="chunk-links">
+            Appears in: <a href="#chunk-6e8f79de-85c8-4945-8829-7e682b68fd55-rephrase">Section 1</a>
+          </div>
+          
+        </div>
+        
+        <div class="entity-card" id="entity-apple::fruit">
+          <h3>
+            Apple
+            <span class="entity-label">Fruit</span>
+          </h3>
+          
+          <div class="desc">A deciduous fruit tree in the rose family, originally cultivated in Central Asia and now grown worldwide.</div>
+           
+          <ul>
+            
+            <li>→ <a href="#entity-fuji::fruit" class="entity-link">Fuji</a>: Fuji is a cultivated variety of the apple.</li>
+            
+            <li>→ <a href="#entity-gala::fruit" class="entity-link">Gala</a>: Gala is a cultivated variety of the apple.</li>
+            
+            <li>→ <a href="#entity-granny-smith::fruit" class="entity-link">Granny Smith</a>: Granny Smith is a cultivated variety of the apple.</li>
+            
+            <li>→ <a href="#entity-honeycrisp::fruit" class="entity-link">Honeycrisp</a>: Honeycrisp is a cultivated variety of the apple.</li>
+            
+          </ul>
+           
+          <div class="chunk-links">
+            Appears in: <a href="#chunk-f1df78dc-a35f-4946-b7f4-8a9c9c6f450f-rephrase">Section 2</a>
+          </div>
+          
+        </div>
+        
+        <div class="entity-card" id="entity-fuji::fruit">
+          <h3>
+            Fuji
+            <span class="entity-label">Fruit</span>
+          </h3>
+          
+          <div class="desc">One of the thousands of cultivated apple varieties differing in color, flavor, size, and texture.</div>
+           
+          <ul>
+            
+            <li>← <a href="#entity-apple::fruit" class="entity-link">Apple</a>: Fuji is a cultivated variety of the apple.</li>
+            
+          </ul>
+           
+          <div class="chunk-links">
+            Appears in: <a href="#chunk-f1df78dc-a35f-4946-b7f4-8a9c9c6f450f-rephrase">Section 2</a>
+          </div>
+          
+        </div>
+        
+        <div class="entity-card" id="entity-gala::fruit">
+          <h3>
+            Gala
+            <span class="entity-label">Fruit</span>
+          </h3>
+          
+          <div class="desc">One of the thousands of cultivated apple varieties differing in color, flavor, size, and texture.</div>
+           
+          <ul>
+            
+            <li>← <a href="#entity-apple::fruit" class="entity-link">Apple</a>: Gala is a cultivated variety of the apple.</li>
+            
+          </ul>
+           
+          <div class="chunk-links">
+            Appears in: <a href="#chunk-f1df78dc-a35f-4946-b7f4-8a9c9c6f450f-rephrase">Section 2</a>
+          </div>
+          
+        </div>
+        
+        <div class="entity-card" id="entity-granny-smith::fruit">
+          <h3>
+            Granny Smith
+            <span class="entity-label">Fruit</span>
+          </h3>
+          
+          <div class="desc">One of the thousands of cultivated apple varieties differing in color, flavor, size, and texture.</div>
+           
+          <ul>
+            
+            <li>← <a href="#entity-apple::fruit" class="entity-link">Apple</a>: Granny Smith is a cultivated variety of the apple.</li>
+            
+          </ul>
+           
+          <div class="chunk-links">
+            Appears in: <a href="#chunk-f1df78dc-a35f-4946-b7f4-8a9c9c6f450f-rephrase">Section 2</a>
+          </div>
+          
+        </div>
+        
+        <div class="entity-card" id="entity-honeycrisp::fruit">
+          <h3>
+            Honeycrisp
+            <span class="entity-label">Fruit</span>
+          </h3>
+          
+          <div class="desc">One of the thousands of cultivated apple varieties differing in color, flavor, size, and texture.</div>
+           
+          <ul>
+            
+            <li>← <a href="#entity-apple::fruit" class="entity-link">Apple</a>: Honeycrisp is a cultivated variety of the apple.</li>
+            
+          </ul>
+           
+          <div class="chunk-links">
+            Appears in: <a href="#chunk-f1df78dc-a35f-4946-b7f4-8a9c9c6f450f-rephrase">Section 2</a>
+          </div>
+          
+        </div>
+        
+        <div class="entity-card" id="entity-ronald-wayne::person">
+          <h3>
+            Ronald Wayne
+            <span class="entity-label">Person</span>
+          </h3>
+          
+          <div class="desc">The third co-founder of Apple, involved in establishing the company on April 1, 1976.</div>
+           
+          <ul>
+            
+            <li>← <a href="#entity-apple::company" class="entity-link">Apple</a>: Ronald Wayne is one of the three individuals who founded Apple on April 1, 1976.</li>
+            
+          </ul>
+           
+          <div class="chunk-links">
+            Appears in: <a href="#chunk-6e8f79de-85c8-4945-8829-7e682b68fd55-rephrase">Section 1</a>
+          </div>
+          
+        </div>
+        
+        <div class="entity-card" id="entity-steve-jobs::person">
+          <h3>
+            Steve Jobs
+            <span class="entity-label">Person</span>
+          </h3>
+          
+          <div class="desc">One of the co-founders of Apple who helped establish the company in Cupertino, California.</div>
+           
+          <ul>
+            
+            <li>← <a href="#entity-apple::company" class="entity-link">Apple</a>: Steve Jobs is one of the three individuals who founded Apple on April 1, 1976.</li>
+            
+          </ul>
+           
+          <div class="chunk-links">
+            Appears in: <a href="#chunk-6e8f79de-85c8-4945-8829-7e682b68fd55-rephrase">Section 1</a>
+          </div>
+          
+        </div>
+        
+        <div class="entity-card" id="entity-steve-wozniak::person">
+          <h3>
+            Steve Wozniak
+            <span class="entity-label">Person</span>
+          </h3>
+          
+          <div class="desc">A co-founder of Apple who contributed to the company&#39;s founding in 1976.</div>
+           
+          <ul>
+            
+            <li>← <a href="#entity-apple::company" class="entity-link">Apple</a>: Steve Wozniak is one of the three individuals who founded Apple on April 1, 1976.</li>
+            
+          </ul>
+           
+          <div class="chunk-links">
+            Appears in: <a href="#chunk-6e8f79de-85c8-4945-8829-7e682b68fd55-rephrase">Section 1</a>
+          </div>
+          
+        </div>
+         
+      </div>
+    </div>
+
+    <!-- ── Footer ───────────────────────────────────────────────── -->
+    <footer class="page-footer">
+      <span>
+        Generated by
+        <a title="Knwl AI" target="_blank" href="https://knwl.ai">Knwl</a>,
+        &copy; 2026
+        <a
+          href="https://graphsandnetworks.com"
+          title="Orbifold Consulting"
+          target="_blank"
+          >Orbifold Consulting</a
+        >.
+      </span>
+      <div class="footer-disclaimer">The information contained in this document has been extracted and processed using automated artificial intelligence tools (Knwl.AI). While we strive for accuracy, this data is generated via machine learning algorithms and natural language processing, which may result in errors, omissions, or misinterpretations of the original source material. This document is provided &#34;as is&#34; and for informational purposes only. Orbifold Consulting makes no warranties, express or implied, regarding the accuracy, completeness, or reliability of this information. Users are advised to independently verify any critical data against original source documents before making business, legal, or financial decisions. Orbifold Consulting assumes no liability for any actions taken in reliance upon this information.</div>
+    </footer>
+
+    <script>
+      // ─── Theme toggle ────────────────────────────────────────────────
+      (function () {
+        const toggle = document.getElementById("theme-toggle");
+        const label = document.getElementById("theme-label");
+        const saved = localStorage.getItem("knwler-theme");
+        if (saved === "dark") {
+          document.documentElement.setAttribute("data-theme", "dark");
+          toggle.checked = true;
+          label.textContent = "☀";
+        }
+        toggle.addEventListener("change", () => {
+          if (toggle.checked) {
+            document.documentElement.setAttribute("data-theme", "dark");
+            localStorage.setItem("knwler-theme", "dark");
+            label.textContent = "☀";
+          } else {
+            document.documentElement.removeAttribute("data-theme");
+            localStorage.setItem("knwler-theme", "light");
+            label.textContent = "☾";
+          }
+        });
+      })();
+
+      // ─── Chunk toggle ────────────────────────────────────────────────
+      const labels = {"chunk": "Section", "chunks": "Sections", "community": "Community", "description": "Description", "showOriginal": "Show original text", "showRephrased": "Show rephrased text", "type": "Type"};
+
+      function toggleChunk(id) {
+        const reph = document.getElementById(id + "-rephrase");
+        const orig = document.getElementById(id + "-original");
+        const toggle = reph.previousElementSibling;
+        if (orig.style.display === "block") {
+          orig.style.display = "none";
+          reph.style.display = "block";
+          toggle.textContent = labels.showOriginal;
+        } else {
+          orig.style.display = "block";
+          reph.style.display = "none";
+          toggle.textContent = labels.showRephrased;
+        }
+      }
+
+      // ─── Draggable splitters ─────────────────────────────────────────
+      (function () {
+        const wrapper = document.getElementById("columns-wrapper");
+        const colTopics = document.getElementById("col-topics");
+        const colChunks = document.getElementById("col-chunks");
+        const colEntities = document.getElementById("col-entities");
+        const splitter1 = document.getElementById("splitter-1");
+        const splitter2 = document.getElementById("splitter-2");
+
+        let dragging = null; // { splitter, startX, leftCol, rightCol, leftBasis, rightBasis }
+
+        function onMouseDown(e, splitter, leftCol, rightCol) {
+          e.preventDefault();
+          const totalW = wrapper.getBoundingClientRect().width;
+          dragging = {
+            splitter,
+            startX: e.clientX,
+            leftCol,
+            rightCol,
+            leftBasis: leftCol.getBoundingClientRect().width,
+            rightBasis: rightCol.getBoundingClientRect().width,
+            totalW,
+          };
+          splitter.classList.add("dragging");
+          document.body.style.cursor = "col-resize";
+          document.body.style.userSelect = "none";
+        }
+
+        splitter1.addEventListener("mousedown", (e) =>
+          onMouseDown(e, splitter1, colTopics, colChunks)
+        );
+        splitter2.addEventListener("mousedown", (e) =>
+          onMouseDown(e, splitter2, colChunks, colEntities)
+        );
+
+        window.addEventListener("mousemove", (e) => {
+          if (!dragging) return;
+          const dx = e.clientX - dragging.startX;
+          const { totalW, leftBasis, rightBasis, leftCol, rightCol } = dragging;
+
+          const minPx = 80;
+          const newLeft = Math.max(minPx, Math.min(leftBasis + dx, leftBasis + rightBasis - minPx));
+          const newRight = leftBasis + rightBasis - newLeft;
+
+          leftCol.style.flexBasis = (newLeft / totalW * 100).toFixed(3) + "%";
+          rightCol.style.flexBasis = (newRight / totalW * 100).toFixed(3) + "%";
+        });
+
+        window.addEventListener("mouseup", () => {
+          if (!dragging) return;
+          dragging.splitter.classList.remove("dragging");
+          dragging = null;
+          document.body.style.cursor = "";
+          document.body.style.userSelect = "";
+        });
+
+        // Touch support
+        function onTouchStart(e, splitter, leftCol, rightCol) {
+          const touch = e.touches[0];
+          const totalW = wrapper.getBoundingClientRect().width;
+          dragging = {
+            splitter,
+            startX: touch.clientX,
+            leftCol,
+            rightCol,
+            leftBasis: leftCol.getBoundingClientRect().width,
+            rightBasis: rightCol.getBoundingClientRect().width,
+            totalW,
+          };
+          splitter.classList.add("dragging");
+        }
+
+        splitter1.addEventListener("touchstart", (e) =>
+          onTouchStart(e, splitter1, colTopics, colChunks), { passive: true }
+        );
+        splitter2.addEventListener("touchstart", (e) =>
+          onTouchStart(e, splitter2, colChunks, colEntities), { passive: true }
+        );
+
+        window.addEventListener("touchmove", (e) => {
+          if (!dragging) return;
+          const touch = e.touches[0];
+          const dx = touch.clientX - dragging.startX;
+          const { totalW, leftBasis, rightBasis, leftCol, rightCol } = dragging;
+
+          const minPx = 80;
+          const newLeft = Math.max(minPx, Math.min(leftBasis + dx, leftBasis + rightBasis - minPx));
+          const newRight = leftBasis + rightBasis - newLeft;
+
+          leftCol.style.flexBasis = (newLeft / totalW * 100).toFixed(3) + "%";
+          rightCol.style.flexBasis = (newRight / totalW * 100).toFixed(3) + "%";
+        }, { passive: true });
+
+        window.addEventListener("touchend", () => {
+          if (!dragging) return;
+          dragging.splitter.classList.remove("dragging");
+          dragging = null;
+        });
+      })();
+
+      // ─── Entity-link scroll-into-view ────────────────────────────────
+      // Entity cards live inside an overflow:auto column, so normal anchor
+      // navigation scrolls <body> instead of the column. Intercept every
+      // a.entity-link click (from any column) and scroll the overflow
+      // container that owns the target card into view.
+      (function () {
+        // Find the nearest scrollable ancestor column
+        function scrollableColumn(el) {
+          while (el && el !== document.body) {
+            if (el.classList && el.classList.contains("col")) return el;
+            el = el.parentElement;
+          }
+          return null;
+        }
+
+        document.addEventListener("click", (e) => {
+          const link = e.target.closest("a.entity-link");
+          if (!link) return;
+
+          const hash = link.getAttribute("href");
+          if (!hash || !hash.startsWith("#")) return;
+
+          const target = document.getElementById(hash.slice(1));
+          if (!target) return;
+
+          // The target must live inside a .col scroll container
+          const col = scrollableColumn(target);
+          if (!col) return;
+
+          e.preventDefault();
+
+          // Scroll the owning column so the card appears near the top
+          const containerTop = col.getBoundingClientRect().top;
+          const targetTop = target.getBoundingClientRect().top;
+          col.scrollBy({ top: targetTop - containerTop - 16, behavior: "smooth" });
+
+          // Brief highlight so the user's eye lands on it
+          target.style.transition = "outline 0s";
+          target.style.outline = "2px solid var(--border)";
+          setTimeout(() => {
+            target.style.outline = "";
+          }, 1500);
+        });
+      })();
+    </script>
+  </body>
+</html>

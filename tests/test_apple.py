@@ -43,28 +43,6 @@ async def test_disambiguation():
             print(
                 f"- {r['source']}::{r['source_type']} -> {r['target']}::{r['target_type']} ({r['type']}): {r['description']} [Strength: {r['strength']}]"
             )
-    #
-    # coll = [
-    #     {
-    #         "id": "company",
-    #         "graph": asdict(two_graphs[0]),
-    #         "title": "Apple Inc.",
-    #         "summary": "Apple Inc. is a technology company founded by Steve Jobs.",
-    #         "chunks": [{"id": "chunk1", "text": chunks[0]}],
-    #     },
-    #     {
-    #         "id": "fruit",
-    #         "graph": asdict(two_graphs[1]),
-    #         "title": "Apple Fruit",
-    #         "summary": "The apple is a fruit that comes in many varieties, including Gala.",
-    #         "chunks": [
-    #             {
-    #                 "id": "chunk2",
-    #                 "text": chunks[1],
-    #             }
-    #         ],
-    #     },
-    # ]
     g, _ = consolidate_extracted_graphs(
         extraction_results,
         config=config,
@@ -127,8 +105,10 @@ async def test_disambiguation():
         "graph": g,
         "chunks": extracted_chunks,
     }
+    # save the output for inspection and debugging
     with open("tests/graph.json", "w") as f:
         json.dump(output, f, indent=2)
+    # save the output as HTML for inspection and debugging
     export_html(
         output,
         output_path=Path("tests/graph.html"),

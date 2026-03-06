@@ -1,5 +1,11 @@
 # Knwler
 
+[![Pypi](https://img.shields.io/pypi/dm/knwler)](https://pypi.org/project/knwler/)
+[![Version](https://img.shields.io/badge/version-0.5.0-green.svg)](https://github.com/Orbifold/knwler)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+
+[![Stars](https://img.shields.io/github/stars/Orbifold/knwler)](https://github.com/Orbifold/knwler)
+
 **Turn documents into structured knowledge.**
 
 Knwler is a lightweight Python tool that extracts structured knowledge graphs from documents using AI. Feed it a PDF or text file and receive a richly connected network of entities, relationships, and topics — complete with an interactive HTML report and exports ready for your favorite graph analytics platform.
@@ -12,6 +18,23 @@ No big package dependencies, runs local if you wish, no licenses, no fuss.
 
 ![](./Screenshot2.png)
 
+---
+
+## Table of Contents
+
+- [Why Knwler?](#why-knwler)
+- [What makes Knwler different?](#what-makes-knwler-different)
+- [Key Features](#key-features)
+- [Cost & Performance](#cost--performance)
+- [Quick Start](#quick-start)
+- [CLI Options](#cli-options)
+- [Examples](#examples)
+- [Integration](#integration)
+- [Documentation](#documentation)
+- [Disclaimer](#disclaimer)
+
+---
+
 ## Why Knwler?
 
 | Challenge                                                                     | How Knwler Solves It                                                                                                             |
@@ -21,10 +44,10 @@ No big package dependencies, runs local if you wish, no licenses, no fuss.
 | Documents in multiple languages across jurisdictions                          | Auto-detects language and adapts all prompts — supports English, German, French, Spanish, and Dutch out of the box               |
 | Results trapped inside one tool                                               | Exports to HTML, GML, GraphML, and raw JSON — import directly into Neo4j, Gephi, yEd, Memgraph, SurrealDB, or any graph platform |
 | High per-document processing costs                                            | ~$0.20 per 20-page PDF with OpenAI/GPT-4o; completely free when running locally; LLM response caching means re-runs cost nothing |
-| Unstructure data to semantically organized knowledge                          | Simple CLI you can plug into your automation tool or as Python package. Small Footprint. Customizable                            |
-| High treshold of graph RAG adoption                                           | Simple graph extraction. You can decide how to embed, which graph database, what agentic framework to use.                       |
+| Unstructured data to semantically organized knowledge                         | Simple CLI you can plug into your automation tool or as Python package. Small footprint. Customizable.                           |
+| High threshold of graph RAG adoption                                          | Simple graph extraction. You can decide how to embed, which graph database, what agentic framework to use.                       |
 
-Knwler does not implement graph RAG, it focuses on one thing: turning unstructure text into a knowledge graph.
+Knwler does not implement graph RAG — it focuses on one thing: turning unstructured text into a knowledge graph.
 
 ## What makes Knwler different?
 
@@ -99,7 +122,7 @@ Multiple runs (pdf extractions) can be consolidated into one knowledge graph. Th
 ### Portable & Minimal
 
 Minimal dependencies, no database, no backend server, no Docker required. You can tune quality and speed using different models, online or local. It does not depend on any LLM or graph framework.
-It's designed so you can use it as a Python package or via CLI, opening up interation with n8n, OpenClaw, or whatever automation system you like.
+It's designed so you can use it as a Python package or via CLI, opening up integration with n8n, OpenClaw, or whatever automation system you like.
 
 ---
 
@@ -115,10 +138,17 @@ It's designed so you can use it as a Python package or via CLI, opening up inter
 
 ## Quick Start
 
+**Requirements:** Python 3.12
+
 ```bash
-# Install dependencies
+# Install dependencies (recommended)
 uv sync
 
+# Or install as a package with pip
+pip install knwler
+```
+
+```bash
 # Run with OpenAI
 uv run main.py --openai -f document.pdf
 
@@ -127,6 +157,12 @@ uv run main.py -f document.pdf
 
 # Re-export HTML only (no LLM calls)
 uv run main.py --html-only
+```
+
+When installed as a package, you can also use the `knwler` command directly:
+
+```bash
+knwler --openai -f document.pdf
 ```
 
 > **Tip:** When running Ollama locally, launch it via CLI with parallel processing for best throughput:
@@ -176,8 +212,8 @@ The raw JSON output is designed for downstream integration:
 
 There is in the `integrations` directory a script for:
 
-- **Neo4j**: change the credentials and use `uv run integrations/neo4j-import.py ./results/graph.json` or wherever you have stored the JSON graph output from the ingestion.
-- **SurrealDB**: similarly `uv run integrations/surrealdb-import.py ./results/graph.json`
+- **Neo4j**: change the credentials and use `uv run integrations/neo4j_import.py ./results/graph.json` or wherever you have stored the JSON graph output from the ingestion.
+- **SurrealDB**: similarly `uv run integrations/surrealdb_import.py ./results/graph.json`
 
 The Surreal script uses the latest v3 version which now can act as a multi-modal store for documents and blobs. This means that you could store everything from chunk to vector embeddings in Surreal.
 
@@ -193,7 +229,7 @@ The Surreal script uses the latest v3 version which now can act as a multi-modal
 - [Ollama](./docs/ollama.md)
 - [OpenAI](./docs/openai.md)
 - [pipx](./docs/pipx.md)
-- [Templates](./docs/template.md)
+- [Templates](./docs/templates.md)
 - [Visualization](./docs/visualization.md)
 
 ## Disclaimer

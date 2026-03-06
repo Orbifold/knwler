@@ -18,3 +18,4 @@ pdfs/
 tests/graph.json
 tests/graph.html
 tests/data/consolidated.json
+.pytest_cache/

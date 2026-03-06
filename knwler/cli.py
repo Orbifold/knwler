@@ -44,7 +44,7 @@ from knwler.cli_info import info_app, show_version
 from knwler.cli_consolidate import cli_consolidate_graphs
 
 app = typer.Typer(
-    help="Extract knowledge graphs from text using Ollama or OpenAI.",
+    help="Turn documents into structured knowledge.",
     rich_markup_mode="rich",
     no_args_is_help=True,
     pretty_exceptions_enable=False,

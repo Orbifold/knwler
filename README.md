@@ -1,24 +1,38 @@
 # Knwler
 
-**Turn any document into a structured knowledge graph**
+**Turn documents into structured knowledge.**
 
 Knwler is a lightweight Python tool that extracts structured knowledge graphs from documents using AI. Feed it a PDF or text file and receive a richly connected network of entities, relationships, and topics — complete with an interactive HTML report and exports ready for your favorite graph analytics platform.
 
 Built for compliance teams, legal departments, research analysts, and anyone who needs to rapidly understand the structure hidden inside dense documents.
 
+No big package dependencies, runs local if you wish, no licenses, no fuss.
+
 ![](./Screenshot1.png)
 
-## ![](./Screenshot2.png)
+![](./Screenshot2.png)
 
 ## Why Knwler?
 
 | Challenge                                                                     | How Knwler Solves It                                                                                                             |
 | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | Manually mapping entities and relationships in 100+ page regulatory documents | Automated extraction produces a navigable knowledge graph in minutes                                                             |
-| Expensive vendor lock-in for document intelligence                            | Runs fully local with Ollama (zero data leaves your machine) or via OpenAI for speed                                             |
+| Expensive vendor lock-in for document intelligence                            | Runs fully local with Ollama (zero data leaves your machine) or via providers for speed                                          |
 | Documents in multiple languages across jurisdictions                          | Auto-detects language and adapts all prompts — supports English, German, French, Spanish, and Dutch out of the box               |
 | Results trapped inside one tool                                               | Exports to HTML, GML, GraphML, and raw JSON — import directly into Neo4j, Gephi, yEd, Memgraph, SurrealDB, or any graph platform |
 | High per-document processing costs                                            | ~$0.20 per 20-page PDF with OpenAI/GPT-4o; completely free when running locally; LLM response caching means re-runs cost nothing |
+| Unstructure data to semantically organized knowledge                          | Simple CLI you can plug into your automation tool or as Python package. Small Footprint. Customizable                            |
+| High treshold of graph RAG adoption                                           | Simple graph extraction. You can decide how to embed, which graph database, what agentic framework to use.                       |
+
+Knwler does not implement graph RAG, it focuses on one thing: turning unstructure text into a knowledge graph.
+
+## What makes Knwler different?
+
+Its simplicity and direct use of LLMs. No agentic framework or sophisticated things. You are not bound to Neo4j or any vendor specific approach, you can change the LLM provider/model as you see fit, change the prompts since that's where the essence of Knwler resides.
+If you do want to use LangChain or LlamaIndex, go ahead. You can leave out the rephrase step or the HTML export, you can use other tools to extract a schema and if the default Louvain clustering is not your thing, simply switch to another one.
+You can engage PyKeen and Qdrant with the Knwler output, Pytorch Geometric or Neo4j's GDS, Memgraph Sage and Surreal's multi-modal storage. The extracted `graph.json` can articulate anything you like.
+
+If you do need graph RAG, advanced graph visualization and enterprise knowledge graphs we can help, just [send us a mail](https://graphsandnetworks.com/contact).
 
 ---
 
@@ -26,11 +40,15 @@ Built for compliance teams, legal departments, research analysts, and anyone who
 
 ### Dual LLM Backend — Cloud or Fully Local
 
-Choose between **OpenAI** for maximum speed, or **Ollama** for fully offline, air-gapped operation. Qwen 2.5 at 3B–14B parameters delivers strong results locally. You can even switch backends between runs and incrementally augment the same graph.
+Choose between **OpenAI** or **Anthropic** for maximum speed, or **Ollama** for fully offline, air-gapped operation. Qwen 2.5 at 3B–14B parameters delivers strong results locally. You can even switch backends between runs and incrementally augment the same graph.
 
 ### Automatic Schema Discovery
 
 The pipeline analyzes a sample of your document and **infers the optimal entity types and relation types** — no manual ontology engineering required. You can also supply a schema if you wish. A schema is a set of types of entities (person, concept, location...) and relations (knows, has_accepted, has_signed...).
+
+### Disambiguation
+
+Apple as a company or apple as a fruit? Knwler identifies nodes based on name and type, so you can be certain that things are pinned correctly.
 
 ### Multilingual by Design
 
@@ -46,13 +64,21 @@ The Louvain algorithm automatically **discovers clusters of related entities** a
 
 ### Self-Contained HTML Report
 
-Export a **single HTML file** with interactive Cytoscape.js network visualization, entity index, topic overview, and rephrased text chunks — shareable without any server or dependencies.
+Export a **single HTML file** with interactive network visualization, entity index, topic overview, and rephrased text chunks — shareable without any server or dependencies.
+It's based on a template (we deliver multiple styles or examples) and you are free to brand it to your needs.
+We offer you out of the box:
+
+- a standard report with a small network visualization
+- a 3-column report without graph viz
+- a graph viz focused example with custom layout algorithm.
 
 ### Rich Export Ecosystem
 
-- **JSON** — the canonical output; import into Neo4j, Memgraph, SurrealDB, or generate vector embeddings
+- **JSON** — the canonical output, all in one for whatever downstream you have in mind
 - **GML / GraphML** — open directly in yEd, Gephi, or any standards-compliant graph tool
-- **HTML** — standalone interactive report
+- **HTML** — standalone interactive report, templates you can tune to your needs (branding)
+- **SurrealDB** — export to SurrealDB out of the box
+- **Neo4j** — export to Neo4j included (indexing, constraints and all)
 
 ### Intelligent Caching
 
@@ -66,9 +92,14 @@ Each text chunk is rephrased for readability alongside the original, making the 
 
 Handles **PDF-to-text extraction** (via PyMuPDF) as well as plain text and Markdown files. Extracted text is cached to avoid redundant PDF parsing on subsequent runs.
 
+### Consolidation
+
+Multiple runs (pdf extractions) can be consolidated into one knowledge graph. This effectively merges entities with summarization and graph refactorings. If you have a set of pdfs which cover a topic (say, legal domain) you can compile the knowledge graphs from the different documents into one.
+
 ### Portable & Minimal
 
-A **single Python file (~2,000 lines)**, managed via `uv` with minimal dependencies. No database, no backend server, no Docker required.
+Minimal dependencies, no database, no backend server, no Docker required. You can tune quality and speed using different models, online or local. It does not depend on any LLM or graph framework.
+It's designed so you can use it as a Python package or via CLI, opening up interation with n8n, OpenClaw, or whatever automation system you like.
 
 ---
 
@@ -108,24 +139,7 @@ uv run main.py --html-only
 
 ## CLI Options
 
-You can get the following help via `uv run main.py --help` or simply `uv run main.py`:
-
-| Option                     | Description                                                            |
-| -------------------------- | ---------------------------------------------------------------------- |
-| `--file`, `-f`             | Input PDF or text file                                                 |
-| `--openai`                 | Use OpenAI API instead of Ollama                                       |
-| `--extraction-model`, `-e` | Model for chunk extraction (default: `qwen2.5:3b` / `gpt-4o-mini`)     |
-| `--discovery-model`, `-d`  | Model for schema discovery (default: `qwen2.5:14b` / `gpt-4o`)         |
-| `--concurrent`, `-c`       | Max concurrent LLM requests (default: 10)                              |
-| `--max-tokens`             | Max tokens per chunk (default: 400)                                    |
-| `--no-discovery`           | Skip schema discovery, use built-in defaults                           |
-| `--no-cache`               | Disable LLM response caching                                           |
-| `--language`, `-l`         | Force language code (e.g., `en`, `de`, `fr`) — auto-detects if omitted |
-| `--url`, `-u`              | Source URL for metadata                                                |
-| `--output`, `-o`           | Output JSON filename (saved to `results/`)                             |
-| `--html-report`            | Generate HTML report (default: on)                                     |
-| `--gml-export`             | Generate GML graph file (default: on)                                  |
-| `--html-only`              | Re-export HTML from existing results without re-running extraction     |
+You can get help via `uv run main.py --help` or simply `uv run main.py`. See the comprehensive [CLI help doc here](./docs/cli.md).
 
 ## Examples
 
@@ -133,22 +147,22 @@ You can get the following help via `uv run main.py --help` or simply `uv run mai
 # EU AI Act (English)
 uv run main.py --openai \
   --url "https://eur-lex.europa.eu/legal-content/EN/TXT/PDF/?uri=OJ:L_202401689" \
-  -f samples/EUAI.pdf
+  -f ./pdfs/EUAI.pdf
 
 # NIST AI Risk Management Framework
 uv run main.py --openai \
   --url "https://nvlpubs.nist.gov/nistpubs/ai/nist.ai.100-1.pdf" \
-  -f samples/Nist.pdf
+  -f ./pdfs/Nist.pdf
 
 # Belgian Civil Code (Dutch — auto-detected)
 uv run main.py --openai \
   --url "https://www.ejustice.just.fgov.be/cgi/article_body.pl?language=nl&pub_date=2022-07-01&caller=list&numac=2022032058" \
-  -f samples/BurgerlijkBoek5.pdf
+  -f ./pdfs/BurgerlijkBoek5.pdf
 
 # Deloitte Sustainability Report (German — auto-detected)
 uv run main.py --openai \
   --url "https://www.deloitte.com/de/de/legal/publikationen.html" \
-  -f examples/Deloitte/Deloitte-Nachhaltigkeitsbericht-2024.pdf
+  -f ./pdfs/Deloitte/Deloitte-Nachhaltigkeitsbericht-2024.pdf
 ```
 
 ## Integration
@@ -169,32 +183,18 @@ The Surreal script uses the latest v3 version which now can act as a multi-modal
 
 ---
 
-## Examples
+## Documentation
 
-You can find example reports and raw graph data in diverse languages in the `examples` directory.
-
-## Language
-
-Everything language related sits in the `languages.json` and this contains both the language-specific prompts as well as the text used for console output.
-You can easily add additional languages, simply ask Copilot, Gemini or any AI to translate the JSON.
-
-## OpenAI Key
-
-If you run the process in your terminal the code will look for the usual `OPENAI_API_KEY`.
-You can assign it explicitly via a terminal export
-
-```bash
-export OPENAI_API_KEY=...
-```
-
-or in the code (look for `os.environ.get("OPENAI_API_KEY", "")`).
-
-## Ollama
-
-Ollama is just a convenient local LLM service, you can use LMStudio or any other service.
-The default model is Qwen 2.5 but here as well, experiment and see what works best for you.
-We have done lots of benchmarks and bigger models are not better, sometimes quite the opposite. Small models of 3 or 7 billion parameters will be fine and a lot faster.
-Thinking, in particular, is really standing in the way of graph extraction. Whatever you do, don't enable thinking and don't use advanced MOE models.
+- [CLI](./docs/cli.md)
+- [Setup](./docs/setup.md)
+- [API](./docs/api.md)
+- [Localization](./docs/language.md)
+- [Models](./docs/models.md)
+- [Ollama](./docs/ollama.md)
+- [OpenAI](./docs/openai.md)
+- [pipx](./docs/pipx.md)
+- [Templates](./docs/template.md)
+- [Visualization](./docs/visualization.md)
 
 ## Disclaimer
 

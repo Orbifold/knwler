@@ -10,7 +10,7 @@ Things like `uv run main.py extract --help` are also rewired to work, and will s
 import sys
 from knwler.cli import app
 
-_KNOWN_SUBCOMMANDS = {"extract", "info"}
+_KNOWN_SUBCOMMANDS = {"extract", "info", "consolidate", "fetch"}
 
 if __name__ == "__main__":
     # Route bare flags (e.g. -f, --file) to the default 'extract extract' subcommand

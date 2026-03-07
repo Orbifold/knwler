@@ -21,3 +21,4 @@ tests/data/consolidated.json
 .pytest_cache/
 tests/graph.html
 tests/graph.json
+.vscode/

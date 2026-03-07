@@ -64,4 +64,6 @@ uv run main.py -f ./pdfs/HumanRights.pdf --url https://www.ohchr.org/sites/defau
 uv run main.py -f ./pdfs/HumanRights.pdf --url https://www.ohchr.org/sites/default/files/UDHR/Documents/UDHR_Translations/eng.pdf --overwrite-dir --discovery-model gemma3:4b  --extraction-model gemma3:4b
 
 uv run main.py -f ./pdfs/HumanRights.pdf --url https://www.ohchr.org/sites/default/files/UDHR/Documents/UDHR_Translations/eng.pdf --overwrite-dir --discovery-model qwen3.5:0.8b  --extraction-model qwen3.5:0.8b
+
+uv run main.py fetch https://knwler.com/pdfs/HumanRights.pdf --output ~/temp/things/ --parse
 ```

@@ -42,6 +42,7 @@ from knwler.stats import compute_community_stats, compute_stats, print_stats
 from knwler.cli_extract import extract_app
 from knwler.cli_info import info_app, show_version
 from knwler.cli_consolidate import cli_consolidate_graphs
+from knwler.cli_fetch import fetch_command
 
 app = typer.Typer(
     help="Turn documents into structured knowledge.",
@@ -146,7 +147,7 @@ def consolidate_graphs_command(
             "--include-chunks",
             help="Whether to include chunks in the consolidation process (useful when merging towards a vector database ingestion).",
         ),
-    ] = False
+    ] = False,
 ):
     """Consolidate extracted graphs into a single graph."""
     if openai and anthropic:
@@ -182,7 +183,7 @@ def consolidate_graphs_command(
         max_concurrent=concurrent,
         max_tokens=max_tokens,
         use_cache=not no_cache,
-        openai_base_url=openai_base_url
+        openai_base_url=openai_base_url,
     )
     asyncio.run(
         cli_consolidate_graphs(
@@ -228,11 +229,13 @@ app.add_typer(
     help="View info about Knwler installation",
 )
 
+app.command("fetch", help="Fetch content from a URL and save it locally")(fetch_command)
+
 
 def main():
     set_language(DEFAULT_LANGUAGE)
 
-    _KNOWN_SUBCOMMANDS = {"extract", "info", "consolidate"}
+    _KNOWN_SUBCOMMANDS = {"extract", "info", "consolidate", "fetch"}
     _GLOBAL_FLAGS = {"--version", "-V", "--help", "-h"}
     args = sys.argv[1:]
     if (

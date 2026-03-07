@@ -93,7 +93,7 @@ class WebpageCollector:
         The URL must end with a supported document extension. Supported extensions include .pdf, .doc, .docx, .xls, .xlsx, .ppt, and .pptx.
         The result is cached on disk keyed by URL. The cache includes both the document content and metadata such as filename and extension.
         """
-        if not any(url.lower().endswith(ext) for ext in document_extensions):
+        if not WebpageCollector.is_document_url(url):
             raise ValueError("URL does not point to a supported document type")
         # download the files and save it to ~/,knwler/documents/ with the filename as the hash of the url
         # return the path to the file
@@ -133,7 +133,15 @@ class WebpageCollector:
         If the URL points to a supported document type, it fetches the document; otherwise, it fetches the webpage.
         The result is cached on disk keyed by URL.
         """
-        if any(url.lower().endswith(ext) for ext in document_extensions):
+        if WebpageCollector.is_document_url(url):
             return await WebpageCollector.fetch_document(url, no_cache=no_cache)
         else:
             return await WebpageCollector.fetch_page(url, no_cache=no_cache)
+
+    @staticmethod
+    def is_document_url(url: str) -> bool:
+        """
+        Checks if the URL points to a supported document type based on its extension.
+        Supported extensions include .pdf, .doc, .docx, .xls, .xlsx, .ppt, and .pptx.
+        """
+        return any(url.lower().endswith(ext) for ext in document_extensions)

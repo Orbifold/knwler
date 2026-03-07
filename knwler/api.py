@@ -8,6 +8,7 @@ from pathlib import Path
 import time
 import json
 import fitz  # PyMuPDF
+from knwler.collect.webpage import WebpageCollector
 
 
 async def parse_file(file_path: Path) -> tuple[str, dict]:
@@ -52,7 +53,13 @@ async def fetch_url(url: str, no_cache: bool = False) -> tuple[dict, bytes] | No
     - If the URL points to a webpage, the content is returned as text along with metadata.
     - If the URL is not accessible or returns an error status code, a ValueError is raised with an appropriate message. If the URL is not valid, a ValueError is raised.
     """
-    from knwler.collect.webpage import WebpageCollector
 
     return await WebpageCollector.fetch_url(url, no_cache=no_cache)
 
+
+def is_document_url(url: str) -> bool:
+    """
+    Checks if the URL points to a supported document type based on its extension.
+    Supported extensions include .pdf, .doc, .docx, .xls, .xlsx, .ppt, and .pptx.
+    """
+    return WebpageCollector.is_document_url(url)

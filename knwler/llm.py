@@ -9,7 +9,11 @@ from typing import Any
 import aiohttp
 
 from knwler.config import Config
-from knwler.cache import cache_key, get_cached_response, save_to_cache
+from knwler.cache import (
+    create_llm_cache_key,
+    get_cached_llm_response,
+    save_llm_response_to_cache,
+)
 
 
 async def _post_json(
@@ -40,9 +44,11 @@ async def ollama_generate(
     actual_model = model or config.ollama_extraction_model
 
     if config.use_cache:
-        key = cache_key(prompt, actual_model, config.temperature, config.num_predict)
+        key = create_llm_cache_key(
+            prompt, actual_model, config.temperature, config.num_predict
+        )
 
-        cached = get_cached_response(key)
+        cached = get_cached_llm_response(key)
         if cached is not None:
             return cached
 
@@ -63,7 +69,7 @@ async def ollama_generate(
     response = response_json["response"]
 
     if config.use_cache:
-        save_to_cache(key, response, actual_model)
+        save_llm_response_to_cache(key, response, actual_model)
 
     return response
 
@@ -87,8 +93,10 @@ async def openai_generate(
         )
 
     if config.use_cache:
-        key = cache_key(prompt, actual_model, config.temperature, config.num_predict)
-        cached = get_cached_response(key)
+        key = create_llm_cache_key(
+            prompt, actual_model, config.temperature, config.num_predict
+        )
+        cached = get_cached_llm_response(key)
         if cached is not None:
             return cached
 
@@ -111,7 +119,7 @@ async def openai_generate(
     response = response_json["choices"][0]["message"]["content"]
 
     if config.use_cache:
-        save_to_cache(key, response, actual_model)
+        save_llm_response_to_cache(key, response, actual_model)
 
     return response
 
@@ -137,8 +145,10 @@ async def anthropic_generate(
         )
 
     if config.use_cache:
-        key = cache_key(prompt, actual_model, config.temperature, config.num_predict)
-        cached = get_cached_response(key)
+        key = create_llm_cache_key(
+            prompt, actual_model, config.temperature, config.num_predict
+        )
+        cached = get_cached_llm_response(key)
         if cached is not None:
             return cached
 
@@ -170,7 +180,7 @@ async def anthropic_generate(
         content = "{" + content
 
     if config.use_cache:
-        save_to_cache(key, content, actual_model)
+        save_llm_response_to_cache(key, content, actual_model)
 
     return content
 

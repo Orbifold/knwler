@@ -8,6 +8,8 @@ import re
 from datetime import datetime
 from pathlib import Path
 
+import markdown as md_lib
+
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from knwler.config import console
@@ -18,9 +20,21 @@ from typing import Tuple, List, Dict, Any
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-def _linkify_entities(text: str, entities: list[dict]) -> str:
-    """Replace known entity names in text with hyperlinks to ``#entity-<name>::<type>``."""
-    esc = html_mod.escape(text)
+def _md_to_html(text: str) -> str:
+    """Convert a markdown string to an HTML fragment."""
+    return md_lib.markdown(text, extensions=["nl2br", "sane_lists"])
+
+
+def _linkify_entities(
+    text: str, entities: list[dict], already_html: bool = False
+) -> str:
+    """Replace known entity names in text with hyperlinks to ``#entity-<name>::<type>``.
+
+    When *already_html* is ``True`` the input is treated as an HTML fragment
+    (e.g. produced by :func:`_md_to_html`) and initial HTML-escaping is skipped.
+    The regex is anchored so it won't match inside HTML tag attributes.
+    """
+    esc = text if already_html else html_mod.escape(text)
     if not entities:
         return esc
 
@@ -39,7 +53,8 @@ def _linkify_entities(text: str, entities: list[dict]) -> str:
         esc_names.append(esc_name)
 
     esc_names.sort(key=len, reverse=True)
-    pattern = r"(?i)\b(" + "|".join(re.escape(n) for n in esc_names) + r")\b"
+    # The negative lookahead ``(?![^<]*>)`` prevents matching inside HTML tags.
+    pattern = r"(?i)(?![^<]*>)\b(" + "|".join(re.escape(n) for n in esc_names) + r")\b"
 
     def repl(match: re.Match) -> str:
         matched = match.group(1)
@@ -141,11 +156,15 @@ def export_html(
         rephrase = chunk.get("rephrase", "")
         original = chunk.get("text", "")
         display = rephrase if rephrase else original
+        display_html = _md_to_html(display)
+        original_html = _md_to_html(original)
         chunks_display.append(
             {
                 "id": f"chunk-{chunk.get('id')}",
-                "linkified": _linkify_entities(display, chunk.get("entities", [])),
-                "original": original,
+                "linkified": _linkify_entities(
+                    display_html, chunk.get("entities", []), already_html=True
+                ),
+                "original": original_html,
             }
         )
 

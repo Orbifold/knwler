@@ -17,7 +17,8 @@ dependencies = [
     "networkx>=3.6.1",
     "pymupdf4llm[layout,ocr]>=0.2.9",
     "jinja2>=3.1.6",
-    "anthropic>=0.40.0"
+    "anthropic>=0.40.0",
+    "markdown>=3.10.2",
 ]
 [project.urls]
 Homepage = "https://knwler.com"
@@ -48,6 +49,11 @@ neo4j = [
 ]
 helix = [
     "helix-py>=0.2.31",
+]
+collect = [
+    "beautifulsoup4>=4.14.2",
+    "markdownify>=1.2.2",
+    "wikipedia-api>=0.8.1",
 ]
 
 [project.scripts]

@@ -19,3 +19,5 @@ tests/graph.json
 tests/graph.html
 tests/data/consolidated.json
 .pytest_cache/
+tests/graph.html
+tests/graph.json

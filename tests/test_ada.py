@@ -4,7 +4,7 @@ from knwler.chunking import chunk_text
 from knwler.config import Config
 from knwler.discovery import detect_language, discover_schema
 from knwler.extras import rephrase_chunks, extract_title, extract_summary
-from knwler.cache import find_cache_items
+from knwler.cache import find_cached_llm_items
 from knwler.extraction import extract_chunk, extract_all
 from knwler.consolidation import consolidate_extracted_graphs
 from knwler.models import ExtractionResult
@@ -70,7 +70,7 @@ async def test_ada():
     summary = await extract_summary(chunks, config)
     print(f"\n {summary}")
 
-    fourteen_items = find_cache_items(model="qwen2.5:14b")
+    fourteen_items = find_cached_llm_items(model="qwen2.5:14b")
     assert len(fourteen_items) > 0
 
     chunk1 = chunks[0]

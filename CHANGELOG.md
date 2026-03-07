@@ -9,7 +9,7 @@
 - CLI split in separate apps with `extract` as default for backward compatibility
 - `html_only` now allows a specific `graph.json`, you can render a custom report
 - Network viz has a slider to change the degree threshold
-- `--overwrite_dir` flag stops the proliferation of versions
+- `--overwrite` flag stops the proliferation of versions
 - description summarization tuned to ensure correct use of mapping <id>
 - **graph consolidation of multiple extractions**, both as a post-processing step and standalone
 - **Anthropic** as LLM provider added
@@ -22,7 +22,11 @@
 - poetry install issues fixed
 - async await (as should be) across the board
 - quite of bit of documentation and TLC towards adoption and usability
-- cache and results dirs have moved to user dir 
+- cache and results dirs have moved to user dir
+- the report now renders markdown output from rephrased chunks and descriptions
+- an api (`knwler.collect`) to fetch url as markdown, fetch documents (pdf, xlsx...) and Wikipedia article. All cached for convenience.
+- you can now give a URL to a pdf or just a webpage, all the rest happens automatically for you
+- a higher level API (`knwler.api`) has been added to simplify downstream integrations
 
 ## v0.4.1
 

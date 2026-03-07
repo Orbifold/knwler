@@ -146,7 +146,7 @@ def consolidate_graphs_command(
             "--include-chunks",
             help="Whether to include chunks in the consolidation process (useful when merging towards a vector database ingestion).",
         ),
-    ] = False,
+    ] = False
 ):
     """Consolidate extracted graphs into a single graph."""
     if openai and anthropic:
@@ -182,7 +182,7 @@ def consolidate_graphs_command(
         max_concurrent=concurrent,
         max_tokens=max_tokens,
         use_cache=not no_cache,
-        openai_base_url=openai_base_url,
+        openai_base_url=openai_base_url
     )
     asyncio.run(
         cli_consolidate_graphs(

@@ -108,7 +108,7 @@ Supported language codes out of the box: `en`, `de`, `fr`, `es`, `nl`. Adding ne
 | `--gml-export` | | `true` | Export a `graph.gml` file, openable directly in Gephi, yEd, and other graph tools |
 | `--html-only` | | `false` | Skip extraction entirely and re-render the HTML report from an existing `graph.json`. Requires `--output` pointing to an existing results directory or a `graph.json` file |
 | `--url URL` | `-u` | — | Source URL of the document. Stored as metadata in the JSON output; not used for extraction |
-| `--overwrite-dir` | | `false` | Allow the output directory to be overwritten if it already exists. By default a timestamp suffix is appended instead |
+| `--overwrite` | | `false` | Allow the output directory to be overwritten if it already exists. By default a timestamp suffix is appended instead |
 
 ### Multi-document & Consolidation
 

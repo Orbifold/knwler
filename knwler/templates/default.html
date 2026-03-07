@@ -60,7 +60,6 @@
       * {
         box-sizing: border-box;
         margin: 0;
-        padding: 0;
       }
       body {
         font-family:
@@ -90,6 +89,9 @@
       h3 {
         font-size: 1.1rem;
         margin-bottom: 0.3rem;
+      }
+      ol {
+        margin: 5px;
       }
       .card {
         background: var(--card);
@@ -187,6 +189,16 @@
         margin-bottom: 0.8rem;
         white-space: pre-wrap;
         font-size: 0.9rem;
+      }
+      .chunk-original img {
+        max-width: 100%;
+        border-radius: 4px;
+        margin: 0.5rem 0;
+      }
+      .card img {
+        max-width: 100%;
+        border-radius: 4px;
+        margin: 0.5rem 0;
       }
       a.entity-link {
         color: var(--link);
@@ -619,7 +631,7 @@
       {{ chunk.linkified | safe }}
     </div>
     <div class="chunk-original" id="{{ chunk.id }}-original">
-      {{ chunk.original }}
+      {{ chunk.original | safe }}
     </div>
     {% endfor %} {% endif %} {# Entities section #} {% if entities_display %}
     <h2 id="entities">{{ labels.entities_title }}</h2>

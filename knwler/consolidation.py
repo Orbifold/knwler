@@ -115,7 +115,7 @@ async def consolidate_extracted_graphs(
     little_graphs: list[Graph],
     config: Config = Config(),
     summarize: bool = True,
-    filter_low_importance: bool = True,
+    filter_low_importance: bool = False,
 ) -> tuple[dict, float]:
     """Consolidate chunk graphs with unique (name, type) and summarized descriptions.
 

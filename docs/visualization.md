@@ -15,3 +15,5 @@ Both formats, GML and JSON, can be used for graph visualization, graph analytics
 It's also very easy to export other formats (GraphML e.g.) but GML seems to be the most lightweight and compatible format. Internally, Knwler uses NetworkX to serialize things and you can find [here](https://networkx.org/documentation/stable/reference/readwrite/index.html) various alternatives to export the knowledge graphs.
 
 The raw JSON data sits in `graph.json` and can also be used for visualization purposes, especially in HTML/JS apps.
+
+

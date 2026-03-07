@@ -64,7 +64,6 @@
       * {
         box-sizing: border-box;
         margin: 0;
-        padding: 0;
       }
       html,
       body {
@@ -252,6 +251,16 @@
       .toggle:hover {
         color: var(--link);
       }
+      .chunk-original img {
+        max-width: 100%;
+        border-radius: 4px;
+        margin: 0.5rem 0;
+      }
+      .card img {
+        max-width: 100%;
+        border-radius: 4px;
+        margin: 0.5rem 0;
+      }
       .chunk-original {
         display: none;
         background: var(--chunk-orig-bg);
@@ -373,7 +382,7 @@
       <div class="header-summary">This graph tests disambiguation of entities with the same name but different types (Apple as a company and Apple as a fruit). It should correctly identify two separate entities for Apple and extract the relation that Apple Inc. was founded by Steve Jobs, while Gala is a variety of Apple fruit.</div>
       
       <div class="header-meta">
-        <span>Extracted 9 entities, 7 relations and 0 topics on Mar 06, 2026</span>
+        <span>Extracted 9 entities, 7 relations and 0 topics on Mar 07, 2026</span>
         
       </div>
     </header>
@@ -398,26 +407,24 @@
           <h2>Content</h2>
         </div>
          
-        <div class="toggle" onclick="toggleChunk('chunk-09eae681-a859-4f5a-9181-502ac294ab21')">
+        <div class="toggle" onclick="toggleChunk('chunk-d997a4f2-4160-42ef-b605-4e1a5938a25e')">
           Show original text
         </div>
-        <div class="card" id="chunk-09eae681-a859-4f5a-9181-502ac294ab21-rephrase">
-          <a href="#entity-apple::company" class="entity-link">Apple</a> was founded on April 1, 1976, by <a href="#entity-steve-jobs::person" class="entity-link">Steve Jobs</a>, <a href="#entity-steve-wozniak::person" class="entity-link">Steve Wozniak</a>, and <a href="#entity-ronald-wayne::person" class="entity-link">Ronald Wayne</a> in Cupertino, California. It has grown into one of the world&#x27;s most valuable and recognizable technology companies, known for iconic products such as the Macintosh computer, the iPod, the iPhone, the iPad, and the Mac. <a href="#entity-apple::company" class="entity-link">Apple</a> operates a tightly integrated ecosystem of hardware, software, and services — including the App Store, iCloud, <a href="#entity-apple::company" class="entity-link">Apple</a> Music, and <a href="#entity-apple::company" class="entity-link">Apple</a> Pay — and is renowned for its emphasis on design, user experience, and privacy. As of the mid-2020s, <a href="#entity-apple::company" class="entity-link">Apple</a> consistently ranks among the top companies by market capitalization globally, with operations spanning retail stores, online services, and a vast supply chain across dozens of countries.
+        <div class="card" id="chunk-d997a4f2-4160-42ef-b605-4e1a5938a25e-rephrase">
+          <p><a href="#entity-apple::company" class="entity-link">Apple</a> was founded on April 1, 1976, by <a href="#entity-steve-jobs::person" class="entity-link">Steve Jobs</a>, <a href="#entity-steve-wozniak::person" class="entity-link">Steve Wozniak</a>, and <a href="#entity-ronald-wayne::person" class="entity-link">Ronald Wayne</a> in Cupertino, California. It has grown into one of the world's most valuable and recognizable technology companies, known for iconic products such as the Macintosh computer, the iPod, the iPhone, the iPad, and the Mac. <a href="#entity-apple::company" class="entity-link">Apple</a> operates a tightly integrated ecosystem of hardware, software, and services — including the App Store, iCloud, <a href="#entity-apple::company" class="entity-link">Apple</a> Music, and <a href="#entity-apple::company" class="entity-link">Apple</a> Pay — and is renowned for its emphasis on design, user experience, and privacy. As of the mid-2020s, <a href="#entity-apple::company" class="entity-link">Apple</a> consistently ranks among the top companies by market capitalization globally, with operations spanning retail stores, online services, and a vast supply chain across dozens of countries.</p>
         </div>
-        <div class="chunk-original" id="chunk-09eae681-a859-4f5a-9181-502ac294ab21-original">
-          Apple was founded on April 1, 1976, by Steve Jobs, Steve Wozniak, and Ronald Wayne in Cupertino, California. It has grown into one of the world&#39;s most valuable and recognizable technology companies, known for iconic products such as the Macintosh computer, the iPod, the iPhone, the iPad, and the Mac. Apple operates a tightly integrated ecosystem of hardware, software, and services — including the App Store, iCloud, Apple Music, and Apple Pay — and is renowned for its emphasis on design, user experience, and privacy. As of the mid-2020s, Apple consistently ranks among the top companies by market capitalization globally, with operations spanning retail stores, online services, and a vast supply chain across dozens of countries.
+        <div class="chunk-original" id="chunk-d997a4f2-4160-42ef-b605-4e1a5938a25e-original">
+          &lt;p&gt;Apple was founded on April 1, 1976, by Steve Jobs, Steve Wozniak, and Ronald Wayne in Cupertino, California. It has grown into one of the world&#39;s most valuable and recognizable technology companies, known for iconic products such as the Macintosh computer, the iPod, the iPhone, the iPad, and the Mac. Apple operates a tightly integrated ecosystem of hardware, software, and services — including the App Store, iCloud, Apple Music, and Apple Pay — and is renowned for its emphasis on design, user experience, and privacy. As of the mid-2020s, Apple consistently ranks among the top companies by market capitalization globally, with operations spanning retail stores, online services, and a vast supply chain across dozens of countries.&lt;/p&gt;
         </div>
         
-        <div class="toggle" onclick="toggleChunk('chunk-60000c16-eb81-49eb-95f5-39b6612d864f')">
+        <div class="toggle" onclick="toggleChunk('chunk-c1577a37-f7e7-43fd-ab4c-799fcef04f78')">
           Show original text
         </div>
-        <div class="card" id="chunk-60000c16-eb81-49eb-95f5-39b6612d864f-rephrase">
-          The <a href="#entity-apple::fruit" class="entity-link">apple</a> (Malus domestica) is a deciduous fruit tree in the rose family (Rosaceae), originally cultivated in Central Asia and now grown worldwide. It produces sweet to tart round fruits with a thin edible skin, crisp flesh, and a core containing seeds. Apples come in thousands of cultivated varieties — including <a href="#entity-fuji::fruit" class="entity-link">Fuji</a>, <a href="#entity-gala::fruit" class="entity-link">Gala</a>, <a href="#entity-granny-smith::fruit" class="entity-link">Granny Smith</a>, and <a href="#entity-honeycrisp::fruit" class="entity-link">Honeycrisp</a> — differing in color, flavor, size, and texture. Rich in dietary fiber, vitamin C, and various antioxidants, apples are associated with numerous health benefits and are commonly consumed fresh, juiced, or used in cooking and baking. The fruit holds deep cultural significance across many civilizations, appearing in mythology, religion, and literature, from the biblical garden of Eden to Newton&#x27;s legendary encounter with gravity.
-
+        <div class="card" id="chunk-c1577a37-f7e7-43fd-ab4c-799fcef04f78-rephrase">
+          <p>The <a href="#entity-apple::fruit" class="entity-link">apple</a> (Malus domestica) is a deciduous fruit tree in the rose family (Rosaceae), originally cultivated in Central Asia and now grown worldwide. It produces sweet to tart round fruits with a thin edible skin, crisp flesh, and a core containing seeds. Apples come in thousands of cultivated varieties — including <a href="#entity-fuji::fruit" class="entity-link">Fuji</a>, <a href="#entity-gala::fruit" class="entity-link">Gala</a>, <a href="#entity-granny-smith::fruit" class="entity-link">Granny Smith</a>, and <a href="#entity-honeycrisp::fruit" class="entity-link">Honeycrisp</a> — differing in color, flavor, size, and texture. Rich in dietary fiber, vitamin C, and various antioxidants, apples are associated with numerous health benefits and are commonly consumed fresh, juiced, or used in cooking and baking. The fruit holds deep cultural significance across many civilizations, appearing in mythology, religion, and literature, from the biblical garden of Eden to Newton's legendary encounter with gravity.</p>
         </div>
-        <div class="chunk-original" id="chunk-60000c16-eb81-49eb-95f5-39b6612d864f-original">
-          The apple (Malus domestica) is a deciduous fruit tree in the rose family (Rosaceae), originally cultivated in Central Asia and now grown worldwide. It produces sweet to tart round fruits with a thin edible skin, crisp flesh, and a core containing seeds. Apples come in thousands of cultivated varieties — including Fuji, Gala, Granny Smith, and Honeycrisp — differing in color, flavor, size, and texture. Rich in dietary fiber, vitamin C, and various antioxidants, apples are associated with numerous health benefits and are commonly consumed fresh, juiced, or used in cooking and baking. The fruit holds deep cultural significance across many civilizations, appearing in mythology, religion, and literature, from the biblical garden of Eden to Newton&#39;s legendary encounter with gravity.
-
+        <div class="chunk-original" id="chunk-c1577a37-f7e7-43fd-ab4c-799fcef04f78-original">
+          &lt;p&gt;The apple (Malus domestica) is a deciduous fruit tree in the rose family (Rosaceae), originally cultivated in Central Asia and now grown worldwide. It produces sweet to tart round fruits with a thin edible skin, crisp flesh, and a core containing seeds. Apples come in thousands of cultivated varieties — including Fuji, Gala, Granny Smith, and Honeycrisp — differing in color, flavor, size, and texture. Rich in dietary fiber, vitamin C, and various antioxidants, apples are associated with numerous health benefits and are commonly consumed fresh, juiced, or used in cooking and baking. The fruit holds deep cultural significance across many civilizations, appearing in mythology, religion, and literature, from the biblical garden of Eden to Newton&#39;s legendary encounter with gravity.&lt;/p&gt;
         </div>
          
       </div>
@@ -440,16 +447,16 @@
            
           <ul>
             
-            <li>→ <a href="#entity-steve-jobs::person" class="entity-link">Steve Jobs</a>: Steve Jobs is one of the individuals who founded Apple on April 1, 1976.</li>
+            <li>→ <a href="#entity-steve-jobs::person" class="entity-link">Steve Jobs</a>: Steve Jobs co-founded Apple on April 1, 1976.</li>
             
-            <li>→ <a href="#entity-steve-wozniak::person" class="entity-link">Steve Wozniak</a>: Steve Wozniak is one of the individuals who founded Apple on April 1, 1976.</li>
+            <li>→ <a href="#entity-steve-wozniak::person" class="entity-link">Steve Wozniak</a>: Steve Wozniak co-founded Apple on April 1, 1976.</li>
             
-            <li>→ <a href="#entity-ronald-wayne::person" class="entity-link">Ronald Wayne</a>: Ronald Wayne is one of the individuals who founded Apple on April 1, 1976.</li>
+            <li>→ <a href="#entity-ronald-wayne::person" class="entity-link">Ronald Wayne</a>: Ronald Wayne co-founded Apple on April 1, 1976.</li>
             
           </ul>
            
           <div class="chunk-links">
-            Appears in: <a href="#chunk-09eae681-a859-4f5a-9181-502ac294ab21-rephrase">Section 1</a>
+            Appears in: <a href="#chunk-d997a4f2-4160-42ef-b605-4e1a5938a25e-rephrase">Section 1</a>
           </div>
           
         </div>
@@ -475,7 +482,7 @@
           </ul>
            
           <div class="chunk-links">
-            Appears in: <a href="#chunk-60000c16-eb81-49eb-95f5-39b6612d864f-rephrase">Section 2</a>
+            Appears in: <a href="#chunk-c1577a37-f7e7-43fd-ab4c-799fcef04f78-rephrase">Section 2</a>
           </div>
           
         </div>
@@ -495,7 +502,7 @@
           </ul>
            
           <div class="chunk-links">
-            Appears in: <a href="#chunk-60000c16-eb81-49eb-95f5-39b6612d864f-rephrase">Section 2</a>
+            Appears in: <a href="#chunk-c1577a37-f7e7-43fd-ab4c-799fcef04f78-rephrase">Section 2</a>
           </div>
           
         </div>
@@ -515,7 +522,7 @@
           </ul>
            
           <div class="chunk-links">
-            Appears in: <a href="#chunk-60000c16-eb81-49eb-95f5-39b6612d864f-rephrase">Section 2</a>
+            Appears in: <a href="#chunk-c1577a37-f7e7-43fd-ab4c-799fcef04f78-rephrase">Section 2</a>
           </div>
           
         </div>
@@ -535,7 +542,7 @@
           </ul>
            
           <div class="chunk-links">
-            Appears in: <a href="#chunk-60000c16-eb81-49eb-95f5-39b6612d864f-rephrase">Section 2</a>
+            Appears in: <a href="#chunk-c1577a37-f7e7-43fd-ab4c-799fcef04f78-rephrase">Section 2</a>
           </div>
           
         </div>
@@ -555,7 +562,7 @@
           </ul>
            
           <div class="chunk-links">
-            Appears in: <a href="#chunk-60000c16-eb81-49eb-95f5-39b6612d864f-rephrase">Section 2</a>
+            Appears in: <a href="#chunk-c1577a37-f7e7-43fd-ab4c-799fcef04f78-rephrase">Section 2</a>
           </div>
           
         </div>
@@ -570,12 +577,12 @@
            
           <ul>
             
-            <li>← <a href="#entity-apple::company" class="entity-link">Apple</a>: Ronald Wayne is one of the individuals who founded Apple on April 1, 1976.</li>
+            <li>← <a href="#entity-apple::company" class="entity-link">Apple</a>: Ronald Wayne co-founded Apple on April 1, 1976.</li>
             
           </ul>
            
           <div class="chunk-links">
-            Appears in: <a href="#chunk-09eae681-a859-4f5a-9181-502ac294ab21-rephrase">Section 1</a>
+            Appears in: <a href="#chunk-d997a4f2-4160-42ef-b605-4e1a5938a25e-rephrase">Section 1</a>
           </div>
           
         </div>
@@ -590,12 +597,12 @@
            
           <ul>
             
-            <li>← <a href="#entity-apple::company" class="entity-link">Apple</a>: Steve Jobs is one of the individuals who founded Apple on April 1, 1976.</li>
+            <li>← <a href="#entity-apple::company" class="entity-link">Apple</a>: Steve Jobs co-founded Apple on April 1, 1976.</li>
             
           </ul>
            
           <div class="chunk-links">
-            Appears in: <a href="#chunk-09eae681-a859-4f5a-9181-502ac294ab21-rephrase">Section 1</a>
+            Appears in: <a href="#chunk-d997a4f2-4160-42ef-b605-4e1a5938a25e-rephrase">Section 1</a>
           </div>
           
         </div>
@@ -610,12 +617,12 @@
            
           <ul>
             
-            <li>← <a href="#entity-apple::company" class="entity-link">Apple</a>: Steve Wozniak is one of the individuals who founded Apple on April 1, 1976.</li>
+            <li>← <a href="#entity-apple::company" class="entity-link">Apple</a>: Steve Wozniak co-founded Apple on April 1, 1976.</li>
             
           </ul>
            
           <div class="chunk-links">
-            Appears in: <a href="#chunk-09eae681-a859-4f5a-9181-502ac294ab21-rephrase">Section 1</a>
+            Appears in: <a href="#chunk-d997a4f2-4160-42ef-b605-4e1a5938a25e-rephrase">Section 1</a>
           </div>
           
         </div>

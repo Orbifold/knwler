@@ -30,6 +30,14 @@ DEFAULT_ANTHROPIC_EXTRACTION_MODEL = "claude-haiku-4-5-20251001"
 
 
 # ---------------------------------------------------------------------------
+# Default backend URLs
+# ---------------------------------------------------------------------------
+DEFAULT_OLLAMA_URL = "http://localhost:11434/api/generate"
+DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1"
+DEFAULT_ANTHROPIC_URL = "https://api.anthropic.com/v1"
+
+
+# ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
 @dataclass
@@ -39,29 +47,41 @@ class Config:
     # Backend selection: "ollama" | "openai" | "anthropic"
     backend: str = "ollama"
 
-    # Ollama settings
-    ollama_url: str = "http://localhost:11434/api/generate"
-
-    # OpenAI settings
-    openai_api_key: str = None
-    openai_base_url: str = "https://api.openai.com/v1"
-
-    # Anthropic settings
-    anthropic_api_key: str = None
+    api_key: str = None
+    base_url: str = (
+        DEFAULT_OPENAI_BASE_URL
+        if backend == "openai"
+        else (DEFAULT_ANTHROPIC_URL if backend == "anthropic" else DEFAULT_OLLAMA_URL)
+    )
 
     # Model settings
-    ollama_extraction_model: str = DEFAULT_OLLAMA_EXTRACTION_MODEL
-    ollama_discovery_model: str = DEFAULT_OLLAMA_SCHEMA_MODEL
-    openai_extraction_model: str = DEFAULT_OPENAI_EXTRACTION_MODEL
-    openai_discovery_model: str = DEFAULT_OPENAI_DISCOVERY_MODEL
-    anthropic_extraction_model: str = DEFAULT_ANTHROPIC_EXTRACTION_MODEL
-    anthropic_discovery_model: str = DEFAULT_ANTHROPIC_DISCOVERY_MODEL
+    extraction_model: str = (
+        DEFAULT_OPENAI_EXTRACTION_MODEL
+        if backend == "openai"
+        else (
+            DEFAULT_ANTHROPIC_EXTRACTION_MODEL
+            if backend == "anthropic"
+            else DEFAULT_OLLAMA_EXTRACTION_MODEL
+        )
+    )
+    discovery_model: str = (
+        DEFAULT_OPENAI_DISCOVERY_MODEL
+        if backend == "openai"
+        else (
+            DEFAULT_ANTHROPIC_DISCOVERY_MODEL
+            if backend == "anthropic"
+            else DEFAULT_OLLAMA_SCHEMA_MODEL
+        )
+    )
     max_tokens: int = 400
     overlap_tokens: int = 50
     max_concurrent: int = 8
-    num_predict: int = 1024
+    num_predict: int = (
+        4096  # if too low this will truncate the JSON and it will fail to parse
+    )
     temperature: float = 0.1
     use_cache: bool = True
+    template: str = "default"
 
     # Default schema (used if discovery is skipped or fails)
     default_entity_types: list[str] = field(
@@ -100,19 +120,5 @@ class Config:
         return self.backend == "anthropic"
 
     @property
-    def extraction_model(self) -> str:
-        """Return the extraction model for the active backend."""
-        if self.backend == "openai":
-            return self.openai_extraction_model
-        if self.backend == "anthropic":
-            return self.anthropic_extraction_model
-        return self.ollama_extraction_model
-
-    @property
-    def discovery_model(self) -> str:
-        """Return the discovery model for the active backend."""
-        if self.backend == "openai":
-            return self.openai_discovery_model
-        if self.backend == "anthropic":
-            return self.anthropic_discovery_model
-        return self.ollama_discovery_model
+    def use_ollama(self) -> bool:
+        return self.backend == "ollama"

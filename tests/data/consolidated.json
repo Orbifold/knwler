@@ -1,5 +1,5 @@
 {
-  "id": "87fbde20-de9d-4c5e-abff-cf51f612d252",
+  "id": "d0f3f9da-1120-4ab4-a251-29855ae9d2dd",
   "documents": [
     {
       "id": "doc1",
@@ -34,12 +34,12 @@
       {
         "name": "Charles Darwin",
         "type": "Person",
-        "description": "English naturalist and biologist Charles Darwin, known for his theory of evolution, spent his early years as an apprentice doctor before attending the University of Edinburgh Medical School, where he found lectures dull and surgery distressing. He also learned taxidermy from John Edmonstone, a Black Briton from the South American rainforest, who had been taught by Charles Waterton and was freed from slavery. His contributions to evolutionary biology have been widely accepted and are considered a fundamental scientific concept.",
+        "description": "English naturalist and biologist Charles Darwin, known for his theory of evolution, spent his early years as an apprentice doctor before attending the University of Edinburgh Medical School, where he found lectures dull and surgery distressing. He also learned taxidermy from John Edmonstone, a Black Briton from the South American rainforest, who had been taught by Charles Waterton. His contributions to evolutionary biology have been widely accepted and are considered a fundamental scientific concept.",
         "chunk_ids": [
           "doc1-chunk1",
           "doc2-chunk1"
         ],
-        "id": "b27a0cf5-2a04-4714-abaf-4b8bf822a5c9",
+        "id": "9778b3e2-22f9-4b83-bc70-dd2d6a89a103",
         "community_id": 0
       },
       {
@@ -49,7 +49,7 @@
         "chunk_ids": [
           "doc1-chunk2"
         ],
-        "id": "8ecc7d68-69f1-41f5-ad2b-7fafcc27be80",
+        "id": "15f86388-afaa-4251-99aa-de483bad48c6",
         "community_id": 1
       },
       {
@@ -59,7 +59,7 @@
         "chunk_ids": [
           "doc2-chunk2"
         ],
-        "id": "eea92981-44f2-488c-bf7d-11727b799a4d",
+        "id": "4fe9dbd8-c0fe-448d-944e-d3df9fdefb64",
         "community_id": 2
       }
     ],
@@ -75,7 +75,7 @@
         "chunk_ids": [
           "doc1-chunk2"
         ],
-        "id": "e7a36ae2-22ca-4731-93e3-7469700bd948"
+        "id": "18d427ca-8076-4321-bbc0-54b098c57ed4"
       },
       {
         "source": "Charles Darwin",
@@ -88,7 +88,7 @@
         "chunk_ids": [
           "doc2-chunk2"
         ],
-        "id": "498cdc9d-f495-4487-9875-e89a368fb718"
+        "id": "d76a5616-a152-460f-bd0c-fbf97fab5fcb"
       }
     ],
     "communities": [
@@ -98,7 +98,7 @@
           "Charles Darwin",
           "Evolution"
         ],
-        "description": "This community focuses on Charles Darwin, an English naturalist and biologist who developed the theory of evolution.",
+        "description": "Charles Darwin, a key figure in the theory of evolution, spent his early years as a medical student and later focused on studying barnacles.",
         "members": [
           "Charles Darwin::Person"
         ]
@@ -108,7 +108,7 @@
         "topics": [
           "Theory of Evolution"
         ],
-        "description": "This community centers around the scientific theory explaining the process of natural selection.",
+        "description": "The scientific theory explaining the process of natural selection, a fundamental concept in biology.",
         "members": [
           "theory of evolution::Concept"
         ]
@@ -118,7 +118,7 @@
         "topics": [
           "Barnacles"
         ],
-        "description": "This community is dedicated to the study of barnacles, a group of marine crustaceans that Darwin studied extensively.",
+        "description": "Darwin's extensive study of marine crustaceans, which played a significant role in his theory of evolution.",
         "members": [
           "barnacles::Concept"
         ]
@@ -130,7 +130,7 @@
           "Theory of Evolution",
           "Barnacles"
         ],
-        "description": "This community includes all aspects of Charles Darwin's work, his theory of evolution, and his studies of barnacles.",
+        "description": "Charles Darwin, a central figure in the theory of evolution, conducted extensive research on barnacles, which provided crucial evidence for his theory.",
         "members": [
           "Charles Darwin",
           "barnacles",

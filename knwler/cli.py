@@ -90,20 +90,7 @@ def consolidate_graphs_command(
             help="Model to use for discovery during consolidation (overrides --openai and --anthropic).",
         ),
     ] = None,
-    anthropic_extraction_model: Annotated[
-        Optional[str],
-        typer.Option(
-            "--anthropic-extraction-model",
-            help="Model to use for extraction during consolidation when --anthropic is set.",
-        ),
-    ] = None,
-    anthropic_discovery_model: Annotated[
-        Optional[str],
-        typer.Option(
-            "--anthropic-discovery-model",
-            help="Model to use for discovery during consolidation when --anthropic is set.",
-        ),
-    ] = None,
+    
     concurrent: Annotated[
         int,
         typer.Option(
@@ -126,11 +113,11 @@ def consolidate_graphs_command(
             help="Disable caching of model responses during consolidation.",
         ),
     ] = False,
-    openai_base_url: Annotated[
+    base_url: Annotated[
         Optional[str],
         typer.Option(
-            "--openai-base-url",
-            help="Base URL for OpenAI API (useful for OpenAI-compatible APIs like Azure OpenAI).",
+            "--base-url",
+            help="Base URL for the API (useful for OpenAI-compatible APIs like Azure OpenAI).",
         ),
     ] = None,
     output: Annotated[
@@ -174,16 +161,13 @@ def consolidate_graphs_command(
     )
     config = Config(
         backend=backend,
-        ollama_extraction_model=resolved_extraction,
-        ollama_discovery_model=resolved_discovery,
-        openai_extraction_model=resolved_extraction,
-        openai_discovery_model=resolved_discovery,
-        anthropic_extraction_model=extraction_model or anthropic_extraction_model,
-        anthropic_discovery_model=discovery_model or anthropic_discovery_model,
+        extraction_model=resolved_extraction,
+        discovery_model=resolved_discovery,
+        
         max_concurrent=concurrent,
         max_tokens=max_tokens,
         use_cache=not no_cache,
-        openai_base_url=openai_base_url,
+        base_url=base_url
     )
     asyncio.run(
         cli_consolidate_graphs(

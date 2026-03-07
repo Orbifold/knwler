@@ -41,7 +41,7 @@ async def ollama_generate(
     format_json: bool = True,
 ) -> str:
     """Call Ollama and return the response text (cached)."""
-    actual_model = model or config.ollama_extraction_model
+    actual_model = model or config.extraction_model
 
     if config.use_cache:
         key = create_llm_cache_key(
@@ -85,11 +85,11 @@ async def openai_generate(
 ) -> str:
     """Call OpenAI API and return the response text (cached)."""
     actual_model = model or config.openai_extraction_model
-    api_key = config.openai_api_key or os.environ.get("OPENAI_API_KEY", "")
+    api_key = config.api_key or os.environ.get("OPENAI_API_KEY", "")
 
     if not api_key:
         raise ValueError(
-            "OpenAI API key not set. Set OPENAI_API_KEY env var or config.openai_api_key"
+            "OpenAI API key not set. Set OPENAI_API_KEY env var or config.api_key"
         )
 
     if config.use_cache:
@@ -136,12 +136,12 @@ async def anthropic_generate(
     """Call Anthropic API and return the response text (cached)."""
     import anthropic as _anthropic
 
-    actual_model = model or config.anthropic_extraction_model
-    api_key = config.anthropic_api_key or os.environ.get("ANTHROPIC_API_KEY", "")
+    actual_model = model or config.extraction_model
+    api_key = config.api_key or os.environ.get("ANTHROPIC_API_KEY", "")
 
     if not api_key:
         raise ValueError(
-            "Anthropic API key not set. Set ANTHROPIC_API_KEY env var or config.anthropic_api_key"
+            "Anthropic API key not set. Set ANTHROPIC_API_KEY env var or config.api_key"
         )
 
     if config.use_cache:
@@ -150,34 +150,29 @@ async def anthropic_generate(
         )
         cached = get_cached_llm_response(key)
         if cached is not None:
+            print(cached)
+
             return cached
 
     client = _anthropic.Anthropic(api_key=api_key)
 
     system = (
         "You are a data extraction assistant. "
-        "Always respond with valid JSON only — no markdown, no explanation, no code blocks."
+        "Always respond with valid JSON only — no markdown, no explanation, no code blocks. Do not enclose JSON with backticks."
         if format_json
         else "You are a helpful assistant."
     )
 
-    # Assistant prefill with "{" nudges the model to return raw JSON.
     messages = [{"role": "user", "content": prompt}]
-    if format_json:
-        messages.append({"role": "assistant", "content": "{"})
 
     response = client.messages.create(
         model=actual_model,
         max_tokens=config.num_predict,
         system=system,
         messages=messages,
-        temperature=config.temperature,
+        temperature=config.temperature 
     )
     content = response.content[0].text
-
-    # Restore the prefilled "{" that Anthropic strips from its own response.
-    if format_json:
-        content = "{" + content
 
     if config.use_cache:
         save_llm_response_to_cache(key, content, actual_model)
@@ -207,7 +202,15 @@ async def llm_generate(
 # ---------------------------------------------------------------------------
 def parse_json_response(response: str) -> dict:
     """Parse JSON from response, handling edge cases."""
+    text = response.strip()
+    if text.startswith("```"):
+        # Strip opening fence (```json or ```)
+        text = text[text.index("\n") + 1 :] if "\n" in text else text[3:]
+        # Strip closing fence
+        if text.endswith("```"):
+            text = text[: text.rfind("```")]
+        text = text.strip()
     try:
-        return json.loads(response)
+        return json.loads(text)
     except json.JSONDecodeError:
         return {}

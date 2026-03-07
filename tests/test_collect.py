@@ -60,7 +60,7 @@ class TestFetchPage:
     async def test_fetch_page_success(self):
         """Test successful page fetch."""
         url = "https://example.com"
-        mock_html = "<html><title>Test Page</title><body>Content</body></html>"
+        mock_html = "<html><title>Test Page</title><body>ABC</body></html>"
 
         with (
             patch("knwler.collect.webpage.get_cached_webpage", return_value=None),
@@ -80,13 +80,12 @@ class TestFetchPage:
 
             mock_session_class.return_value = mock_session
 
-            result = await WebpageCollector.fetch_page(url)
+            metadata, content = await WebpageCollector.fetch_page(url)
 
-            assert result["id"] == url
-            assert result["name"] == "Test Page"
-            assert "text" in result
-            assert "content" in result
-            assert result["description"] == "Webpage content"
+            assert metadata["id"] == url
+            assert metadata["name"] == "Test Page"
+            assert "ABC" in metadata["content"]
+            assert metadata["description"] == "Webpage content"
 
     @pytest.mark.asyncio
     async def test_fetch_page_404_raises_error(self):
@@ -215,20 +214,20 @@ class TestFetchPage:
 
             mock_session_class.return_value = mock_session
 
-            result = await WebpageCollector.fetch_page(url)
+            metadata, content = await WebpageCollector.fetch_page(url)
 
-            assert result["name"] == url
+            assert metadata["name"] == url
 
     @pytest.mark.asyncio
     async def test_fetch_corp(self):
-        found = await WebpageCollector.fetch_page("https://orbifold.net", no_cache=True)
-        assert found["id"] == "https://orbifold.net"
-        assert "Graph Consulting" in found["name"]
-        assert "graph machine learning" in found["content"].lower()
-        assert found["cached"] is False
+        metadata, content = await WebpageCollector.fetch_page("https://orbifold.net", no_cache=True)
+        assert metadata["id"] == "https://orbifold.net"
+        assert "Graph Consulting" in metadata["name"]
+        assert "graph machine learning" in metadata["content"].lower()
+        assert metadata["cached"] is False
         # Fetch again to test caching
-        found = await WebpageCollector.fetch_page("https://orbifold.net")
-        assert found["cached"] is True
+        metadata, content = await WebpageCollector.fetch_page("https://orbifold.net")
+        assert metadata["cached"] is True
 
     @pytest.mark.asyncio
     async def test_download_pdf(self):

@@ -65,7 +65,7 @@ async def test_ada():
     print(f"\n {summary}")
 
     # as an example, let's change the LLM model used for the summary extraction
-    config = Config(ollama_extraction_model="qwen2.5:14b")
+    config = Config(extraction_model="qwen2.5:14b")
     print("\n-----Summary using Qwen 2.5:14b-------\n")
     summary = await extract_summary(chunks, config)
     print(f"\n {summary}")

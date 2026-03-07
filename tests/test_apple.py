@@ -27,7 +27,7 @@ async def test_disambiguation():
         relation_types=["founded_by", "is_a"],
     )
     # if you use a small model it typically fails to disambiguate and merges the two entities into one, which is a common error.
-    config = Config(ollama_extraction_model="qwen3.5:9b")
+    config = Config(extraction_model="qwen3.5:9b")
     extraction_results = await extract_all(chunks, schema, config=config)
     assert len(extraction_results) == 2
     for g in extraction_results:

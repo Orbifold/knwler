@@ -406,7 +406,7 @@ def extract(
         typer.Option(
             "--file",
             "-f",
-            help="Path to a text or PDF file, or a URL (http/https), to extract from",
+            help="Path to a text or pdf file, or a url (http/https), to extract from. If a URL is provided, the content will be fetched and extracted.",
         ),
     ] = None,
     directory: Annotated[
@@ -414,7 +414,7 @@ def extract(
         typer.Option(
             "--dir",
             "-D",
-            help="Path to a directory containing text or PDF files to extract from",
+            help="Path to a directory containing text or pdf files to extract from. All files in the directory will be extracted.",
         ),
     ] = None,
     extraction_model: Annotated[
@@ -423,10 +423,10 @@ def extract(
             "--extraction-model",
             "-e",
             help=(
-                "Model for extraction. Applies to Ollama and OpenAI backends. "
+                "Model for summary, title and graph extraction. Applies to all backends. "
                 f"Defaults: Ollama={DEFAULT_OLLAMA_EXTRACTION_MODEL}, "
                 f"OpenAI={DEFAULT_OPENAI_EXTRACTION_MODEL}. "
-                "Use --anthropic-extraction-model for Anthropic."
+                f"Anthropic={DEFAULT_ANTHROPIC_EXTRACTION_MODEL}. "
             ),
         ),
     ] = None,
@@ -436,10 +436,10 @@ def extract(
             "--discovery-model",
             "-d",
             help=(
-                "Model for schema discovery. Applies to Ollama and OpenAI backends. "
+                "Model for schema and language discovery. Applies to all backends. "
                 f"Defaults: Ollama={DEFAULT_OLLAMA_SCHEMA_MODEL}, "
                 f"OpenAI={DEFAULT_OPENAI_DISCOVERY_MODEL}. "
-                "Use --anthropic-discovery-model for Anthropic."
+                f"Anthropic={DEFAULT_ANTHROPIC_DISCOVERY_MODEL}. "
             ),
         ),
     ] = None,
@@ -467,13 +467,13 @@ def extract(
             help="Use OpenAI API instead of Ollama (requires OPENAI_API_KEY env var), default: false",
         ),
     ] = False,
-    openai_base_url: Annotated[
+    base_url: Annotated[
         str,
         typer.Option(
-            "--openai-base-url",
-            help="OpenAI API base URL, default: https://api.openai.com/v1",
+            "--base-url",
+            help="Base URL of the LLM backend. Applies to all backends.",
         ),
-    ] = "https://api.openai.com/v1",
+    ] = None,
     anthropic: Annotated[
         bool,
         typer.Option(
@@ -481,20 +481,6 @@ def extract(
             help="Use Anthropic API instead of Ollama (requires ANTHROPIC_API_KEY env var), default: false",
         ),
     ] = False,
-    anthropic_extraction_model: Annotated[
-        str,
-        typer.Option(
-            "--anthropic-extraction-model",
-            help=f"Anthropic model for graph extraction, default: {DEFAULT_ANTHROPIC_EXTRACTION_MODEL}",
-        ),
-    ] = DEFAULT_ANTHROPIC_EXTRACTION_MODEL,
-    anthropic_discovery_model: Annotated[
-        str,
-        typer.Option(
-            "--anthropic-discovery-model",
-            help=f"Anthropic model for schema discovery, default: {DEFAULT_ANTHROPIC_DISCOVERY_MODEL}",
-        ),
-    ] = DEFAULT_ANTHROPIC_DISCOVERY_MODEL,
     output: Annotated[
         Optional[Path],
         typer.Option(
@@ -556,7 +542,7 @@ def extract(
             "--template",
             help="HTML template to use for the consolidated graph report (defaults to 'columns').",
         ),
-    ] = None,
+    ] = "default",
 ):
     """Extract knowledge graphs from text using LLMs."""
     try:
@@ -624,7 +610,7 @@ def extract(
             typer.echo("Error: --openai and --anthropic are mutually exclusive.")
             raise typer.Exit(1)
         backend = "openai" if openai else ("anthropic" if anthropic else "ollama")
-        resolved_extraction = extraction_model or (
+        resolved_extraction_model = extraction_model or (
             DEFAULT_OPENAI_EXTRACTION_MODEL
             if openai
             else (
@@ -644,16 +630,12 @@ def extract(
         )
         config = Config(
             backend=backend,
-            ollama_extraction_model=resolved_extraction,
-            ollama_discovery_model=resolved_discovery,
-            openai_extraction_model=resolved_extraction,
-            openai_discovery_model=resolved_discovery,
-            anthropic_extraction_model=extraction_model or anthropic_extraction_model,
-            anthropic_discovery_model=discovery_model or anthropic_discovery_model,
+            extraction_model=resolved_extraction_model,
+            discovery_model=resolved_discovery,
             max_concurrent=concurrent,
             max_tokens=max_tokens,
             use_cache=not no_cache,
-            openai_base_url=openai_base_url,
+            base_url=base_url,
         )
 
         # Build list of files to process

@@ -1,9 +1,9 @@
 import pytest
 import networkx as nx
-from knwler.community import create_network
+from knwler.clustering import create_network
 
 """
-Tests for community.py
+Tests for clustering.py
 """
 
 

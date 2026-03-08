@@ -83,34 +83,6 @@ class Config:
     use_cache: bool = True
     template: str = "default"
 
-    # Default schema (used if discovery is skipped or fails)
-    default_entity_types: list[str] = field(
-        default_factory=lambda: [
-            "person",
-            "organization",
-            "technology",
-            "location",
-            "project",
-            "concept",
-            "event",
-        ]
-    )
-    default_relation_types: list[str] = field(
-        default_factory=lambda: [
-            "works_at",
-            "created",
-            "lives_in",
-            "located_in",
-            "uses",
-            "partners_with",
-            "supports",
-            "integrates_with",
-            "related_to",
-            "requires",
-            "leads_to",
-        ]
-    )
-
     @property
     def use_openai(self) -> bool:
         return self.backend == "openai"

@@ -11,7 +11,7 @@ from knwler.chunking import chunk_text, get_encoder
 from knwler.discovery import discover_schema, detect_language
 from knwler.extraction import extract_graph, extract_chunk, extract_all
 from knwler.consolidation import consolidate_extracted_graphs, consolidate_graphs
-from knwler.community import analyze_communities, create_network
+from knwler.clustering import cluster_graph, create_network
 from knwler.export import export_html
 from knwler.stats import compute_stats, compute_community_stats, print_stats
 from knwler.extras import rephrase_chunks, extract_title, extract_summary

@@ -15,6 +15,8 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from knwler.config import console
 from knwler.language import get_current_language, get_ui
 from typing import Tuple, List, Dict, Any
+from knwler.models import KnowledgeGraph
+from dataclasses import asdict
 
 
 # ---------------------------------------------------------------------------
@@ -70,13 +72,13 @@ def _linkify_entities(
 # Export
 # ---------------------------------------------------------------------------
 def export_html(
-    results_data: dict,
-    output_path: Path,
-    title: str = "Knowledge Graph",
+    results_data: KnowledgeGraph | dict,
     template: str = "default",
 ) -> Path:
     """Export results.json data to an HTML report using Jinja2 template."""
-    title = results_data.get("title") or title
+    if isinstance(results_data, KnowledgeGraph):
+        results_data = asdict(results_data)
+    title = results_data.get("title") or "Knowledge Graph"
     summary = results_data.get("summary", "")
     url = results_data.get("url", "")
     chunks = results_data.get("chunks", [])
@@ -279,7 +281,7 @@ def export_html(
         extracted_info=extracted_info,
         labels=labels,
         communities=communities_display,
-        chunks_display=chunks_display,
+        chunks=chunks_display,
         entities_display=entities_display,
         disclaimer=disclaimer,
         node_elements=node_elements,
@@ -289,6 +291,4 @@ def export_html(
         rawData=json.dumps(results_data, indent=2),
     )
 
-    html_path = output_path.with_suffix(".html")
-    html_path.write_text(html_content, encoding="utf-8")
-    return html_path
+    return html_content

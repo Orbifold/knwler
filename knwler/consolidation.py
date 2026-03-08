@@ -34,7 +34,8 @@ async def consolidate_graphs(
     config: Config = Config(),
 ) -> dict:
     """
-    Consolidate multiple chunk graphs into one, with summarization and filtering.
+    Consolidate multiple graphs into one, with summarization and filtering.
+    Use this if you have multiple `graph.json` files from different documents that you want to merge into a single consolidated graph.
     This reuses the same consolidation logic as the one to merge chunk graphs into a document graph, but at a higher level to merge multiple document graphs into a single consolidated graph.
 
     The clustering flag is False by default since it's assumed that the merge of a a large amount of graphs is towards a database ingestion where clustering is more scalable.
@@ -98,15 +99,15 @@ async def consolidate_graphs(
         filter_low_importance=filter_low_importance,
     )
     if cluster:
-        from knwler.community import analyze_communities
+        from knwler.clustering import cluster_graph
 
-        consolidated = await analyze_communities(consolidated, config)
+        consolidated = await cluster_graph(consolidated, config)
 
     return {
         "id": str(uuid4()),
         "documents": all_documents,
         "schema": all_schema,
-        "graph": consolidated,
+        "graph": asdict(consolidated),
         "chunks": all_chunks if include_chunks else [],
     }
 

@@ -100,8 +100,8 @@ async def discover_schema(
 
     if not result.get("entity_types"):
         return Schema(
-            entity_types=config.default_entity_types,
-            relation_types=config.default_relation_types,
+            entity_types=Schema.default().entity_types,
+            relation_types=Schema.default().relation_types,
             reasoning="Discovery failed, using defaults",
             discovery_time=elapsed,
         )

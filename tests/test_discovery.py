@@ -12,8 +12,7 @@ from knwler.models import Schema
 def config():
     """Create a test config."""
     return Config(
-        default_entity_types=["entity"],
-        default_relation_types=["relation"],
+       
     )
 
 
@@ -119,8 +118,8 @@ class TestDiscoverSchema:
             mock_parse.return_value = {"entity_types": None}
 
             result = await discover_schema("text", config)
-            assert result.entity_types == config.default_entity_types
-            assert result.relation_types == config.default_relation_types
+            assert result.entity_types ==Schema.default().entity_types  
+            assert result.relation_types == Schema.default().relation_types
             assert result.reasoning == "Discovery failed, using defaults"
 
     @pytest.mark.asyncio

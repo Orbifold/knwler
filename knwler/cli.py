@@ -32,7 +32,7 @@ from knwler.language import (
 )
 from knwler.cache import CACHE_DIR
 from knwler.chunking import chunk_text
-from knwler.community import analyze_communities, create_network
+from knwler.clustering import cluster_graph, create_network
 from knwler.consolidation import consolidate_extracted_graphs
 from knwler.discovery import detect_language, discover_schema
 from knwler.export import export_html
@@ -44,6 +44,7 @@ from knwler.cli_info import info_app, show_version
 from knwler.cli_consolidate import cli_consolidate_graphs
 from knwler.cli_fetch import fetch_app
 from knwler.cli_cache import cache_app
+from knwler.cli_demo import demo_app
 
 app = typer.Typer(
     help="Turn documents into structured knowledge.",
@@ -139,7 +140,7 @@ def consolidate_graphs_command(
     """Consolidate extracted graphs into a single graph."""
     if openai and anthropic:
         typer.echo("Error: --openai and --anthropic are mutually exclusive.")
-        raise typer.Exit(1)
+        return typer.Exit(1)
     backend = "openai" if openai else ("anthropic" if anthropic else "ollama")
     resolved_extraction = extraction_model or (
         DEFAULT_OPENAI_EXTRACTION_MODEL
@@ -181,7 +182,7 @@ def consolidate_graphs_command(
 def _version_callback(value: bool) -> None:
     if value:
         show_version()
-        raise typer.Exit()
+        return typer.Exit()
 
 
 @app.callback()
@@ -212,6 +213,7 @@ app.add_typer(
     help="View info about Knwler installation",
 )
 app.add_typer(cache_app, name="cache", help="View and manage Knwler cache")
+app.add_typer(demo_app, name="demo", help="Demo commands for Knwler")
 
 app.add_typer(
     fetch_app,

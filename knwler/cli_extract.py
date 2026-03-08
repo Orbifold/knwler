@@ -17,7 +17,7 @@ from knwler.collect.webpage import WebpageCollector
 _URL_RE = re.compile(r"^https?://", re.IGNORECASE)
 from knwler.cache import CACHE_DIR, hash_args
 from knwler.chunking import chunk_text
-from knwler.community import analyze_communities, create_network
+from knwler.clustering import cluster_graph, create_network
 from knwler.consolidation import consolidate_extracted_graphs, consolidate_graphs
 from knwler.discovery import detect_language, discover_schema
 from knwler.language import (
@@ -155,11 +155,7 @@ async def _process_file(
     console.print(f"Discovery model: [green]{config.discovery_model}[/green]")
 
     if no_discovery:
-        schema = Schema(
-            entity_types=config.default_entity_types,
-            relation_types=config.default_relation_types,
-            reasoning="Using defaults (discovery skipped)",
-        )
+        schema = Schema.default()
         console.print("[yellow]Skipped (using defaults)[/yellow]")
     else:
         discovering_msg = (
@@ -241,7 +237,7 @@ async def _process_file(
     console.print()
     console.rule("[bold cyan]Community Analysis[/bold cyan]")
     community_t0 = time.perf_counter()
-    consolidated = await analyze_communities(consolidated, config)
+    consolidated = await cluster_graph(consolidated, config)
     community_time = time.perf_counter() - community_t0
 
     # ── Stats ──
@@ -587,7 +583,7 @@ def extract(
             )
             if result is None:
                 typer.echo(f"Error: failed to fetch URL: {fetched_url}")
-                raise typer.Exit(1)
+                return typer.Exit(1)
             _metadata, content = result
             suffix = ".pdf" if fetched_url.lower().endswith(".pdf") else ".md"
             with tempfile.NamedTemporaryFile(
@@ -603,12 +599,12 @@ def extract(
 
         if file is None and directory is None:
             typer.echo(ctx.get_help())
-            raise typer.Exit(1)
+            return typer.Exit(1)
 
         # Config
         if openai and anthropic:
             typer.echo("Error: --openai and --anthropic are mutually exclusive.")
-            raise typer.Exit(1)
+            return typer.Exit(1)
         backend = "openai" if openai else ("anthropic" if anthropic else "ollama")
         resolved_extraction_model = extraction_model or (
             DEFAULT_OPENAI_EXTRACTION_MODEL
@@ -652,7 +648,7 @@ def extract(
                     f"[yellow]No supported files (.txt, .pdf, .md) found in "
                     f"{directory}[/yellow]"
                 )
-                raise typer.Exit(0)
+                return typer.Exit(0)
         else:
             files_to_process = [file]
 
@@ -712,4 +708,4 @@ def extract(
                 (1, 2),
             )
         )
-        raise typer.Exit(1)
+        return typer.Exit(1)

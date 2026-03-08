@@ -23,3 +23,14 @@ tests/graph.html
 tests/graph.json
 .vscode/
 
+tests/data/consolidated.json
+tests/apple.html
+tests/graph.json
+knwler_demo/all_data.json
+knwler_demo/chunks.json
+knwler_demo/graph.json
+knwler_demo/HumanRights.md
+knwler_demo/HumanRights.pdf
+knwler_demo/index.html
+knwler_demo/rephrased_chunks.json
+knwler_demo/schema.json

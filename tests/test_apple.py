@@ -109,9 +109,9 @@ async def test_disambiguation():
     with open("tests/graph.json", "w") as f:
         json.dump(output, f, indent=2)
     # save the output as HTML for inspection and debugging
-    export_html(
+    content = export_html(
         output,
-        output_path=Path("tests/graph.html"),
-        title="Apple Test",
         template="columns",
     )
+    output_path = Path("tests/apple.html")
+    output_path.write_text(content, encoding="utf-8")

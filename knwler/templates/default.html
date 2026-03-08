@@ -530,11 +530,9 @@
 
     {# Navigation #}
     <div class="card">
-      {% if chunks_display %}‣<a href="#chunks">{{ labels.nav_chunks }}</a> {%
-      endif %} {% if communities %}‣<a href="#topics"
-        >{{ labels.nav_topics }}</a
-      >
-      {% endif %} {% if entities_display %}‣<a href="#entities"
+      {% if chunks %}‣<a href="#chunks">{{ labels.nav_chunks }}</a> {% endif %}
+      {% if communities %}‣<a href="#topics">{{ labels.nav_topics }}</a> {%
+      endif %} {% if entities_display %}‣<a href="#entities"
         >{{ labels.nav_entities }}</a
       >{% endif %}
     </div>
@@ -620,10 +618,11 @@
         {% endif %}
       </ul>
     </div>
-    {% endfor %} {% endif %} {# Content (chunks) section #} {% if chunks_display
-    %}
+    {% endfor %} {% endif %} 
+    {# Content (chunks) section #}
+    {% if chunks %}
     <h2 id="chunks">{{ labels.content_title }}</h2>
-    {% for chunk in chunks_display %}
+    {% for chunk in chunks %}
     <div class="toggle" onclick="toggleChunk('{{ chunk.id }}')">
       {{ labels.show_original }}
     </div>

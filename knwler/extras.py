@@ -63,7 +63,6 @@ async def extract_title(chunks: list[str], config: Config, max_chunks: int = 3) 
     sample = "\n\n".join(chunks[:max_chunks])
 
     prompt = get_prompt("extract_title", sample=sample)
-
     if not prompt:
         prompt = (
             "Create a short, clear document title based on the text below. "

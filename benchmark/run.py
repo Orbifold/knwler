@@ -4,6 +4,7 @@ import asyncio
 from pathlib import Path
 import time
 from knwler.config import Config
+from benchmark.report import generate_report
 from dataclasses import asdict
 from knwler.api import (
     chunk,
@@ -159,7 +160,13 @@ async def run(grid):
     console.print(
         f"[green]Benchmark completed. Results saved to {results_path}[/green]"
     )
-    
+
+    # Generate the HTML report from the just-collected results and open it
+    report_path = output_path / f"{results_path.stem}_report.html"
+    console.print("[cyan]Generating benchmark report…[/cyan]")
+    generate_report(results, report_path=report_path, open_browser=True)
+    console.print(f"[green]Report opened → {report_path}[/green]")
+
 
 def main():
     # feel free to use whatever you think should be benchmarked

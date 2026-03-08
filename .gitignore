@@ -1,4 +1,4 @@
-# Python-generated files
+# Python
 __pycache__/
 *.py[oc]
 build/
@@ -6,64 +6,24 @@ dist/
 wheels/
 *.egg-info
 
-# Virtual environments
+# Tools & env
 .venv
-model/
-cache/
-results/
 uv.lock
 .DS_Store
 .claude
-pdfs/
-tests/graph.json
-tests/graph.html
-tests/data/consolidated.json
-.pytest_cache/
-tests/graph.html
-tests/graph.json
 .vscode/
+.pytest_cache/
 
-tests/data/consolidated.json
+# Runtime output
+model/
+cache/
+results/
+pdfs/
+knwler_demo/
+benchmark/output/
+
+# Test artifacts
 tests/apple.html
+tests/graph.html
 tests/graph.json
-knwler_demo/all_data.json
-knwler_demo/chunks.json
-knwler_demo/graph.json
-knwler_demo/HumanRights.md
-knwler_demo/HumanRights.pdf
-knwler_demo/index.html
-knwler_demo/rephrased_chunks.json
-knwler_demo/schema.json
-benchmark/output/benchmark_results_1772992269.json
-benchmark/output/HumanRights.md
-benchmark/output/HumanRights.pdf
-benchmark/output/anthropic/claude-sonnet-4-6_claude-haiku-4-5-20251001/chunks.json
-benchmark/output/anthropic/claude-sonnet-4-6_claude-haiku-4-5-20251001/consolidated_graph.json
-benchmark/output/anthropic/claude-sonnet-4-6_claude-haiku-4-5-20251001/extraction.json
-benchmark/output/anthropic/claude-sonnet-4-6_claude-haiku-4-5-20251001/rephrased_chunks.json
-benchmark/output/anthropic/claude-sonnet-4-6_claude-haiku-4-5-20251001/schema.json
-benchmark/output/anthropic/claude-sonnet-4-6_claude-haiku-4-5-20251001/stats.json
-benchmark/output/ollama/gemma3_12b_gemma3_4b/chunks.json
-benchmark/output/ollama/gemma3_12b_gemma3_4b/consolidated_graph.json
-benchmark/output/ollama/gemma3_12b_gemma3_4b/extraction.json
-benchmark/output/ollama/gemma3_12b_gemma3_4b/rephrased_chunks.json
-benchmark/output/ollama/gemma3_12b_gemma3_4b/schema.json
-benchmark/output/ollama/gemma3_12b_gemma3_4b/stats.json
-benchmark/output/ollama/llama3.1_8b_llama3.1_8b/chunks.json
-benchmark/output/ollama/llama3.1_8b_llama3.1_8b/consolidated_graph.json
-benchmark/output/ollama/llama3.1_8b_llama3.1_8b/extraction.json
-benchmark/output/ollama/llama3.1_8b_llama3.1_8b/rephrased_chunks.json
-benchmark/output/ollama/llama3.1_8b_llama3.1_8b/schema.json
-benchmark/output/ollama/llama3.1_8b_llama3.1_8b/stats.json
-benchmark/output/ollama/qwen2.5_14b_qwen2.5_3b/chunks.json
-benchmark/output/ollama/qwen2.5_14b_qwen2.5_3b/consolidated_graph.json
-benchmark/output/ollama/qwen2.5_14b_qwen2.5_3b/extraction.json
-benchmark/output/ollama/qwen2.5_14b_qwen2.5_3b/rephrased_chunks.json
-benchmark/output/ollama/qwen2.5_14b_qwen2.5_3b/schema.json
-benchmark/output/ollama/qwen2.5_14b_qwen2.5_3b/stats.json
-benchmark/output/openai/gpt-4o_gpt-4o-mini/chunks.json
-benchmark/output/openai/gpt-4o_gpt-4o-mini/consolidated_graph.json
-benchmark/output/openai/gpt-4o_gpt-4o-mini/extraction.json
-benchmark/output/openai/gpt-4o_gpt-4o-mini/rephrased_chunks.json
-benchmark/output/openai/gpt-4o_gpt-4o-mini/schema.json
-benchmark/output/openai/gpt-4o_gpt-4o-mini/stats.json
+tests/data/consolidated.json

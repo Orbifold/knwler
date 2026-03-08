@@ -1,15 +1,21 @@
 import asyncio
 import re
+import os
 from pathlib import Path
 from typing import Annotated, Optional
 from urllib.parse import urlparse
-from knwler.api import fetch_url, parse_file
 
 import typer
-from knwler.config import console
 from knwler.api import fetch_url, parse_file, is_document_url
+from knwler.config import console
+
+fetch_app = typer.Typer(
+    help="Fetch content from a URL or Wikipedia and save it locally.",
+    no_args_is_help=True,
+)
 
 
+@fetch_app.command("url", help="Fetch content from a URL and save it locally.")
 def fetch_command(
     url: Annotated[str, typer.Argument(help="The URL to fetch.")],
     output: Annotated[
@@ -25,13 +31,21 @@ def fetch_command(
         typer.Option(
             "--parse",
             "-p",
-            help="When fetching a PDF, also parse its text content and save it as a .txt file alongside the PDF.",
+            help="When fetching a pdf, also parse its text content and save it as a .md file alongside the pdf.",
         ),
     ] = False,
     no_cache: Annotated[
         bool,
         typer.Option(
             "--no-cache", help="Bypass the cache and fetch directly from the web."
+        ),
+    ] = False,
+    open: Annotated[
+        bool,
+        typer.Option(
+            "--open",
+            "-O",
+            help="Open the fetched content with the default application after saving.",
         ),
     ] = False,
 ) -> None:
@@ -83,3 +97,76 @@ def fetch_command(
         else:
             output_path.write_text(content, encoding="utf-8")
         console.print(f"[green]Saved content to[/green] {output_path}")
+
+    if open:
+        (
+            os.startfile(output_path)
+            if os.name == "nt"
+            else os.system(f"open '{output_path}'")
+        )
+
+
+@fetch_app.command(
+    "wiki", help="Fetch a Wikipedia article by title and save it locally."
+)
+def wiki_command(
+    title: Annotated[
+        str, typer.Argument(help="Title of the Wikipedia article to fetch.")
+    ],
+    output: Annotated[
+        Optional[Path],
+        typer.Option(
+            "--output",
+            "-o",
+            help="Output file or directory path. If a directory, the filename is derived from the article title. Defaults to the current directory.",
+        ),
+    ] = None,
+    no_cache: Annotated[
+        bool,
+        typer.Option(
+            "--no-cache", help="Bypass the cache and fetch directly from Wikipedia."
+        ),
+    ] = False,
+     open: Annotated[
+        bool,
+        typer.Option(
+            "--open",
+            "-O",
+            help="Open the fetched content with the default application after saving.",
+        ),
+    ] = False,
+) -> None:
+    from knwler.collect.wikipedia import WikipediaCollector
+
+    try:
+        doc = asyncio.run(WikipediaCollector.fetch_article(title, no_cache=no_cache))
+    except Exception as e:
+        console.print(f"[red]Error fetching Wikipedia article:[/red] {e}")
+        raise typer.Exit(code=1)
+
+    if doc is None:
+        console.print(f"[red]Wikipedia article not found:[/red] {title!r}")
+        raise typer.Exit(code=1)
+
+    filename = re.sub(r'[\\/*?:"<>|]', "_", doc["name"]) + ".md"
+
+    if output is None:
+        output_path = Path.cwd() / filename
+    elif not output.suffix:
+        output_path = output / filename
+    else:
+        output_path = output
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(doc["content"], encoding="utf-8")
+
+    cached_note = " [dim](cached)[/dim]" if doc.get("cached") else ""
+    console.print(
+        f"[green]Saved Wikipedia article to[/green] {output_path}{cached_note}"
+    )
+    if open:
+        (
+            os.startfile(output_path)
+            if os.name == "nt"
+            else os.system(f"open '{output_path}'")
+        )

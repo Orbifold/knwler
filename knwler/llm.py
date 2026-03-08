@@ -65,7 +65,7 @@ async def ollama_generate(
     if format_json:
         payload["format"] = "json"
 
-    response_json = await _post_json(config.ollama_url, payload=payload)
+    response_json = await _post_json(config.base_url, payload=payload)
     response = response_json["response"]
 
     if config.use_cache:

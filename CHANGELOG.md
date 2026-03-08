@@ -28,6 +28,7 @@
 - you can now give a URL to a pdf or just a webpage, all the rest happens automatically for you
 - a higher level API (`knwler.api`) has been added to simplify downstream integrations
 - the CLI has a new `fetch` command allowing to fetch data and parse in one go
+- the CLI has a new `cache` command allowing to clear the cache
 
 ## v0.4.1
 

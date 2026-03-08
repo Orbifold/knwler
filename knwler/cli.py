@@ -42,7 +42,8 @@ from knwler.stats import compute_community_stats, compute_stats, print_stats
 from knwler.cli_extract import extract_app
 from knwler.cli_info import info_app, show_version
 from knwler.cli_consolidate import cli_consolidate_graphs
-from knwler.cli_fetch import fetch_command
+from knwler.cli_fetch import fetch_app
+from knwler.cli_cache import cache_app
 
 app = typer.Typer(
     help="Turn documents into structured knowledge.",
@@ -90,7 +91,6 @@ def consolidate_graphs_command(
             help="Model to use for discovery during consolidation (overrides --openai and --anthropic).",
         ),
     ] = None,
-    
     concurrent: Annotated[
         int,
         typer.Option(
@@ -163,11 +163,10 @@ def consolidate_graphs_command(
         backend=backend,
         extraction_model=resolved_extraction,
         discovery_model=resolved_discovery,
-        
         max_concurrent=concurrent,
         max_tokens=max_tokens,
         use_cache=not no_cache,
-        base_url=base_url
+        base_url=base_url,
     )
     asyncio.run(
         cli_consolidate_graphs(
@@ -212,8 +211,13 @@ app.add_typer(
     name="info",
     help="View info about Knwler installation",
 )
+app.add_typer(cache_app, name="cache", help="View and manage Knwler cache")
 
-app.command("fetch", help="Fetch content from a URL and save it locally")(fetch_command)
+app.add_typer(
+    fetch_app,
+    name="fetch",
+    help="Fetch content from a URL or Wikipedia and save it locally",
+)
 
 
 def main():

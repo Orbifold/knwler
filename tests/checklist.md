@@ -25,7 +25,7 @@ So many new features added in v0.5.0 so here is a comprehensive checklist (for m
 
 - [ ] CLI help
 - [ ] get started
-- [ ] models and providers
+- [x] models and providers
 - [x] pipx
 - [ ] wetboeken dataset sample
 - [ ] knwler.com website
@@ -33,7 +33,7 @@ So many new features added in v0.5.0 so here is a comprehensive checklist (for m
 - [x] knwler as API
 - [x] Ollama
 - [x] OpenAI
-- [ ] Anthropic
+- [x] Anthropic
 - [ ] rerun the four sample docs
 - [ ] templates
 
@@ -57,6 +57,8 @@ So many new features added in v0.5.0 so here is a comprehensive checklist (for m
 - [ ] promised RDF
 - [ ] rephrased chunks are markdown and should be rendered as such
 - [ ] benchmark
+- [ ] Windows
+- [ ] Linux
 
 ```bash
 uv run main.py -f ./pdfs/HumanRights.pdf --url https://www.ohchr.org/sites/default/files/UDHR/Documents/UDHR_Translations/eng.pdf --overwrite-dir
@@ -66,4 +68,6 @@ uv run main.py -f ./pdfs/HumanRights.pdf --url https://www.ohchr.org/sites/defau
 uv run main.py -f ./pdfs/HumanRights.pdf --url https://www.ohchr.org/sites/default/files/UDHR/Documents/UDHR_Translations/eng.pdf --overwrite-dir --discovery-model qwen3.5:0.8b  --extraction-model qwen3.5:0.8b
 
 uv run main.py fetch https://knwler.com/pdfs/HumanRights.pdf --output ~/temp/things/ --parse
+
+ uv run main.py fetch wiki topology  --output ~/temp/ --open
 ```

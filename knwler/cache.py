@@ -44,7 +44,7 @@ def _write_cache(subdir: str, key: str, response: Any, extra: dict | None = None
 def _clear_cache(subdir: str):
     cache_dir = CACHE_DIR / subdir
     if cache_dir.exists():
-        for f in cache_dir.glob("*.json"):
+        for f in cache_dir.glob("*.*"):
             try:
                 f.unlink()
             except IOError:

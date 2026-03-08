@@ -25,15 +25,59 @@ async def _post_json(
 ) -> dict[str, Any]:
     """POST JSON payload and parse JSON response using aiohttp."""
     timeout = aiohttp.ClientTimeout(total=timeout_seconds)
-    async with aiohttp.ClientSession(timeout=timeout) as session:
-        async with session.post(url, headers=headers, json=payload) as resp:
-            resp.raise_for_status()
-            return await resp.json()
+    try:
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.post(url, headers=headers, json=payload) as resp:
+                resp.raise_for_status()
+                return await resp.json()
+    except aiohttp.ClientResponseError as e:
+        if e.status == 401:
+            raise RuntimeError(
+                "Authentication failed (HTTP 401): the API key is missing or invalid. "
+                "Check your api_key config or the relevant environment variable."
+            ) from e
+        raise RuntimeError(
+            f"LLM API request failed with status {e.status}: {e.message}"
+        ) from e
+    except aiohttp.ClientError as e:
+
+        raise RuntimeError(f"LLM API request failed: {str(e)}") from e
+    except asyncio.TimeoutError:
+        raise RuntimeError(f"LLM API request timed out after {timeout_seconds} seconds")
 
 
 # ---------------------------------------------------------------------------
 # Ollama
 # ---------------------------------------------------------------------------
+async def check_ollama_available(base_url: str) -> None:
+    """Raise a clear RuntimeError if the Ollama server cannot be reached."""
+    # Derive the root URL from whatever endpoint URL is configured
+    # e.g. http://localhost:11434/api/generate → http://localhost:11434/
+    from urllib.parse import urlparse
+
+    parsed = urlparse(base_url)
+    root_url = f"{parsed.scheme}://{parsed.netloc}/"
+    try:
+        timeout = aiohttp.ClientTimeout(total=5)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.get(root_url) as resp:
+                if resp.status != 200:
+                    raise RuntimeError(
+                        f"Ollama server at {root_url} returned HTTP {resp.status}. "
+                        "Make sure Ollama is running."
+                    )
+    except aiohttp.ClientConnectorError:
+        raise RuntimeError(
+            f"Cannot connect to Ollama at {root_url}. "
+            "Please start Ollama (e.g. `ollama serve`) and try again."
+        )
+    except TimeoutError:
+        raise RuntimeError(
+            f"Timed out connecting to Ollama at {root_url}. "
+            "Make sure Ollama is running and reachable."
+        )
+
+
 async def ollama_generate(
     prompt: str,
     config: Config,
@@ -41,6 +85,7 @@ async def ollama_generate(
     format_json: bool = True,
 ) -> str:
     """Call Ollama and return the response text (cached)."""
+    await check_ollama_available(config.base_url)
     actual_model = model or config.extraction_model
 
     if config.use_cache:
@@ -84,7 +129,7 @@ async def openai_generate(
     format_json: bool = True,
 ) -> str:
     """Call OpenAI API and return the response text (cached)."""
-    actual_model = model or config.openai_extraction_model
+    actual_model = model or config.extraction_model
     api_key = config.api_key or os.environ.get("OPENAI_API_KEY", "")
 
     if not api_key:
@@ -114,7 +159,7 @@ async def openai_generate(
     if format_json:
         payload["response_format"] = {"type": "json_object"}
 
-    url = f"{config.openai_base_url.rstrip('/')}/chat/completions"
+    url = f"{config.base_url.rstrip('/')}/chat/completions"
     response_json = await _post_json(url, payload=payload, headers=headers)
     response = response_json["choices"][0]["message"]["content"]
 
@@ -170,7 +215,7 @@ async def anthropic_generate(
         max_tokens=config.num_predict,
         system=system,
         messages=messages,
-        temperature=config.temperature 
+        temperature=config.temperature,
     )
     content = response.content[0].text
 
@@ -190,6 +235,7 @@ async def llm_generate(
     format_json: bool = True,
 ) -> str:
     """Dispatch to appropriate LLM backend based on config."""
+
     if config.backend == "anthropic":
         return await anthropic_generate(prompt, config, model, format_json)
     if config.backend == "openai":

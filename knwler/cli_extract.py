@@ -33,7 +33,7 @@ from knwler.extras import extract_summary, extract_title, rephrase_chunks
 from knwler.stats import compute_community_stats, compute_stats, print_stats
 from knwler.config import (
     DEFAULT_OLLAMA_EXTRACTION_MODEL,
-    DEFAULT_OLLAMA_SCHEMA_MODEL,
+    DEFAULT_OLLAMA_DISCOVERY_MODEL,
     DEFAULT_OPENAI_EXTRACTION_MODEL,
     DEFAULT_OPENAI_DISCOVERY_MODEL,
     DEFAULT_ANTHROPIC_EXTRACTION_MODEL,
@@ -433,7 +433,7 @@ def extract(
             "-d",
             help=(
                 "Model for schema and language discovery. Applies to all backends. "
-                f"Defaults: Ollama={DEFAULT_OLLAMA_SCHEMA_MODEL}, "
+                f"Defaults: Ollama={DEFAULT_OLLAMA_DISCOVERY_MODEL}, "
                 f"OpenAI={DEFAULT_OPENAI_DISCOVERY_MODEL}. "
                 f"Anthropic={DEFAULT_ANTHROPIC_DISCOVERY_MODEL}. "
             ),
@@ -621,7 +621,7 @@ def extract(
             else (
                 DEFAULT_ANTHROPIC_DISCOVERY_MODEL
                 if anthropic
-                else DEFAULT_OLLAMA_SCHEMA_MODEL
+                else DEFAULT_OLLAMA_DISCOVERY_MODEL
             )
         )
         config = Config(

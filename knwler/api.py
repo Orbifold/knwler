@@ -16,7 +16,7 @@ from knwler.discovery import discover_schema, detect_language
 from knwler.models import *
 from knwler.consolidation import consolidate_extracted_graphs
 from knwler.clustering import cluster_graph as clustering
-from knwler.language import set_language
+from knwler.language import set_language as _set_language
 from knwler.extras import (
     extract_summary as _extract_summary,
     extract_title as _extract_title,
@@ -147,13 +147,13 @@ async def cluster_graph(
 
 async def set_language(lang_code: str):
     """Set the language for prompts and UI messages. This will affect all subsequent operations that involve language generation or UI output."""
-    return await set_language(lang_code)
+    return  _set_language(lang_code)
 
 
 async def discover_language(text: str, config: Config | None = Config()) -> str:
     """Detect the language of the given text. This can be used to automatically set the language for prompts and UI messages."""
     found = await detect_language(text, config)
-    set_language(found)
+    await set_language(found)
     return found
 
 

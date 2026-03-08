@@ -17,7 +17,7 @@ from rich.padding import Padding
 
 from knwler.config import (
     DEFAULT_OLLAMA_EXTRACTION_MODEL,
-    DEFAULT_OLLAMA_SCHEMA_MODEL,
+    DEFAULT_OLLAMA_DISCOVERY_MODEL,
     Config,
     console,
 )
@@ -157,7 +157,7 @@ def consolidate_graphs_command(
         else (
             DEFAULT_ANTHROPIC_DISCOVERY_MODEL
             if anthropic
-            else DEFAULT_OLLAMA_SCHEMA_MODEL
+            else DEFAULT_OLLAMA_DISCOVERY_MODEL
         )
     )
     config = Config(

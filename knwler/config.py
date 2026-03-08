@@ -21,10 +21,12 @@ PACKAGE_ROOT = PROJECT_ROOT / "knwler"
 # ---------------------------------------------------------------------------
 # Default model names
 # ---------------------------------------------------------------------------
-DEFAULT_OLLAMA_SCHEMA_MODEL = "qwen2.5:14b"
+DEFAULT_OLLAMA_DISCOVERY_MODEL = "qwen2.5:14b"
 DEFAULT_OLLAMA_EXTRACTION_MODEL = "qwen2.5:3b"
+
 DEFAULT_OPENAI_DISCOVERY_MODEL = "gpt-4o"
 DEFAULT_OPENAI_EXTRACTION_MODEL = "gpt-4o-mini"
+
 DEFAULT_ANTHROPIC_DISCOVERY_MODEL = "claude-sonnet-4-6"
 DEFAULT_ANTHROPIC_EXTRACTION_MODEL = "claude-haiku-4-5-20251001"
 
@@ -48,31 +50,11 @@ class Config:
     backend: str = "ollama"
 
     api_key: str = None
-    base_url: str = (
-        DEFAULT_OPENAI_BASE_URL
-        if backend == "openai"
-        else (DEFAULT_ANTHROPIC_URL if backend == "anthropic" else DEFAULT_OLLAMA_URL)
-    )
+    # None means "resolve from backend in __post_init__"
+    base_url: str = None
+    extraction_model: str = None
+    discovery_model: str = None
 
-    # Model settings
-    extraction_model: str = (
-        DEFAULT_OPENAI_EXTRACTION_MODEL
-        if backend == "openai"
-        else (
-            DEFAULT_ANTHROPIC_EXTRACTION_MODEL
-            if backend == "anthropic"
-            else DEFAULT_OLLAMA_EXTRACTION_MODEL
-        )
-    )
-    discovery_model: str = (
-        DEFAULT_OPENAI_DISCOVERY_MODEL
-        if backend == "openai"
-        else (
-            DEFAULT_ANTHROPIC_DISCOVERY_MODEL
-            if backend == "anthropic"
-            else DEFAULT_OLLAMA_SCHEMA_MODEL
-        )
-    )
     max_tokens: int = 400
     overlap_tokens: int = 50
     max_concurrent: int = 8
@@ -83,14 +65,28 @@ class Config:
     use_cache: bool = True
     template: str = "default"
 
-    @property
-    def use_openai(self) -> bool:
-        return self.backend == "openai"
+    def __post_init__(self):
+        # in case the user doesn't specify these, set them based on the backend
+        if self.base_url is None:
+            if self.backend == "openai":
+                self.base_url = DEFAULT_OPENAI_BASE_URL
+            elif self.backend == "anthropic":
+                self.base_url = DEFAULT_ANTHROPIC_URL
+            else:
+                self.base_url = DEFAULT_OLLAMA_URL
 
-    @property
-    def use_anthropic(self) -> bool:
-        return self.backend == "anthropic"
+        if self.extraction_model is None:
+            if self.backend == "openai":
+                self.extraction_model = DEFAULT_OPENAI_EXTRACTION_MODEL
+            elif self.backend == "anthropic":
+                self.extraction_model = DEFAULT_ANTHROPIC_EXTRACTION_MODEL
+            else:
+                self.extraction_model = DEFAULT_OLLAMA_EXTRACTION_MODEL
 
-    @property
-    def use_ollama(self) -> bool:
-        return self.backend == "ollama"
+        if self.discovery_model is None:
+            if self.backend == "openai":
+                self.discovery_model = DEFAULT_OPENAI_DISCOVERY_MODEL
+            elif self.backend == "anthropic":
+                self.discovery_model = DEFAULT_ANTHROPIC_DISCOVERY_MODEL
+            else:
+                self.discovery_model = DEFAULT_OLLAMA_DISCOVERY_MODEL

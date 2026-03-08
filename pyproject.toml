@@ -59,3 +59,4 @@ collect = [
 [project.scripts]
 knwler = "knwler.cli:main"
 tests="tests.run:main"
+benchmark="benchmark.run:main"

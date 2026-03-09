@@ -9,81 +9,81 @@
         "type": "Company",
         "description": "A technology company known for iconic products like the Macintosh, iPod, iPhone, and iPad, operating a tightly integrated ecosystem of hardware, software, and services.",
         "chunk_ids": [
-          "509a7657-3311-4105-9f61-b8251774ff05"
+          "e7e07451-0e96-4c5d-93aa-1372ca16353c"
         ],
-        "id": "c6f74117-c6ce-4050-82ff-8687380f2763"
+        "id": "68d55f5f-0415-4ad5-a022-86d139ccc54b"
       },
       {
         "name": "Steve Jobs",
         "type": "Person",
         "description": "One of the co-founders of Apple who helped establish the company in Cupertino, California.",
         "chunk_ids": [
-          "509a7657-3311-4105-9f61-b8251774ff05"
+          "e7e07451-0e96-4c5d-93aa-1372ca16353c"
         ],
-        "id": "b9926157-adb9-4018-886a-093f54653c54"
+        "id": "91fb8e45-876e-49d4-83d8-3d49fa6eb11f"
       },
       {
         "name": "Steve Wozniak",
         "type": "Person",
         "description": "A co-founder of Apple who contributed to the company's founding in 1976.",
         "chunk_ids": [
-          "509a7657-3311-4105-9f61-b8251774ff05"
+          "e7e07451-0e96-4c5d-93aa-1372ca16353c"
         ],
-        "id": "574b148e-449b-4e48-a0bc-022689b64118"
+        "id": "613ccdb1-7f60-4507-8b66-1359c2b44aa7"
       },
       {
         "name": "Ronald Wayne",
         "type": "Person",
         "description": "The third co-founder of Apple, involved in establishing the company on April 1, 1976.",
         "chunk_ids": [
-          "509a7657-3311-4105-9f61-b8251774ff05"
+          "e7e07451-0e96-4c5d-93aa-1372ca16353c"
         ],
-        "id": "30208399-362e-4e81-8c7f-b8600c32c81c"
+        "id": "1e311415-ae25-49c8-97c6-214312cf0319"
       },
       {
         "name": "Apple",
         "type": "Fruit",
         "description": "A deciduous fruit tree in the rose family, originally cultivated in Central Asia and now grown worldwide.",
         "chunk_ids": [
-          "2fda4a01-e209-4b9f-b3ee-bd7f538ff965"
+          "b6a08294-cdc9-4082-a19a-bf4ee01713ec"
         ],
-        "id": "a1bfdb39-1a4e-4020-bcbf-cf42586288b5"
+        "id": "e87cf99d-e6d1-4b73-9345-7275ea90f162"
       },
       {
         "name": "Fuji",
         "type": "Fruit",
         "description": "One of the thousands of cultivated apple varieties differing in color, flavor, size, and texture.",
         "chunk_ids": [
-          "2fda4a01-e209-4b9f-b3ee-bd7f538ff965"
+          "b6a08294-cdc9-4082-a19a-bf4ee01713ec"
         ],
-        "id": "4562b94f-810f-441f-9e3c-2116429c7d19"
+        "id": "a0e472db-507d-4e0c-8afb-4603f62f9efc"
       },
       {
         "name": "Gala",
         "type": "Fruit",
         "description": "One of the thousands of cultivated apple varieties differing in color, flavor, size, and texture.",
         "chunk_ids": [
-          "2fda4a01-e209-4b9f-b3ee-bd7f538ff965"
+          "b6a08294-cdc9-4082-a19a-bf4ee01713ec"
         ],
-        "id": "82e2d0e1-a57d-40e5-a37b-005d01edad03"
+        "id": "4c40c49c-b02e-49d4-9a49-9fc7a8ad26e2"
       },
       {
         "name": "Granny Smith",
         "type": "Fruit",
         "description": "One of the thousands of cultivated apple varieties differing in color, flavor, size, and texture.",
         "chunk_ids": [
-          "2fda4a01-e209-4b9f-b3ee-bd7f538ff965"
+          "b6a08294-cdc9-4082-a19a-bf4ee01713ec"
         ],
-        "id": "69ae3a9a-297c-4360-94d2-e5fbf7ab9d73"
+        "id": "a3f8e0f4-1824-4205-b2f6-bac7d97fa13a"
       },
       {
         "name": "Honeycrisp",
         "type": "Fruit",
         "description": "One of the thousands of cultivated apple varieties differing in color, flavor, size, and texture.",
         "chunk_ids": [
-          "2fda4a01-e209-4b9f-b3ee-bd7f538ff965"
+          "b6a08294-cdc9-4082-a19a-bf4ee01713ec"
         ],
-        "id": "cb501c60-09a4-46e5-b28d-5cf4865e1257"
+        "id": "a5c99643-2e4b-435e-ab3e-64046b026847"
       }
     ],
     "relations": [
@@ -96,9 +96,9 @@
         "description": "Steve Jobs is one of the individuals who founded Apple on April 1, 1976.",
         "strength": 10.0,
         "chunk_ids": [
-          "509a7657-3311-4105-9f61-b8251774ff05"
+          "e7e07451-0e96-4c5d-93aa-1372ca16353c"
         ],
-        "id": "9ef9a633-9633-419f-963f-90cb6945711c"
+        "id": "4743337f-68a5-4082-a8c6-d3822b800e59"
       },
       {
         "source": "Apple",
@@ -109,9 +109,9 @@
         "description": "Steve Wozniak is one of the individuals who founded Apple on April 1, 1976.",
         "strength": 10.0,
         "chunk_ids": [
-          "509a7657-3311-4105-9f61-b8251774ff05"
+          "e7e07451-0e96-4c5d-93aa-1372ca16353c"
         ],
-        "id": "a2719bb9-88e9-407f-91ec-a6181d048350"
+        "id": "4e3466b6-144c-4ecf-87e3-90df190a5fb1"
       },
       {
         "source": "Apple",
@@ -122,9 +122,9 @@
         "description": "Ronald Wayne is one of the individuals who founded Apple on April 1, 1976.",
         "strength": 10.0,
         "chunk_ids": [
-          "509a7657-3311-4105-9f61-b8251774ff05"
+          "e7e07451-0e96-4c5d-93aa-1372ca16353c"
         ],
-        "id": "4fd263ee-e922-484f-83ef-dc5afb15b2cb"
+        "id": "1c62e866-7bf0-4f64-a288-b5d8169f3fd7"
       },
       {
         "source": "Apple",
@@ -135,9 +135,9 @@
         "description": "Fuji is a cultivated variety of the apple.",
         "strength": 10.0,
         "chunk_ids": [
-          "2fda4a01-e209-4b9f-b3ee-bd7f538ff965"
+          "b6a08294-cdc9-4082-a19a-bf4ee01713ec"
         ],
-        "id": "c02d64bf-37a3-49bc-8ca7-f85d91e67cfd"
+        "id": "a28276ca-197c-405d-8bf4-a62fa796cfe5"
       },
       {
         "source": "Apple",
@@ -148,9 +148,9 @@
         "description": "Gala is a cultivated variety of the apple.",
         "strength": 10.0,
         "chunk_ids": [
-          "2fda4a01-e209-4b9f-b3ee-bd7f538ff965"
+          "b6a08294-cdc9-4082-a19a-bf4ee01713ec"
         ],
-        "id": "fd0deefa-8bc7-4121-8b20-0412e29a0cd9"
+        "id": "629f0ad4-cf1f-4474-9e72-3fdbbdb86816"
       },
       {
         "source": "Apple",
@@ -161,9 +161,9 @@
         "description": "Granny Smith is a cultivated variety of the apple.",
         "strength": 10.0,
         "chunk_ids": [
-          "2fda4a01-e209-4b9f-b3ee-bd7f538ff965"
+          "b6a08294-cdc9-4082-a19a-bf4ee01713ec"
         ],
-        "id": "ef33b3aa-6d7a-4fcd-af50-a1a3b3ef0ac7"
+        "id": "c9f07e67-059c-413e-83fc-0444338911a9"
       },
       {
         "source": "Apple",
@@ -174,15 +174,15 @@
         "description": "Honeycrisp is a cultivated variety of the apple.",
         "strength": 10.0,
         "chunk_ids": [
-          "2fda4a01-e209-4b9f-b3ee-bd7f538ff965"
+          "b6a08294-cdc9-4082-a19a-bf4ee01713ec"
         ],
-        "id": "f47f9f0f-d06a-41cd-8c2b-ea1cf0cf4ee4"
+        "id": "f4770f38-3601-4a62-b578-d39aed057528"
       }
     ]
   },
   "chunks": [
     {
-      "id": "509a7657-3311-4105-9f61-b8251774ff05",
+      "id": "e7e07451-0e96-4c5d-93aa-1372ca16353c",
       "chunk_idx": 0,
       "text": "Apple was founded on April 1, 1976, by Steve Jobs, Steve Wozniak, and Ronald Wayne in Cupertino, California. It has grown into one of the world's most valuable and recognizable technology companies, known for iconic products such as the Macintosh computer, the iPod, the iPhone, the iPad, and the Mac. Apple operates a tightly integrated ecosystem of hardware, software, and services \u2014 including the App Store, iCloud, Apple Music, and Apple Pay \u2014 and is renowned for its emphasis on design, user experience, and privacy. As of the mid-2020s, Apple consistently ranks among the top companies by market capitalization globally, with operations spanning retail stores, online services, and a vast supply chain across dozens of countries.",
       "rephrase": "Apple was founded on April 1, 1976, by Steve Jobs, Steve Wozniak, and Ronald Wayne in Cupertino, California. It has grown into one of the world's most valuable and recognizable technology companies, known for iconic products such as the Macintosh computer, the iPod, the iPhone, the iPad, and the Mac. Apple operates a tightly integrated ecosystem of hardware, software, and services \u2014 including the App Store, iCloud, Apple Music, and Apple Pay \u2014 and is renowned for its emphasis on design, user experience, and privacy. As of the mid-2020s, Apple consistently ranks among the top companies by market capitalization globally, with operations spanning retail stores, online services, and a vast supply chain across dozens of countries.",
@@ -237,12 +237,12 @@
           "strength": 10
         }
       ],
-      "chunk_time": 25.101921207999112,
+      "chunk_time": 0.0025220410025212914,
       "chunk_tokens": 154,
       "document": "Apples"
     },
     {
-      "id": "2fda4a01-e209-4b9f-b3ee-bd7f538ff965",
+      "id": "b6a08294-cdc9-4082-a19a-bf4ee01713ec",
       "chunk_idx": 1,
       "text": "The apple (Malus domestica) is a deciduous fruit tree in the rose family (Rosaceae), originally cultivated in Central Asia and now grown worldwide. It produces sweet to tart round fruits with a thin edible skin, crisp flesh, and a core containing seeds. Apples come in thousands of cultivated varieties \u2014 including Fuji, Gala, Granny Smith, and Honeycrisp \u2014 differing in color, flavor, size, and texture. Rich in dietary fiber, vitamin C, and various antioxidants, apples are associated with numerous health benefits and are commonly consumed fresh, juiced, or used in cooking and baking. The fruit holds deep cultural significance across many civilizations, appearing in mythology, religion, and literature, from the biblical garden of Eden to Newton's legendary encounter with gravity.\n",
       "rephrase": "The apple (Malus domestica) is a deciduous fruit tree in the rose family (Rosaceae), originally cultivated in Central Asia and now grown worldwide. It produces sweet to tart round fruits with a thin edible skin, crisp flesh, and a core containing seeds. Apples come in thousands of cultivated varieties \u2014 including Fuji, Gala, Granny Smith, and Honeycrisp \u2014 differing in color, flavor, size, and texture. Rich in dietary fiber, vitamin C, and various antioxidants, apples are associated with numerous health benefits and are commonly consumed fresh, juiced, or used in cooking and baking. The fruit holds deep cultural significance across many civilizations, appearing in mythology, religion, and literature, from the biblical garden of Eden to Newton's legendary encounter with gravity.\n",
@@ -311,7 +311,7 @@
           "strength": 10
         }
       ],
-      "chunk_time": 49.242758125001274,
+      "chunk_time": 0.0026283330080332235,
       "chunk_tokens": 156,
       "document": "Apples"
     }

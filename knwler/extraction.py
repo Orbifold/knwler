@@ -150,12 +150,15 @@ async def extract_all(
             async with semaphore:
                 result = await extract_chunk(chunk, idx, schema, config)
                 async with lock:
-                    results.append(result)
-                    if output_path:
-                        _save_partial_results(
-                            output_path, schema, results, len(results), total
-                        )
-                    progress.update(task, advance=1)
+                    try:
+                        results.append(result)
+                        if output_path:
+                            _save_partial_results(
+                                output_path, schema, results, len(results), total
+                            )
+                        progress.update(task, advance=1)
+                    except Exception as e:
+                        console.print(f"[red]Error saving partial results:[/red] {e}")
                 return result
 
         await asyncio.gather(*[bounded(c, i) for i, c in enumerate(chunks)])

@@ -43,6 +43,7 @@ from knwler.config import (
 )
 from knwler.models import ExtractionResult, Schema, Graph
 from knwler.cli_consolidate import cli_consolidate_graphs
+from dataclasses import asdict
 
 extract_app = typer.Typer(help="Utility to manage documents.")
 
@@ -323,7 +324,9 @@ async def _process_file(
             "reasoning": reasoning,
         },
         "stats": stats_list,
-        "graph": consolidated,
+        "graph": (
+            asdict(consolidated) if isinstance(consolidated, Graph) else consolidated
+        ),
         "chunks": final_chunks,
     }
     graph_json_path.write_text(json.dumps(output_data, indent=2))
@@ -344,12 +347,12 @@ async def _process_file(
 
     # HTML export
     if html_report:
-        html_path = export_html(
-            output_data,
-            results_dir / "index.html",
-            title=results_dir.stem,
+        html_content = export_html(
+            output_data,           
             template=template,
         )
+        html_path = results_dir / "index.html"
+        html_path.write_text(html_content)
         console.print(
             f"[green]\u2713[/green] HTML report saved to [cyan]{html_path}[/cyan]"
         )
@@ -541,171 +544,142 @@ def extract(
     ] = "default",
 ):
     """Extract knowledge graphs from text using LLMs."""
-    try:
-        if html_only:
-            if output is None:
+    if html_only:
+        if output is None:
+            raise ValueError(
+                "--html-only requires --output inside which to find the existing 'graph.json' and save the HTML report"
+            )
+        # allow a speficic file or a directory containing 'graph.json'
+        if output.is_file():
+            # has to be a json file containing the graph data
+            if output.suffix.lower() != ".json":
                 raise ValueError(
-                    "--html-only requires --output inside which to find the existing 'graph.json' and save the HTML report"
+                    f"--html-only output file must be a .json file containing the graph data: {output}"
                 )
-            # allow a speficic file or a directory containing 'graph.json'
-            if output.is_file():
-                # has to be a json file containing the graph data
-                if output.suffix.lower() != ".json":
-                    raise ValueError(
-                        f"--html-only output file must be a .json file containing the graph data: {output}"
-                    )
-                graph_json_path = output
-            else:
-                output.mkdir(parents=True, exist_ok=True)
-                graph_json_path = output / "graph.json"
-            if not graph_json_path.exists():
-                raise FileNotFoundError(f"Missing results file: {graph_json_path}")
-            results_data = json.loads(graph_json_path.read_text())
-            saved_lang = results_data.get("language", DEFAULT_LANGUAGE)
-            set_language(saved_lang)
-            html_path = export_html(
-                results_data,
-                graph_json_path.parent / "index.html",
-                title=graph_json_path.parent.stem,
-            )
-            console.print(
-                f"[green]\u2713[/green] HTML report saved to [cyan]{html_path}[/cyan]"
-            )
-            return
-
-        # ── URL handling ──
-        _tmp_file_path: Optional[Path] = None
-        if file is not None and _URL_RE.match(file):
-            fetched_url = file
-            url = url or fetched_url
-            result = asyncio.run(
-                WebpageCollector.fetch_url(fetched_url, no_cache=no_cache)
-            )
-            if result is None:
-                typer.echo(f"Error: failed to fetch URL: {fetched_url}")
-                return typer.Exit(1)
-            _metadata, content = result
-            suffix = ".pdf" if fetched_url.lower().endswith(".pdf") else ".md"
-            with tempfile.NamedTemporaryFile(
-                delete=False, suffix=suffix, mode="wb"
-            ) as tmp:
-                tmp.write(
-                    content if isinstance(content, bytes) else content.encode("utf-8")
-                )
-                _tmp_file_path = Path(tmp.name)
-            file = _tmp_file_path  # type: ignore[assignment]
-        elif file is not None:
-            file = Path(file)  # type: ignore[assignment]
-
-        if file is None and directory is None:
-            typer.echo(ctx.get_help())
-            return typer.Exit(1)
-
-        # Config
-        if openai and anthropic:
-            typer.echo("Error: --openai and --anthropic are mutually exclusive.")
-            return typer.Exit(1)
-        backend = "openai" if openai else ("anthropic" if anthropic else "ollama")
-        resolved_extraction_model = extraction_model or (
-            DEFAULT_OPENAI_EXTRACTION_MODEL
-            if openai
-            else (
-                DEFAULT_ANTHROPIC_EXTRACTION_MODEL
-                if anthropic
-                else DEFAULT_OLLAMA_EXTRACTION_MODEL
-            )
-        )
-        resolved_discovery = discovery_model or (
-            DEFAULT_OPENAI_DISCOVERY_MODEL
-            if openai
-            else (
-                DEFAULT_ANTHROPIC_DISCOVERY_MODEL
-                if anthropic
-                else DEFAULT_OLLAMA_DISCOVERY_MODEL
-            )
-        )
-        config = Config(
-            backend=backend,
-            extraction_model=resolved_extraction_model,
-            discovery_model=resolved_discovery,
-            max_concurrent=concurrent,
-            max_tokens=max_tokens,
-            use_cache=not no_cache,
-            base_url=base_url,
-        )
-
-        # Build list of files to process
-        if directory is not None:
-            if not directory.is_dir():
-                raise ValueError(f"Not a directory: {directory}")
-            files_to_process = sorted(
-                f
-                for f in directory.iterdir()
-                if f.is_file() and f.suffix.lower() in (".txt", ".pdf", ".md")
-            )
-            if not files_to_process:
-                console.print(
-                    f"[yellow]No supported files (.txt, .pdf, .md) found in "
-                    f"{directory}[/yellow]"
-                )
-                return typer.Exit(0)
+            graph_json_path = output
         else:
-            files_to_process = [file]
-
-        # Process each file
-        for fp in files_to_process:
-            if directory is not None:
-                fp_output = (output / fp.stem) if output is not None else None
-                console.rule(f"[bold blue]Processing: {fp.name}[/bold blue]")
-            else:
-                fp_output = output
-            try:
-                asyncio.run(
-                    _process_file(
-                        fp,
-                        output=fp_output,
-                        config=config,
-                        no_discovery=no_discovery,
-                        language=language,
-                        url=url,
-                        html_report=html_report,
-                        gml_export=gml_export,
-                        overwrite=overwrite,
-                        template=template,
-                    )
-                )
-            except Exception as file_err:
-                console.print(
-                    Padding(
-                        Panel.fit(
-                            str(file_err),
-                            border_style="red",
-                            title=f"Error processing {fp.name}",
-                        ),
-                        (1, 2),
-                    )
-                )
-            if directory is None:
-                break  # single file mode, so stop after first file
-            # Directory mode: log error and continue to next file
-        if consolidate and len(files_to_process) > 1:
-            asyncio.run(
-                cli_consolidate_graphs(directory=output, output=output, config=config)
-            )
-        # Cleanup temp file if we fetched from a URL
-        if _tmp_file_path is not None and _tmp_file_path.exists():
-            _tmp_file_path.unlink()
-
-    except Exception as e:
-        print(e)
+            output.mkdir(parents=True, exist_ok=True)
+            graph_json_path = output / "graph.json"
+        if not graph_json_path.exists():
+            raise FileNotFoundError(f"Missing results file: {graph_json_path}")
+        results_data = json.loads(graph_json_path.read_text())
+        saved_lang = results_data.get("language", DEFAULT_LANGUAGE)
+        set_language(saved_lang)
+        html_path = export_html(
+            results_data,
+            graph_json_path.parent / "index.html",
+            title=graph_json_path.parent.stem,
+        )
         console.print(
-            Padding(
-                Panel.fit(
-                    str(e),
-                    border_style="red",
-                    title="Error",
-                ),
-                (1, 2),
+            f"[green]\u2713[/green] HTML report saved to [cyan]{html_path}[/cyan]"
+        )
+        return
+
+    # ── URL handling ──
+    _tmp_file_path: Optional[Path] = None
+    if file is not None and _URL_RE.match(file):
+        fetched_url = file
+        url = url or fetched_url
+        result = asyncio.run(WebpageCollector.fetch_url(fetched_url, no_cache=no_cache))
+        if result is None:
+            typer.echo(f"Error: failed to fetch URL: {fetched_url}")
+            return typer.Exit(1)
+        _metadata, content = result
+        suffix = ".pdf" if fetched_url.lower().endswith(".pdf") else ".md"
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix, mode="wb") as tmp:
+            tmp.write(
+                content if isinstance(content, bytes) else content.encode("utf-8")
+            )
+            _tmp_file_path = Path(tmp.name)
+        file = _tmp_file_path  # type: ignore[assignment]
+    elif file is not None:
+        file = Path(file)  # type: ignore[assignment]
+
+    if file is None and directory is None:
+        typer.echo(ctx.get_help())
+        return typer.Exit(1)
+
+    # Config
+    if openai and anthropic:
+        typer.echo("Error: --openai and --anthropic are mutually exclusive.")
+        return typer.Exit(1)
+    backend = "openai" if openai else ("anthropic" if anthropic else "ollama")
+    resolved_extraction_model = extraction_model or (
+        DEFAULT_OPENAI_EXTRACTION_MODEL
+        if openai
+        else (
+            DEFAULT_ANTHROPIC_EXTRACTION_MODEL
+            if anthropic
+            else DEFAULT_OLLAMA_EXTRACTION_MODEL
+        )
+    )
+    resolved_discovery = discovery_model or (
+        DEFAULT_OPENAI_DISCOVERY_MODEL
+        if openai
+        else (
+            DEFAULT_ANTHROPIC_DISCOVERY_MODEL
+            if anthropic
+            else DEFAULT_OLLAMA_DISCOVERY_MODEL
+        )
+    )
+    config = Config(
+        backend=backend,
+        extraction_model=resolved_extraction_model,
+        discovery_model=resolved_discovery,
+        max_concurrent=concurrent,
+        max_tokens=max_tokens,
+        use_cache=not no_cache,
+        base_url=base_url,
+    )
+
+    # Build list of files to process
+    if directory is not None:
+        if not directory.is_dir():
+            raise ValueError(f"Not a directory: {directory}")
+        files_to_process = sorted(
+            f
+            for f in directory.iterdir()
+            if f.is_file() and f.suffix.lower() in (".txt", ".pdf", ".md")
+        )
+        if not files_to_process:
+            console.print(
+                f"[yellow]No supported files (.txt, .pdf, .md) found in "
+                f"{directory}[/yellow]"
+            )
+            return typer.Exit(0)
+    else:
+        files_to_process = [file]
+
+    # Process each file
+    for fp in files_to_process:
+        if directory is not None:
+            fp_output = (output / fp.stem) if output is not None else None
+            console.rule(f"[bold blue]Processing: {fp.name}[/bold blue]")
+        else:
+            fp_output = output
+
+        asyncio.run(
+            _process_file(
+                fp,
+                output=fp_output,
+                config=config,
+                no_discovery=no_discovery,
+                language=language,
+                url=url,
+                html_report=html_report,
+                gml_export=gml_export,
+                overwrite=overwrite,
+                template=template,
             )
         )
-        return typer.Exit(1)
+
+        if directory is None:
+            break  # single file mode, so stop after first file
+        # Directory mode: log error and continue to next file
+    if consolidate and len(files_to_process) > 1:
+        asyncio.run(
+            cli_consolidate_graphs(directory=output, output=output, config=config)
+        )
+    # Cleanup temp file if we fetched from a URL
+    if _tmp_file_path is not None and _tmp_file_path.exists():
+        _tmp_file_path.unlink()

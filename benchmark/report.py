@@ -54,7 +54,10 @@ def compute_kys(results: list[dict]) -> list[dict]:
     Pure throughput (knowledge_rate = graph_size / total_time) is also included
     as a complementary absolute metric.
     """
-    valid = [r for r in results if r.get("error") is None]
+    valid = [r for r in results if r.get("error") is None] or []
+    if not valid:
+        print("No valid benchmark runs found in the results.")
+        return []
 
     max_graph = max(r["num_entities"] + r["num_relations"] for r in valid)
     min_time = min(
@@ -160,12 +163,14 @@ def render_report(runs: list[dict], output_path: Path) -> None:
         "backends": sorted({r["backend"] for r in runs}),
         "document_name": "HumanRights.pdf",
         "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
-        "avg_knowledge_rate": round(
-            sum(r["knowledge_rate"] for r in runs) / len(runs), 2
+        "avg_knowledge_rate": (
+            round(sum(r["knowledge_rate"] for r in runs) / len(runs), 2)
+            if runs
+            else 0.0
         ),
-        "total_entities": sum(r["num_entities"] for r in runs),
-        "max_graph_size": max(r["graph_size"] for r in runs),
-        "min_total_time": min(r["total_time"] for r in runs),
+        "total_entities": sum(r["num_entities"] for r in runs) if runs else 0,
+        "max_graph_size": max(r["graph_size"] for r in runs) if runs else 0,
+        "min_total_time": min(r["total_time"] for r in runs) if runs else 0,
         # chart data
         "chart_labels": chart_labels,
         "chart_kys": chart_kys,
@@ -207,6 +212,9 @@ def generate_report(
     Path
         Absolute path to the written HTML file.
     """
+    if not results or all(r.get("error") for r in results):
+        print("No benchmark results provided for report generation.")
+        return Path()
     runs = compute_kys(results)
     dest = report_path or (OUTPUT_DIR / "benchmark_report.html")
     render_report(runs, dest)

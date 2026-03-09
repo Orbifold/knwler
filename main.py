@@ -41,12 +41,14 @@ if __name__ == "__main__":
         # '-f ...' → 'extract extract -f ...'
         sys.argv.insert(1, "extract")
         sys.argv.insert(2, "extract")
-    try:
-        app()
-    except typer.Exit:
-        # Prevent typer from printing "Error: No command specified." when no subcommand is given,
-        # since we route that case to the default demo.
-        pass
-    except Exception as e:
-        console.print(Panel.fit(f"[red]Error:[/red] {str(e)}"))
-        sys.exit(1)
+    app()
+
+    # try:
+    #     app()
+    # except typer.Exit:
+    #     # Prevent typer from printing "Error: No command specified." when no subcommand is given,
+    #     # since we route that case to the default demo.
+    #     pass
+    # except Exception as e:
+    #     console.print(Panel.fit(f"[red]Error:[/red] {str(e)}"))
+    #     sys.exit(1)

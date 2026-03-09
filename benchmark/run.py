@@ -138,8 +138,14 @@ async def crunch(config: Config):
     return result
 
 
-async def run(grid):
-
+async def run(grid=None):
+    if grid is None:
+        # feel free to use whatever you think should be benchmarked in the `grid.json` file
+        grid_path = root_path / "benchmark" / "grid.json"
+        if not grid_path.exists():
+            console.print(f"[red]Error: grid.json not found at {grid_path}[/red]")
+            return
+        grid = json.loads(grid_path.read_text(encoding="utf-8"))
     results = []
     for backend, configs in grid.items():
         for cfg in configs:
@@ -147,7 +153,7 @@ async def run(grid):
                 backend=backend,
                 discovery_model=cfg["discovery_model"],
                 extraction_model=cfg["extraction_model"],
-                use_cache=False,  # if nothing has changed you can rely on the cache for faster iterations, but for benchmarking we want to disable it
+                use_cache=True,  # if nothing has changed you can rely on the cache for faster iterations, but for benchmarking we want to disable it
             )
             console.print(
                 f"[green]Running benchmark with config:[/green] {config.backend} - discovery={config.discovery_model}, extraction={config.extraction_model}"
@@ -169,36 +175,8 @@ async def run(grid):
 
 
 def main():
-    # feel free to use whatever you think should be benchmarked
-    grid = {
-        "ollama": [
-            {
-                "discovery_model": "qwen2.5:14b",
-                "extraction_model": "qwen2.5:3b",
-            },
-            {
-                "discovery_model": "gemma3:12b",
-                "extraction_model": "gemma3:4b",
-            },
-            {
-                "discovery_model": "llama3.1:8b",
-                "extraction_model": "llama3.1:8b",
-            },
-        ],
-        "openai": [
-            {
-                "discovery_model": "gpt-4o",
-                "extraction_model": "gpt-4o-mini",
-            },
-        ],
-        "anthropic": [
-            {
-                "discovery_model": "claude-sonnet-4-6",
-                "extraction_model": "claude-haiku-4-5-20251001",
-            },
-        ],
-    }
-    asyncio.run(run(grid=grid))
+
+    asyncio.run(run())
 
 
 if __name__ == "__main__":

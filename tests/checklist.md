@@ -56,11 +56,12 @@ So many new features added in v0.5.0 so here is a comprehensive checklist (for m
 - [ ] apple test network viz should show two apple nodes
 - [ ] promised RDF
 - [ ] rephrased chunks are markdown and should be rendered as such
-- [ ] benchmark
+- [x] benchmark
 - [ ] Windows
 - [ ] Linux
 
 ```bash
+
 uv run main.py -f ./pdfs/HumanRights.pdf --url https://www.ohchr.org/sites/default/files/UDHR/Documents/UDHR_Translations/eng.pdf --overwrite-dir
 
 uv run main.py -f ./pdfs/HumanRights.pdf --url https://www.ohchr.org/sites/default/files/UDHR/Documents/UDHR_Translations/eng.pdf --overwrite-dir --discovery-model gemma3:4b  --extraction-model gemma3:4b

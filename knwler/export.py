@@ -74,7 +74,7 @@ def _linkify_entities(
 def export_html(
     results_data: KnowledgeGraph | dict,
     template: str = "default",
-) -> Path:
+) -> str:
     """Export results.json data to an HTML report using Jinja2 template."""
     if isinstance(results_data, KnowledgeGraph):
         results_data = asdict(results_data)

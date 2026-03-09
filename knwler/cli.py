@@ -45,6 +45,7 @@ from knwler.cli_consolidate import cli_consolidate_graphs
 from knwler.cli_fetch import fetch_app
 from knwler.cli_cache import cache_app
 from knwler.cli_demo import demo_app
+from knwler.cli_benchmark import benchmark_app
 
 app = typer.Typer(
     help="Turn documents into structured knowledge.",
@@ -219,6 +220,12 @@ app.add_typer(
     fetch_app,
     name="fetch",
     help="Fetch content from a URL or Wikipedia and save it locally",
+)
+
+app.add_typer(
+    benchmark_app,
+    name="benchmark",
+    help="Run the Knwler benchmark suite",
 )
 
 

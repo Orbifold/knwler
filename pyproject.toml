@@ -37,6 +37,8 @@ include = [
   "knwler/**/*.py",
   "knwler/**/*.json",
   "knwler/templates/**",
+  "knwler/benchmark/**",
+  "knwler/integrations/**",
 ]
 
 [dependency-groups]

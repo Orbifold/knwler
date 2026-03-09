@@ -7,7 +7,7 @@ import os
 from typing import Any
 
 import aiohttp
-
+import asyncio
 from knwler.config import Config
 from knwler.cache import (
     create_llm_cache_key,
@@ -78,6 +78,9 @@ async def check_ollama_available(base_url: str) -> None:
         )
 
 
+_ollama_checked: set[str] = set()
+
+
 async def ollama_generate(
     prompt: str,
     config: Config,
@@ -85,7 +88,9 @@ async def ollama_generate(
     format_json: bool = True,
 ) -> str:
     """Call Ollama and return the response text (cached)."""
-    await check_ollama_available(config.base_url)
+    if config.base_url not in _ollama_checked:
+        await check_ollama_available(config.base_url)
+        _ollama_checked.add(config.base_url)
     actual_model = model or config.extraction_model
 
     if config.use_cache:
@@ -109,12 +114,14 @@ async def ollama_generate(
     }
     if format_json:
         payload["format"] = "json"
+    try:
+        response_json = await _post_json(config.base_url, payload=payload)
+        response = response_json["response"]
 
-    response_json = await _post_json(config.base_url, payload=payload)
-    response = response_json["response"]
-
-    if config.use_cache:
-        save_llm_response_to_cache(key, response, actual_model)
+        if config.use_cache:
+            save_llm_response_to_cache(key, response, actual_model)
+    except Exception as e:
+        response = f"Error calling Ollama: {str(e)}"
 
     return response
 

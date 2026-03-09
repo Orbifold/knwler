@@ -16,7 +16,7 @@ from dataclasses import asdict
 # Network creation
 # ---------------------------------------------------------------------------
 def create_network(
-    consolidated: dict,
+    consolidated: dict | Graph,
     title: str = None,
     url: str = None,
     language: str = None,
@@ -26,6 +26,8 @@ def create_network(
     g = nx.MultiDiGraph()
     from knwler.cache import hash_args
 
+    if isinstance(consolidated, Graph):
+        consolidated = asdict(consolidated)  # type: ignore
     # add a document node so we have a reference from the nodes to the source document
     doc_hash = hash_args(consolidated.get("title", ""))
     g.add_node(

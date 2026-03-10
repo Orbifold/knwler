@@ -73,10 +73,9 @@ def run_benchmark(
         from benchmark.run import crunch, get_path, output_path as default_output_path
         from benchmark.report import generate_report
     except ImportError as exc:
-        typer.echo(
-            f"[red]Could not import benchmark module: {exc}[/red]\n"
-            "Make sure you are running from the project root.",
-            err=True,
+        console.print(
+            f"[red]\u2717[/red] Could not import benchmark module: [dim]{exc}[/dim]\n"
+            "Make sure you are running from the project root."
         )
         raise typer.Exit(1)
 
@@ -88,8 +87,8 @@ def run_benchmark(
     # If no backend flag is given, run all three backends with their defaults.
     custom_run = extraction_model and discovery_model
     if custom_run and not backend:
-        typer.echo(
-            "[red]Error: --extraction-model and --discovery-model require a --backend to be specified.[/red]"
+        console.print(
+            "[red]\u2717[/red] [bold red]Error:[/bold red] --extraction-model and --discovery-model require a --backend to be specified."
         )
         raise typer.Exit(1)
 
@@ -174,11 +173,15 @@ def report_from_file(
     try:
         from benchmark.report import generate_report
     except ImportError as exc:
-        typer.echo(f"Could not import benchmark module: {exc}", err=True)
+        console.print(
+            f"[red]\u2717[/red] Could not import benchmark module: [dim]{exc}[/dim]"
+        )
         raise typer.Exit(1)
 
     if not results_file.exists():
-        typer.echo(f"Results file not found: {results_file}", err=True)
+        console.print(
+            f"[red]\u2717[/red] Results file not found: [cyan]{results_file}[/cyan]"
+        )
         raise typer.Exit(1)
 
     results = json.loads(results_file.read_text(encoding="utf-8"))

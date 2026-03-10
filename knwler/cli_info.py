@@ -1,8 +1,4 @@
 import typer
-from rich.console import Console
-from rich.panel import Panel
-from rich.padding import Padding
-from rich.markdown import Markdown
 from knwler.config import console
 from importlib.metadata import version, PackageNotFoundError
 
@@ -27,6 +23,7 @@ def get_version():
 def show_version():
     """Show the version of Knwler."""
     console.print(f"[bold blue]Knwler [/][bold yellow]v{get_version()}[/]")
+
 
 @info_app.callback(invoke_without_command=True)
 def _app_callback(ctx: typer.Context):

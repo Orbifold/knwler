@@ -1,0 +1,672 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Graph Analysis — {{ title }}</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+      :root {
+        --bg: #f7f8fa;
+        --card: #ffffff;
+        --border: #e2e8f0;
+        --text: #1a202c;
+        --muted: #718096;
+        --accent: #6366f1;
+        --accent-light: #eef2ff;
+        --green: #38a169;
+        --blue: #3182ce;
+      }
+      [data-theme="dark"] {
+        --bg: #0f1117;
+        --card: #1a1d27;
+        --border: #2d3748;
+        --text: #e2e8f0;
+        --muted: #a0aec0;
+        --accent: #818cf8;
+        --accent-light: #1e2247;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family:
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.6;
+      }
+
+      /* Header */
+      .header {
+        background: var(--card);
+        border-bottom: 1px solid var(--border);
+        padding: 1.5rem 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+      }
+      .header h1 {
+        font-size: 1.5rem;
+        font-weight: 700;
+      }
+      .header .subtitle {
+        color: var(--muted);
+        font-size: 0.85rem;
+        margin-top: 0.2rem;
+      }
+      .theme-btn {
+        background: var(--accent-light);
+        color: var(--accent);
+        border: 1px solid var(--border);
+        padding: 0.4rem 1rem;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 0.8rem;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+
+      /* Layout */
+      .container {
+        max-width: 1300px;
+        margin: 0 auto;
+        padding: 2rem;
+      }
+      section {
+        margin-bottom: 2.5rem;
+      }
+      .section-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--text);
+        margin-bottom: 1rem;
+        padding-bottom: 0.4rem;
+        border-bottom: 2px solid var(--accent);
+        display: inline-block;
+      }
+
+      /* KPI grid */
+      .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 1rem;
+      }
+      .kpi-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.25rem;
+        text-align: center;
+      }
+      .kpi-value {
+        font-size: 2rem;
+        font-weight: 800;
+        color: var(--accent);
+        line-height: 1.1;
+      }
+      .kpi-label {
+        font-size: 0.72rem;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin-top: 0.3rem;
+      }
+
+      /* Charts */
+      .charts-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(460px, 1fr));
+        gap: 1.5rem;
+      }
+      .chart-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.25rem;
+      }
+      .chart-card h3 {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin-bottom: 1rem;
+      }
+      canvas {
+        max-height: 280px;
+      }
+
+      /* Tables */
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .table-wrap {
+        overflow-x: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.875rem;
+      }
+      thead tr {
+        background: var(--accent-light);
+      }
+      th {
+        padding: 0.65rem 1rem;
+        text-align: left;
+        font-weight: 600;
+        color: var(--accent);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        white-space: nowrap;
+      }
+      td {
+        padding: 0.65rem 1rem;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+      }
+      tr:last-child td {
+        border-bottom: none;
+      }
+      tr:hover td {
+        background: var(--accent-light);
+        transition: background 0.1s;
+      }
+
+      .rank {
+        font-weight: 700;
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+      .rank-1 {
+        color: #d97706;
+      }
+      .rank-2 {
+        color: #9ca3af;
+      }
+      .rank-3 {
+        color: #92400e;
+      }
+
+      .badge {
+        display: inline-block;
+        padding: 0.15rem 0.55rem;
+        border-radius: 999px;
+        font-size: 0.68rem;
+        font-weight: 600;
+        background: var(--accent-light);
+        color: var(--accent);
+        white-space: nowrap;
+      }
+
+      .bar-cell {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+      .mini-bar {
+        height: 6px;
+        border-radius: 3px;
+        background: var(--accent);
+        flex-shrink: 0;
+      }
+
+      .desc-cell {
+        color: var(--muted);
+        font-size: 0.8rem;
+        max-width: 340px;
+      }
+      .preview-cell {
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-style: italic;
+        max-width: 380px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      /* Communities */
+      .community-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1rem;
+      }
+      .community-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.25rem;
+      }
+      .comm-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+      }
+      .comm-id {
+        font-size: 0.72rem;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .comm-size {
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: var(--accent);
+      }
+      .comm-topics {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3rem;
+        margin-bottom: 0.5rem;
+      }
+      .topic-tag {
+        display: inline-block;
+        padding: 0.12rem 0.5rem;
+        border-radius: 999px;
+        font-size: 0.68rem;
+        font-weight: 600;
+        background: var(--accent-light);
+        color: var(--accent);
+      }
+      .comm-desc {
+        font-size: 0.8rem;
+        color: var(--muted);
+        margin-bottom: 0.4rem;
+      }
+      .comm-members {
+        font-size: 0.75rem;
+        color: var(--text);
+      }
+
+      /* Footer */
+      footer {
+        text-align: center;
+        color: var(--muted);
+        font-size: 0.75rem;
+        padding: 2rem;
+        border-top: 1px solid var(--border);
+        margin-top: 1rem;
+      }
+      footer a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div>
+        <h1>Graph Analysis: {{ title }}</h1>
+        <div class="subtitle">
+          Generated {{ generated_at }} &nbsp;·&nbsp; {{ stats.num_entities }}
+          entities &nbsp;·&nbsp; {{ stats.num_relations }} relations
+        </div>
+      </div>
+      <button class="theme-btn" onclick="toggleTheme()">Toggle Theme</button>
+    </div>
+
+    <div class="container">
+      <!-- Overview KPIs -->
+      <section>
+        <div class="section-title">Overview</div>
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-value">{{ stats.num_entities }}</div>
+            <div class="kpi-label">Entities</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-value">{{ stats.num_relations }}</div>
+            <div class="kpi-label">Relations</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-value">{{ stats.num_communities }}</div>
+            <div class="kpi-label">Communities</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-value">{{ stats.num_chunks }}</div>
+            <div class="kpi-label">Chunks</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-value">{{ stats.avg_degree }}</div>
+            <div class="kpi-label">Avg Degree</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-value">{{ stats.density }}</div>
+            <div class="kpi-label">Density</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-value">{{ stats.n_components }}</div>
+            <div class="kpi-label">Components</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-value">{{ stats.largest_cc_pct }}%</div>
+            <div class="kpi-label">Largest Component</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Distribution charts -->
+      <section>
+        <div class="section-title">Distribution</div>
+        <div class="charts-grid">
+          <div class="chart-card">
+            <h3>Entity Types</h3>
+            <canvas id="chartEntityTypes"></canvas>
+          </div>
+          <div class="chart-card">
+            <h3>Relation Types</h3>
+            <canvas id="chartRelationTypes"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- Most important entities by PageRank -->
+      <section>
+        <div class="section-title">Most Important Entities (PageRank)</div>
+        <p
+          style="font-size: 0.8rem; color: var(--muted); margin-bottom: 0.75rem"
+        >
+          PageRank measures global importance — entities that are referenced by
+          many other highly-connected entities score highest.
+        </p>
+        <div class="card table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Entity</th>
+                <th>Type</th>
+                <th>Score</th>
+                <th>Degree</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for e in top_by_pagerank %}
+              <tr>
+                <td
+                  class="rank {% if loop.index <= 3 %}rank-{{ loop.index }}{% endif %}"
+                >
+                  {{ loop.index }}
+                </td>
+                <td><strong>{{ e.name | e }}</strong></td>
+                <td><span class="badge">{{ e.type | e }}</span></td>
+                <td>
+                  <div class="bar-cell">
+                    <div
+                      class="mini-bar"
+                      style="width: {{ [e.score * 1500, 100] | min | int }}px"
+                    ></div>
+                    {{ e.score }}
+                  </div>
+                </td>
+                <td>{{ e.degree }}</td>
+                <td class="desc-cell">{{ e.description | e }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Most connected entities by degree -->
+      <section>
+        <div class="section-title">Most Connected Entities (Degree)</div>
+        <p
+          style="font-size: 0.8rem; color: var(--muted); margin-bottom: 0.75rem"
+        >
+          Degree is the total number of edges (in + out). Highly connected
+          entities are hubs in the knowledge graph.
+        </p>
+        <div class="card table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Entity</th>
+                <th>Type</th>
+                <th>Degree</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% set max_deg = (top_by_degree | map(attribute='degree') | list |
+              max) if top_by_degree else 1 %} {% for e in top_by_degree %}
+              <tr>
+                <td
+                  class="rank {% if loop.index <= 3 %}rank-{{ loop.index }}{% endif %}"
+                >
+                  {{ loop.index }}
+                </td>
+                <td><strong>{{ e.name | e }}</strong></td>
+                <td><span class="badge">{{ e.type | e }}</span></td>
+                <td>
+                  <div class="bar-cell">
+                    <div
+                      class="mini-bar"
+                      style="width: {{ ([e.degree / max_deg * 100, 100] | min) | int }}px"
+                    ></div>
+                    {{ e.degree }}
+                  </div>
+                </td>
+                <td class="desc-cell">{{ e.description | e }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Bridge entities by betweenness -->
+      <section>
+        <div class="section-title">
+          Bridge Entities (Betweenness Centrality)
+        </div>
+        <p
+          style="font-size: 0.8rem; color: var(--muted); margin-bottom: 0.75rem"
+        >
+          Betweenness measures how often an entity lies on the shortest path
+          between two others — these are the connective tissue of the graph.
+        </p>
+        <div class="card table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Entity</th>
+                <th>Type</th>
+                <th>Betweenness</th>
+                <th>Degree</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% set max_bw = (top_by_betweenness | map(attribute='score') |
+              list | max) if top_by_betweenness else 1 %} {% for e in
+              top_by_betweenness %}
+              <tr>
+                <td
+                  class="rank {% if loop.index <= 3 %}rank-{{ loop.index }}{% endif %}"
+                >
+                  {{ loop.index }}
+                </td>
+                <td><strong>{{ e.name | e }}</strong></td>
+                <td><span class="badge">{{ e.type | e }}</span></td>
+                <td>
+                  <div class="bar-cell">
+                    <div
+                      class="mini-bar"
+                      style="width: {{ ([e.score / [max_bw, 0.0001] | max * 100, 100] | min) | int }}px"
+                    ></div>
+                    {{ e.score }}
+                  </div>
+                </td>
+                <td>{{ e.degree }}</td>
+                <td class="desc-cell">{{ e.description | e }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Most referenced chunks -->
+      {% if top_chunks %}
+      <section>
+        <div class="section-title">Most Referenced Chunks</div>
+        <p
+          style="font-size: 0.8rem; color: var(--muted); margin-bottom: 0.75rem"
+        >
+          Chunks are ranked by how many entities and relations were extracted
+          from them — the densest information sources.
+        </p>
+        <div class="card table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Chunk</th>
+                <th>References</th>
+                <th>Preview</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% set max_ref = (top_chunks | map(attribute='references') | list
+              | max) if top_chunks else 1 %} {% for c in top_chunks %}
+              <tr>
+                <td
+                  class="rank {% if loop.index <= 3 %}rank-{{ loop.index }}{% endif %}"
+                >
+                  {{ loop.index }}
+                </td>
+                <td>
+                  {% if c.chunk_idx is not none %} Part {{ c.chunk_idx + 1 }} {%
+                  else %} {{ c.id[:8] }}… {% endif %}
+                </td>
+                <td>
+                  <div class="bar-cell">
+                    <div
+                      class="mini-bar"
+                      style="width: {{ ([c.references / [max_ref, 1] | max * 80, 80] | min) | int }}px"
+                    ></div>
+                    {{ c.references }}
+                  </div>
+                </td>
+                <td class="preview-cell">{{ c.preview | e }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      {% endif %}
+
+      <!-- Communities -->
+      {% if communities %}
+      <section>
+        <div class="section-title">Communities</div>
+        <div class="community-grid">
+          {% for c in communities %}
+          <div class="community-card">
+            <div class="comm-meta">
+              <span class="comm-id">Community {{ c.id }}</span>
+              <span class="comm-size">{{ c.size }}</span>
+            </div>
+            {% if c.topics %}
+            <div class="comm-topics">
+              {% for t in c.topics %}<span class="topic-tag">{{ t | e }}</span
+              >{% endfor %}
+            </div>
+            {% endif %} {% if c.description %}
+            <div class="comm-desc">{{ c.description | e }}</div>
+            {% endif %}
+            <div class="comm-members">
+              {{ c.members | map('e') | join(', ') }}{% if c.size > 12 %} …{%
+              endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+    </div>
+
+    <footer>
+      Knwler graph analysis &nbsp;·&nbsp;
+      <a href="https://knwler.com">knwler.com</a>
+    </footer>
+
+    <script>
+      var entityTypeLabels = {{ entity_type_labels | tojson }};
+      var entityTypeData   = {{ entity_type_data   | tojson }};
+      var relationTypeLabels = {{ relation_type_labels | tojson }};
+      var relationTypeData   = {{ relation_type_data   | tojson }};
+
+      var PALETTE = [
+        '#6366f1','#3b82f6','#10b981','#f59e0b','#ef4444',
+        '#8b5cf6','#06b6d4','#84cc16','#f97316','#ec4899',
+        '#14b8a6','#facc15','#a855f7','#0ea5e9','#22c55e',
+        '#d946ef','#64748b','#f43f5e','#0891b2','#65a30d',
+      ];
+
+      function cssVar(name) {
+        return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+      }
+
+      var chartET, chartRT;
+
+      function buildCharts() {
+        var gridColor = cssVar('--border');
+        var textColor = cssVar('--text');
+        var opts = function(labels, data) {
+          return {
+            type: 'bar',
+            data: {
+              labels: labels,
+              datasets: [{
+                label: 'Count',
+                data: data,
+                backgroundColor: PALETTE.slice(0, labels.length),
+                borderRadius: 4,
+              }]
+            },
+            options: {
+              indexAxis: 'y',
+              responsive: true,
+              plugins: { legend: { display: false } },
+              scales: {
+                x: { grid: { color: gridColor }, ticks: { color: textColor } },
+                y: { grid: { color: gridColor }, ticks: { color: textColor, font: { size: 11 } } }
+              }
+            }
+          };
+        };
+        if (chartET) chartET.destroy();
+        if (chartRT) chartRT.destroy();
+        chartET = new Chart(document.getElementById('chartEntityTypes'), opts(entityTypeLabels, entityTypeData));
+        chartRT = new Chart(document.getElementById('chartRelationTypes'), opts(relationTypeLabels, relationTypeData));
+      }
+
+      function toggleTheme() {
+        var el = document.documentElement;
+        el.setAttribute('data-theme', el.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+        buildCharts();
+      }
+
+      buildCharts();
+    </script>
+  </body>
+</html>

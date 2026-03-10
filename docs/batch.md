@@ -5,7 +5,7 @@
 - perform the whole extraction pipeline
 - create batches for the API
 - submit the batches
-- poll for completion
+- poll for completion (every 10 minutes by default)
 - download the results
 - continue the pipeline
 - finalize everything neatly in separate directires.
@@ -39,4 +39,16 @@ When processing is done you can use Knwler's consolidation command to merge the 
 
 ```bash
 uv run main.py consolidate --dir ./out --output ./merged
+```
+
+Alternatively, you can use the `--consolidate` flag to also consolidate everything at the end
+
+```bash
+uv run batch_openai.py run -i ./pdfs -o ./batching --consolidate
+```
+
+and consolidation on its own via batch would be
+
+```bash
+uv run batch_openai.py consolidate -i ./pdfs -o ./batching
 ```

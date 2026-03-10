@@ -32,7 +32,6 @@ Requirements:
     OPENAI_API_KEY environment variable must be set.
 """
 
-import argparse
 import asyncio
 import hashlib
 import json
@@ -43,10 +42,12 @@ import sys
 import time
 from dataclasses import asdict
 from pathlib import Path
+from typing import Annotated
 from uuid import uuid4
 
 import aiohttp
 import networkx as nx
+import typer
 from networkx.algorithms.community import louvain_communities
 from rich.console import Console
 from rich.panel import Panel
@@ -782,6 +783,7 @@ class BatchProcessor:
         discovery_model: str,
         extraction_model: str,
         template: str = "default",
+        consolidate: bool = False,
     ):
         self.input_dir = input_dir
         self.output_dir = output_dir
@@ -790,6 +792,7 @@ class BatchProcessor:
         self.discovery_model = discovery_model
         self.extraction_model = extraction_model
         self.template = template
+        self.consolidate = consolidate
 
         self.config = Config(
             backend="openai",
@@ -1317,6 +1320,210 @@ class BatchProcessor:
                 console.print(f"  [yellow]Request {cid} failed: {err}[/yellow]")
         return out
 
+    # ── Phase 4: cross-file consolidation ─────────────────────────────
+
+    def _collect_file_graphs(self) -> list[dict]:
+        """Return all written per-file graph dicts (from _finalise)."""
+        graphs = []
+        for f in self.db.get_all_files():
+            graph_path = self.files_dir / Path(f["file_name"]).stem / "graph.json"
+            if graph_path.exists():
+                graphs.append(json.loads(graph_path.read_text()))
+        return graphs
+
+    async def round4(self):
+        """Round 4 — cross-file consolidation with batch-submitted summarization."""
+        rnd = "round4_cross_consolidation"
+        batch = self.db.get_batch(rnd)
+
+        if batch and batch["status"] == "completed":
+            console.print("[green]✓[/green] Round 4 already completed")
+            return
+        if batch and batch["status"] == "submitted":
+            console.print("Resuming Round 4 polling …")
+            await self._poll_and_save(rnd)
+            self._parse_round4()
+            return
+
+        graphs = self._collect_file_graphs()
+        if not graphs:
+            console.print(
+                "[yellow]⚠ No per-file graphs found — skipping cross-consolidation.[/yellow]"
+            )
+            return
+        if len(graphs) == 1:
+            console.print(
+                "[dim]Only one document — writing consolidated_graph.json directly.[/dim]"
+            )
+            self._write_consolidated(graphs, {}, {}, [], {})
+            self.db.upsert_batch(
+                rnd,
+                status="completed",
+                request_count=0,
+                created_at=time.strftime("%Y-%m-%d %H:%M:%S"),
+            )
+            return
+
+        console.print(f"Aggregating [cyan]{len(graphs)}[/cyan] document graph(s) …")
+
+        # Build input for _aggregate: one pseudo-extraction per document
+        extractions = [
+            {
+                "id": g.get("id", str(uuid4())),
+                "entities": g.get("graph", {}).get("entities", []),
+                "relations": g.get("graph", {}).get("relations", []),
+            }
+            for g in graphs
+        ]
+        emap, rmap = _aggregate(extractions)
+
+        # Persist aggregated maps so we can resume after a poll
+        (self.batches_dir / "cross_agg_entities.json").write_text(
+            json.dumps(_serialize_map(emap))
+        )
+        (self.batches_dir / "cross_agg_relations.json").write_text(
+            json.dumps(_serialize_map(rmap))
+        )
+
+        # Build summarization requests for nodes with multiple descriptions
+        to_summ = _items_to_summarize(emap, rmap)
+        reqs: list[dict] = []
+        for bi in range(0, max(len(to_summ), 1), SUMMARIZATION_BATCH_SIZE):
+            batch_items = to_summ[bi : bi + SUMMARIZATION_BATCH_SIZE]
+            if batch_items:
+                idx = bi // SUMMARIZATION_BATCH_SIZE
+                reqs.append(
+                    _chat_request(
+                        f"cross|summarize|{idx}",
+                        self.extraction_model,
+                        _prompt_summarize(batch_items),
+                    )
+                )
+
+        # Detect communities on the pre-summary graph and add labeling request
+        pre_graph = _build_graph(emap, rmap)
+        clusters, cpayload = _detect_communities(pre_graph)
+        (self.batches_dir / "cross_clusters.json").write_text(
+            json.dumps([sorted(c) for c in clusters])
+        )
+        if cpayload:
+            reqs.append(
+                _chat_request(
+                    "cross|community",
+                    self.extraction_model,
+                    _prompt_community(cpayload),
+                )
+            )
+
+        if not reqs:
+            console.print("[dim]No LLM requests needed for Round 4[/dim]")
+            emap, rmap = _apply_summaries(emap, rmap, {})
+            self._write_consolidated(graphs, emap, rmap, clusters, {})
+            self.db.upsert_batch(
+                rnd,
+                status="completed",
+                request_count=0,
+                created_at=time.strftime("%Y-%m-%d %H:%M:%S"),
+            )
+            return
+
+        console.print(f"Submitting [cyan]{len(reqs)}[/cyan] requests …")
+        await self._submit(rnd, reqs)
+        await self._poll_and_save(rnd)
+        self._parse_round4()
+
+    def _parse_round4(self):
+        """Apply batch results and write consolidated_graph.json."""
+        graphs = self._collect_file_graphs()
+
+        emap = _deserialize_map(
+            json.loads((self.batches_dir / "cross_agg_entities.json").read_text())
+        )
+        rmap = _deserialize_map(
+            json.loads((self.batches_dir / "cross_agg_relations.json").read_text())
+        )
+
+        # Collect summaries from batch output
+        responses = self._load_responses("round4_cross_consolidation")
+        summaries: dict[str, str] = {}
+        for key, val in responses.items():
+            if key.startswith("cross|summarize|"):
+                summaries.update(parse_json_response(val).get("summaries", {}))
+
+        emap, rmap = _apply_summaries(emap, rmap, summaries)
+
+        # Community labels
+        clusters_data = json.loads(
+            (self.batches_dir / "cross_clusters.json").read_text()
+        )
+        clusters = [set(c) for c in clusters_data]
+        comm_resp = responses.get("cross|community")
+        comm_labels = (
+            parse_json_response(comm_resp).get("communities", {}) if comm_resp else {}
+        )
+
+        self._write_consolidated(graphs, emap, rmap, clusters, comm_labels)
+
+    def _write_consolidated(
+        self,
+        graphs: list[dict],
+        emap: dict,
+        rmap: dict,
+        clusters: list[set],
+        comm_labels: dict,
+    ) -> None:
+        """Build and write consolidated_graph.json (+ HTML report)."""
+        consolidated = (
+            _build_graph(emap, rmap) if (emap or rmap) else graphs[0].get("graph", {})
+        )
+
+        if clusters:
+            consolidated = _apply_communities(consolidated, clusters, comm_labels)
+        elif "communities" not in consolidated:
+            consolidated["communities"] = []
+
+        documents = [
+            {
+                "id": g.get("id"),
+                "title": g.get("title"),
+                "summary": g.get("summary"),
+                "url": g.get("url"),
+                "language": g.get("language"),
+            }
+            for g in graphs
+        ]
+        entity_types = sorted(
+            {et for g in graphs for et in g.get("schema", {}).get("entity_types", [])}
+        )
+        relation_types = sorted(
+            {rt for g in graphs for rt in g.get("schema", {}).get("relation_types", [])}
+        )
+
+        output = {
+            "id": str(uuid4()),
+            "documents": documents,
+            "schema": {"entity_types": entity_types, "relation_types": relation_types},
+            "graph": consolidated,
+            "chunks": [],
+        }
+
+        out_path = self.output_dir / "consolidated_graph.json"
+        out_path.write_text(json.dumps(output, indent=2))
+        console.print(
+            f"[green]✓[/green] Consolidated graph ({len(consolidated.get('entities', []))} entities, "
+            f"{len(consolidated.get('relations', []))} relations) → [cyan]{out_path}[/cyan]"
+        )
+
+        try:
+            html = export_html(output, template=self.template)
+            html_path = self.output_dir / "consolidated_graph.html"
+            html_path.write_text(html)
+            console.print(
+                f"[green]✓[/green] Consolidated report → [cyan]{html_path}[/cyan]"
+            )
+        except Exception as exc:
+            console.print(f"  [yellow]HTML export failed: {exc}[/yellow]")
+
     # ── Status ───────────────────────────────────────────────────────────
 
     def print_status(self):
@@ -1342,7 +1549,13 @@ class BatchProcessor:
         console.print(table)
 
         console.print()
-        for rnd in ("round1_discovery", "round2_processing", "round3_consolidation"):
+        rounds = [
+            "round1_discovery",
+            "round2_processing",
+            "round3_consolidation",
+            "round4_cross_consolidation",
+        ]
+        for rnd in rounds:
             b = self.db.get_batch(rnd)
             if b:
                 console.print(
@@ -1358,10 +1571,11 @@ class BatchProcessor:
         console.print(
             Panel.fit(
                 "[bold]Knwler — OpenAI Batch Processor[/bold]\n"
-                f"Input:     [cyan]{self.input_dir}[/cyan]\n"
-                f"Output:    [cyan]{self.output_dir}[/cyan]\n"
-                f"Discovery: [green]{self.discovery_model}[/green]\n"
-                f"Extraction:[green]{self.extraction_model}[/green]",
+                f"Input:      [cyan]{self.input_dir}[/cyan]\n"
+                f"Output:     [cyan]{self.output_dir}[/cyan]\n"
+                f"Discovery:  [green]{self.discovery_model}[/green]\n"
+                f"Extraction: [green]{self.extraction_model}[/green]\n"
+                f"Consolidate:[{'green' if self.consolidate else 'dim'}] {self.consolidate}[/]",
                 border_style="blue",
             )
         )
@@ -1379,8 +1593,15 @@ class BatchProcessor:
         await self.round2()
 
         console.print()
-        console.rule("[bold cyan]Phase 3 · Consolidation & Communities[/bold cyan]")
+        console.rule(
+            "[bold cyan]Phase 3 · Per-file Consolidation & Communities[/bold cyan]"
+        )
         await self.round3()
+
+        if self.consolidate:
+            console.print()
+            console.rule("[bold cyan]Phase 4 · Cross-file Consolidation[/bold cyan]")
+            await self.round4()
 
         console.print()
         console.rule("[bold green]Pipeline Complete[/bold green]")
@@ -1395,63 +1616,162 @@ class BatchProcessor:
 # ═══════════════════════════════════════════════════════════════════════════
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Process a directory of documents with Knwler via OpenAI Batch API.",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog=__doc__,
-    )
-    parser.add_argument(
-        "--input", "-i", required=True, help="Directory containing files to process"
-    )
-    parser.add_argument(
-        "--output", "-o", required=True, help="Output directory for results"
-    )
-    parser.add_argument(
-        "--discovery-model",
-        default=DEFAULT_OPENAI_DISCOVERY_MODEL,
-        help=f"Model for schema discovery (default: {DEFAULT_OPENAI_DISCOVERY_MODEL})",
-    )
-    parser.add_argument(
-        "--extraction-model",
-        default=DEFAULT_OPENAI_EXTRACTION_MODEL,
-        help=f"Model for extraction steps (default: {DEFAULT_OPENAI_EXTRACTION_MODEL})",
-    )
-    parser.add_argument(
-        "--template",
-        default="default",
-        help="HTML report template (default: default)",
-    )
-    parser.add_argument(
-        "--status",
-        action="store_true",
-        help="Show current pipeline status and exit",
-    )
+app = typer.Typer(
+    help="Process documents with Knwler via OpenAI Batch API.",
+    rich_markup_mode="rich",
+    no_args_is_help=True,
+    pretty_exceptions_enable=False,
+)
 
-    args = parser.parse_args()
-    input_dir = Path(args.input)
-    output_dir = Path(args.output)
 
-    if not input_dir.is_dir():
-        console.print(f"[red]Not a directory: {input_dir}[/red]")
-        sys.exit(1)
+@app.command(
+    "run",
+    help="Run the full batch pipeline (optionally with cross-file consolidation).",
+)
+def cmd_run(
+    input: Annotated[
+        Path,
+        typer.Option("--input", "-i", help="Directory containing files to process."),
+    ],
+    output: Annotated[
+        Path,
+        typer.Option("--output", "-o", help="Output directory for results."),
+    ],
+    discovery_model: Annotated[
+        str,
+        typer.Option("--discovery-model", help="Model for schema discovery."),
+    ] = DEFAULT_OPENAI_DISCOVERY_MODEL,
+    extraction_model: Annotated[
+        str,
+        typer.Option("--extraction-model", help="Model for extraction steps."),
+    ] = DEFAULT_OPENAI_EXTRACTION_MODEL,
+    template: Annotated[
+        str, typer.Option("--template", help="HTML report template.")
+    ] = "default",
+    consolidate: Annotated[
+        bool,
+        typer.Option(
+            "--consolidate",
+            help="After per-file processing, merge all document graphs into a single "
+            "consolidated_graph.json using a fourth batch round for description summarization.",
+        ),
+    ] = False,
+) -> None:
+    """Run the OpenAI Batch API pipeline (3 rounds + optional cross-file consolidation)."""
+    if not input.is_dir():
+        console.print(f"[red]\u2717[/red] Not a directory: [cyan]{input}[/cyan]")
+        raise typer.Exit(1)
 
     proc = BatchProcessor(
-        input_dir=input_dir,
-        output_dir=output_dir,
-        discovery_model=args.discovery_model,
-        extraction_model=args.extraction_model,
-        template=args.template,
+        input_dir=input,
+        output_dir=output,
+        discovery_model=discovery_model,
+        extraction_model=extraction_model,
+        template=template,
+        consolidate=consolidate,
     )
-
     try:
-        if args.status:
-            proc.print_status()
-        else:
-            asyncio.run(proc.run())
+        asyncio.run(proc.run())
+    finally:
+        proc.close()
+
+
+@app.command(
+    "consolidate",
+    help="Run cross-file consolidation on an already-processed output directory.",
+)
+def cmd_consolidate(
+    input: Annotated[
+        Path,
+        typer.Option(
+            "--input",
+            "-i",
+            help="Original input directory (needed to locate batch.db).",
+        ),
+    ],
+    output: Annotated[
+        Path,
+        typer.Option(
+            "--output", "-o", help="Output directory produced by a previous 'run'."
+        ),
+    ],
+    discovery_model: Annotated[
+        str,
+        typer.Option("--discovery-model", help="Model for schema discovery."),
+    ] = DEFAULT_OPENAI_DISCOVERY_MODEL,
+    extraction_model: Annotated[
+        str,
+        typer.Option(
+            "--extraction-model", help="Model used for summarization requests."
+        ),
+    ] = DEFAULT_OPENAI_EXTRACTION_MODEL,
+    template: Annotated[
+        str, typer.Option("--template", help="HTML report template.")
+    ] = "default",
+) -> None:
+    """Merge all per-file graphs from a previous run into consolidated_graph.json.
+
+    Node descriptions that appear in multiple documents are summarized via a
+    dedicated OpenAI batch round before the final graph is assembled.
+    """
+    if not input.is_dir():
+        console.print(f"[red]\u2717[/red] Not a directory: [cyan]{input}[/cyan]")
+        raise typer.Exit(1)
+    if not output.is_dir():
+        console.print(
+            f"[red]\u2717[/red] Output directory not found: [cyan]{output}[/cyan]"
+        )
+        raise typer.Exit(1)
+
+    proc = BatchProcessor(
+        input_dir=input,
+        output_dir=output,
+        discovery_model=discovery_model,
+        extraction_model=extraction_model,
+        template=template,
+        consolidate=True,
+    )
+    try:
+        asyncio.run(proc.round4())
+    finally:
+        proc.close()
+
+
+@app.command("status", help="Show the current pipeline status.")
+def cmd_status(
+    input: Annotated[
+        Path,
+        typer.Option("--input", "-i", help="Directory containing files to process."),
+    ],
+    output: Annotated[
+        Path,
+        typer.Option("--output", "-o", help="Output directory (where batch.db lives)."),
+    ],
+    discovery_model: Annotated[
+        str,
+        typer.Option("--discovery-model", help="Model for schema discovery."),
+    ] = DEFAULT_OPENAI_DISCOVERY_MODEL,
+    extraction_model: Annotated[
+        str,
+        typer.Option("--extraction-model", help="Model for extraction steps."),
+    ] = DEFAULT_OPENAI_EXTRACTION_MODEL,
+) -> None:
+    """Show current pipeline status for an existing output directory."""
+    if not input.is_dir():
+        console.print(f"[red]\u2717[/red] Not a directory: [cyan]{input}[/cyan]")
+        raise typer.Exit(1)
+
+    proc = BatchProcessor(
+        input_dir=input,
+        output_dir=output,
+        discovery_model=discovery_model,
+        extraction_model=extraction_model,
+    )
+    try:
+        proc.print_status()
     finally:
         proc.close()
 
 
 if __name__ == "__main__":
-    main()
+    app()

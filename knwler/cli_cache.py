@@ -1,9 +1,5 @@
 import typer
 from typing import Optional
-from rich.console import Console
-from rich.panel import Panel
-from rich.padding import Padding
-from rich.markdown import Markdown
 from knwler.config import console
 from importlib.metadata import version, PackageNotFoundError
 from knwler.cache import *
@@ -52,5 +48,5 @@ def _app_callback(ctx: typer.Context):
     Called in case no subcommand is given, ie. `knwler cache`.
     """
     if ctx.invoked_subcommand is None:
-        typer.echo(ctx.get_help())
+        console.print(ctx.get_help())
         raise typer.Exit()

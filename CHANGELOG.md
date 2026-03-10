@@ -35,6 +35,8 @@
 - improved SurrealDB import
 - JSONLD/RDF export with docs for GraphDB
 - batch processing for OpenAI
+- graph analytics CLI commands, including an analytics report (what is the most important chunk in this document...?)
+- graph conversion CLI command to take the `graph.json` to JSONLD, GML, GraphML and more.
 
 ## v0.4.1
 

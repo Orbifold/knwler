@@ -52,6 +52,7 @@ from knwler.cli_fetch import fetch_app
 from knwler.cli_cache import cache_app
 from knwler.cli_demo import demo_app
 from knwler.cli_benchmark import benchmark_app
+from knwler.cli_graph import graph_app
 
 app = typer.Typer(
     help="Turn documents into structured knowledge.",
@@ -153,12 +154,16 @@ def consolidate_graphs_command(
 ):
     """Consolidate extracted graphs into a single graph."""
     if openai and anthropic:
-        typer.echo("Error: --openai and --anthropic are mutually exclusive.")
-        return typer.Exit(1)
+        console.print(
+            "[red]\u2717[/red] [bold red]Error:[/bold red] --openai and --anthropic are mutually exclusive."
+        )
+        raise typer.Exit(1)
     backend_flags = sum([openai, anthropic, github])
     if backend_flags > 1:
-        typer.echo("Error: --openai, --anthropic, and --github are mutually exclusive.")
-        return typer.Exit(1)
+        console.print(
+            "[red]\u2717[/red] [bold red]Error:[/bold red] --openai, --anthropic, and --github are mutually exclusive."
+        )
+        raise typer.Exit(1)
     backend = (
         "openai"
         if openai
@@ -255,6 +260,12 @@ app.add_typer(
     benchmark_app,
     name="benchmark",
     help="Run the Knwler benchmark suite",
+)
+
+app.add_typer(
+    graph_app,
+    name="graph",
+    help="Convert and analyse graph.json files",
 )
 
 

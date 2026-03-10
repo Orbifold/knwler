@@ -20,3 +20,5 @@ These are used only if you enable the OpenAI flag, like so:
 ```bash
 knwler extract --file <file path> --openai --extraction-model gpt-5.2
 ```
+
+See also the [batch processing info](./batch.md) to process directories using OpenAI's batch API.

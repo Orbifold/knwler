@@ -89,7 +89,7 @@ def consolidate_graphs_command(
         bool,
         typer.Option(
             "--github",
-            help="Use GitHub Models API for consolidation (requires GITHUB_TOKEN env var).",
+            help="Use GitHub Models API for consolidation (requires GITHUB_TOKEN env var). Experimental.",
         ),
     ] = False,
     extraction_model: Annotated[

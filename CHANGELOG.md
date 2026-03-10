@@ -33,6 +33,8 @@
 - improved Neo4j import
 - dropped Helix import, needs to be reconsidered
 - improved SurrealDB import
+- JSONLD/RDF export with docs for GraphDB
+- batch processing for OpenAI
 
 ## v0.4.1
 

@@ -16,6 +16,8 @@ from knwler.config import (
     DEFAULT_OLLAMA_EXTRACTION_MODEL,
     DEFAULT_OPENAI_DISCOVERY_MODEL,
     DEFAULT_OPENAI_EXTRACTION_MODEL,
+    DEFAULT_GITHUB_DISCOVERY_MODEL,
+    DEFAULT_GITHUB_EXTRACTION_MODEL,
     Config,
     console,
 )
@@ -32,7 +34,7 @@ def run_benchmark(
             "--backend",
             "-b",
             help=(
-                "Run a specific backend instead of the full grid. Must be one of 'openai', 'anthropic', or 'ollama'."
+                "Run a specific backend instead of the full grid. Must be one of 'openai', 'anthropic', 'ollama', or 'github'."
             ),
         ),
     ] = None,

@@ -233,6 +233,60 @@ async def anthropic_generate(
 
 
 # ---------------------------------------------------------------------------
+# GitHub Models
+# ---------------------------------------------------------------------------
+async def github_generate(
+    prompt: str,
+    config: Config,
+    model: str | None = None,
+    format_json: bool = True,
+) -> str:
+    """Call the GitHub Models API (OpenAI-compatible) and return the response text (cached).
+
+    Requires a ``GITHUB_TOKEN`` environment variable (or ``config.api_key``).
+    See https://docs.github.com/en/github-models for available models.
+    """
+    actual_model = model or config.extraction_model
+    api_key = config.api_key or os.environ.get("GITHUB_TOKEN", "")
+
+    if not api_key:
+        raise ValueError(
+            "GitHub token not set. Set GITHUB_TOKEN env var or config.api_key"
+        )
+
+    if config.use_cache:
+        key = create_llm_cache_key(
+            prompt, actual_model, config.temperature, config.num_predict
+        )
+        cached = get_cached_llm_response(key)
+        if cached is not None:
+            return cached
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    messages = [{"role": "user", "content": prompt}]
+    payload = {
+        "model": actual_model,
+        "messages": messages,
+        "temperature": config.temperature,
+        "max_tokens": config.num_predict,
+    }
+    if format_json:
+        payload["response_format"] = {"type": "json_object"}
+
+    url = f"{config.base_url.rstrip('/')}/chat/completions"
+    response_json = await _post_json(url, payload=payload, headers=headers)
+    response = response_json["choices"][0]["message"]["content"]
+
+    if config.use_cache:
+        save_llm_response_to_cache(key, response, actual_model)
+
+    return response
+
+
+# ---------------------------------------------------------------------------
 # Dispatcher
 # ---------------------------------------------------------------------------
 async def llm_generate(
@@ -247,6 +301,8 @@ async def llm_generate(
         return await anthropic_generate(prompt, config, model, format_json)
     if config.backend == "openai":
         return await openai_generate(prompt, config, model, format_json)
+    if config.backend == "github":
+        return await github_generate(prompt, config, model, format_json)
     return await ollama_generate(prompt, config, model, format_json)
 
 

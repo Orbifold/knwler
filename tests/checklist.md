@@ -55,10 +55,12 @@ So many new features added in v0.5.0 so here is a comprehensive checklist (for m
 
 - [ ] apple test network viz should show two apple nodes
 - [ ] promised RDF
-- [ ] rephrased chunks are markdown and should be rendered as such
+- [x] rephrased chunks are markdown and should be rendered as such
 - [x] benchmark
 - [ ] Windows
 - [ ] Linux
+- [ ] LMStudio => works on Windows?
+- [ ] rename community to cluster
 
 ```bash
 

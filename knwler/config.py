@@ -30,6 +30,9 @@ DEFAULT_OPENAI_EXTRACTION_MODEL = "gpt-4o-mini"
 DEFAULT_ANTHROPIC_DISCOVERY_MODEL = "claude-sonnet-4-6"
 DEFAULT_ANTHROPIC_EXTRACTION_MODEL = "claude-haiku-4-5-20251001"
 
+DEFAULT_GITHUB_DISCOVERY_MODEL = "github-copilot/claude-opus-4.5"
+DEFAULT_GITHUB_EXTRACTION_MODEL = "github-copilot/claude-opus-4.5"
+
 
 # ---------------------------------------------------------------------------
 # Default backend URLs
@@ -37,6 +40,7 @@ DEFAULT_ANTHROPIC_EXTRACTION_MODEL = "claude-haiku-4-5-20251001"
 DEFAULT_OLLAMA_URL = "http://localhost:11434/api/generate"
 DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1"
 DEFAULT_ANTHROPIC_URL = "https://api.anthropic.com/v1"
+DEFAULT_GITHUB_BASE_URL = "https://models.inference.ai.azure.com"
 
 
 # ---------------------------------------------------------------------------
@@ -46,7 +50,7 @@ DEFAULT_ANTHROPIC_URL = "https://api.anthropic.com/v1"
 class Config:
     """Pipeline configuration."""
 
-    # Backend selection: "ollama" | "openai" | "anthropic"
+    # Backend selection: "ollama" | "openai" | "anthropic" | "github"
     backend: str = "ollama"
 
     api_key: str = None
@@ -72,6 +76,8 @@ class Config:
                 self.base_url = DEFAULT_OPENAI_BASE_URL
             elif self.backend == "anthropic":
                 self.base_url = DEFAULT_ANTHROPIC_URL
+            elif self.backend == "github":
+                self.base_url = DEFAULT_GITHUB_BASE_URL
             else:
                 self.base_url = DEFAULT_OLLAMA_URL
 
@@ -80,6 +86,8 @@ class Config:
                 self.extraction_model = DEFAULT_OPENAI_EXTRACTION_MODEL
             elif self.backend == "anthropic":
                 self.extraction_model = DEFAULT_ANTHROPIC_EXTRACTION_MODEL
+            elif self.backend == "github":
+                self.extraction_model = DEFAULT_GITHUB_EXTRACTION_MODEL
             else:
                 self.extraction_model = DEFAULT_OLLAMA_EXTRACTION_MODEL
 
@@ -88,5 +96,7 @@ class Config:
                 self.discovery_model = DEFAULT_OPENAI_DISCOVERY_MODEL
             elif self.backend == "anthropic":
                 self.discovery_model = DEFAULT_ANTHROPIC_DISCOVERY_MODEL
+            elif self.backend == "github":
+                self.discovery_model = DEFAULT_GITHUB_DISCOVERY_MODEL
             else:
                 self.discovery_model = DEFAULT_OLLAMA_DISCOVERY_MODEL

@@ -57,6 +57,34 @@ Every time you run the same document a new directory will be created, you can ov
 uv run main.py -f ./HumanRights.pdf --output ./stuff --overwrite
 ```
 
+The above commands will all use Ollama as backend. If you want OpenAI instead simply use:
+
+```bash
+uv run main.py -f ./HumanRights.pdf --output ./stuff --overwrite --openai
+```
+
+and make sure the API key is in your environment. If not, use
+
+```bash
+export OPENAIAPI_KEY=sk-....
+```
+
+and similarly for Anthropic:
+
+```bash
+uv run main.py -f ./HumanRights.pdf --output ./stuff --overwrite --anthropic
+```
+
+which, according to our benchmarks, will give you the highest qualirty output.
+
+The rendered HTML uses a template and you can switch to another one via:
+
+```bash
+uv run main.py -f ./HumanRights.pdf --output ./stuff --overwrite --anthropic --template columns
+```
+
+Note that this will use the cached LLM exchanges and you won't have to pay again for a different style.
+
 If you wish to understand the quality a model's output you can use the benchmark utility:
 
 ```bash

@@ -30,6 +30,9 @@
 - the CLI has a new `fetch` command allowing to fetch data and parse in one go
 - the CLI has a new `cache` command allowing to clear the cache
 - benchmark suite added to compare speed and quality of models
+- improved Neo4j import
+- dropped Helix import, needs to be reconsidered
+- improved SurrealDB import
 
 ## v0.4.1
 

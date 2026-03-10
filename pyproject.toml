@@ -49,8 +49,8 @@ dev = [
 neo4j = [
     "neo4j>=6.1.0",
 ]
-helix = [
-    "helix-py>=0.2.31",
+surreal = [
+    "surrealdb>=1.0.8",
 ]
 collect = [
     "beautifulsoup4>=4.14.2",

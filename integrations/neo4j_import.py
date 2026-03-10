@@ -14,8 +14,8 @@ Graph model:
     (:Document)-[:CONTAINS]->(:Chunk)
 
     (:Entity)-[:<dynamic_type>]->(:Entity)
-    (:Entity)-[:BELONGS_TO]->(:Community)
-    (:Community)-[:PART_OF]->(:Graph)
+    (:Entity)-[:BELONGS_TO]->(:Cluster)
+    (:Cluster)-[:PART_OF]->(:Graph)
 """
 
 import json
@@ -122,7 +122,7 @@ def import_chunks(session, chunks: list):
 def create_constraints(session):
     constraints = [
         "CREATE CONSTRAINT doc_id IF NOT EXISTS FOR (d:Document) REQUIRE d.id IS UNIQUE",
-        "CREATE CONSTRAINT community_id IF NOT EXISTS FOR (co:Community) REQUIRE co.id IS UNIQUE",
+        "CREATE CONSTRAINT community_id IF NOT EXISTS FOR (co:Cluster) REQUIRE co.id IS UNIQUE",
         "CREATE CONSTRAINT entity_name_type IF NOT EXISTS FOR (e:Entity) REQUIRE (e.name, e.type) IS UNIQUE",
         "CREATE INDEX entity_type IF NOT EXISTS FOR (e:Entity) ON (e.type)",
     ]
@@ -130,62 +130,48 @@ def create_constraints(session):
         session.run(c)
 
 
-def import_graph(session, graph_id: str, schema: dict):
-    """Create the top-level Graph node."""
-    session.run(
-        """
-        MERGE (g:Graph {id: $id})
-        SET g.entityTypes   = $entity_types,
-            g.relationTypes = $relation_types
-        """,
-        id=graph_id,
-        entity_types=schema.get("entity_types", []),
-        relation_types=schema.get("relation_types", []),
-    )
-
-
-def import_communities(session, graph_id: str, communities: list):
-    """Create Community nodes, link to Graph, then link member entities."""
-    for i in range(0, len(communities), BATCH_SIZE):
-        batch = communities[i : i + BATCH_SIZE]
+def import_clusters(session, clusters: list):
+    """Create Cluster nodes, then link member entities."""
+    cluster_index_map = {c["id"]: str(uuid4()) for c in clusters}
+    for i in range(0, len(clusters), BATCH_SIZE):
+        batch = clusters[i : i + BATCH_SIZE]
         session.run(
             """
-            UNWIND $batch AS comm
-            MERGE (co:Community {id: $graph_id + '::' + toString(comm.id)})
-            SET co.communityIdx = comm.id,
-                co.topics       = comm.topics,
-                co.description  = comm.description,
-                co.members      = comm.members
-            WITH co
-            MATCH (g:Graph {id: $graph_id})
-            MERGE (co)-[:PART_OF]->(g)
+            UNWIND $batch AS cluster
+            MERGE (cl:Cluster {id: cluster.id})
+            SET 
+                cl.topics       = cluster.topics,
+                cl.description  = cluster.description,
+                cl.members      = cluster.members           
             """,
             batch=[
                 {
-                    "id": c["id"],
+                    "id": cluster_index_map[c["id"]],
                     "topics": c.get("topics", []),
                     "description": c.get("description"),
                     "members": c.get("members", []),
                 }
                 for c in batch
             ],
-            graph_id=graph_id,
         )
 
     # Link member entities to their communities
     member_links = []
-    for c in communities:
-        comm_id = f"{graph_id}::{c['id']}"
-        for member_name in c.get("members", []):
-            member_links.append({"comm_id": comm_id, "name": member_name})
+    for c in clusters:
+        cluster_id = cluster_index_map[c["id"]]
+        for u in c.get("members", []):
+            entity_name, entity_type = u.split("::") if "::" in u else (u, None)
+            member_links.append(
+                {"cluster_id": cluster_id, "name": entity_name, "type": entity_type}
+            )
 
     for i in range(0, len(member_links), BATCH_SIZE):
         session.run(
             """
             UNWIND $links AS link
-            MATCH (co:Community {id: link.comm_id})
-            MATCH (e:Entity {name: link.name})
-            MERGE (e)-[:BELONGS_TO]->(co)
+            MATCH (cl:Cluster {id: link.cluster_id})
+            MATCH (e:Entity {name: link.name, type: link.type})
+            MERGE (e)-[:BELONGS_TO]->(cl)
             """,
             links=member_links[i : i + BATCH_SIZE],
         )
@@ -245,19 +231,24 @@ def import_relations(session, relations: list):
             batch = rels[i : i + BATCH_SIZE]
             query = f"""
                 UNWIND $batch AS rel
-                MATCH (src:Entity {{name: rel.source}})
-                MATCH (tgt:Entity {{name: rel.target}})
+                MATCH (src:Entity {{name: rel.source, type: rel.source_type}})
+                MATCH (tgt:Entity {{name: rel.target, type: rel.target_type}})
                 MERGE (src)-[r:`{rel_type}`]->(tgt)
                 SET r.description = rel.description,
                     r.strength    = rel.strength,
-                    r.chunks_ids    = rel.chunk_ids
+                    r.chunks_ids    = rel.chunk_ids,
+                    r.id = rel.id
             """
             session.run(
                 query,
                 batch=[
                     {
+                        "id": r["id"],
+                        "type": r["type"],
                         "source": r["source"],
+                        "source_type": r.get("source_type"),
                         "target": r["target"],
+                        "target_type": r.get("target_type"),
                         "description": r.get("description"),
                         "strength": r.get("strength"),
                         "chunk_ids": r.get("chunk_ids", []),
@@ -280,10 +271,8 @@ def import_file(driver, path: Path, progress: Progress, file_task):
         # single extraction
         documents = [
             {
-                "id": doc.get("id", str(uuid.uuid4())),
-                "title": doc.get(
-                    "title", f"Document {doc.get('id', str(uuid.uuid4()))}"
-                ),
+                "id": doc.get("id", str(uuid4())),
+                "title": doc.get("title", f"Document {doc.get('id', str(uuid4()))}"),
                 "url": doc.get("url", ""),
                 "language": doc.get("language", "en"),
                 "summary": doc.get("summary", ""),
@@ -298,30 +287,29 @@ def import_file(driver, path: Path, progress: Progress, file_task):
     chunks = doc.get("chunks", {})
     entities = graph.get("entities", [])
     relations = graph.get("relations", [])
-    communities = graph.get("communities", [])
+    clusters = graph.get("communities", [])
 
     steps = [
-        # (
-        #     f"{len(documents)} documents",
-        #     lambda session: import_documents(session, documents),
-        # ),
-        # (
-        #     f"{len(chunks)} chunks",
-        #     lambda session: import_chunks(session, chunks),
-        # ),
-        # (
-        #     f"{len(entities)} entities",
-        #     lambda session: import_entities(session, entities),
-        # ),
+        (
+            f"{len(documents)} documents",
+            lambda session: import_documents(session, documents),
+        ),
+        (
+            f"{len(chunks)} chunks",
+            lambda session: import_chunks(session, chunks),
+        ),
+        (
+            f"{len(entities)} entities",
+            lambda session: import_entities(session, entities),
+        ),
         (
             f"{len(relations)} relations",
             lambda session: import_relations(session, relations),
         ),
-        # ("graph node", lambda session: import_graph(session, graph_id, schema)),
-        # (
-        #     f"{len(communities)} communities",
-        #     lambda session: import_communities(session, graph_id, communities),
-        # ),
+        (
+            f"{len(clusters)} clusters",
+            lambda session: import_clusters(session, clusters),
+        ),
     ]
 
     with driver.session() as session:

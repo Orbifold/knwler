@@ -38,6 +38,8 @@ from knwler.config import (
     DEFAULT_OPENAI_DISCOVERY_MODEL,
     DEFAULT_ANTHROPIC_EXTRACTION_MODEL,
     DEFAULT_ANTHROPIC_DISCOVERY_MODEL,
+    DEFAULT_GITHUB_EXTRACTION_MODEL,
+    DEFAULT_GITHUB_DISCOVERY_MODEL,
     Config,
     console,
 )
@@ -71,16 +73,23 @@ async def _process_file(
             raise ValueError(f"Output path must be a directory, not a file: {output}")
         results_dir = output
         if overwrite:
-            for item in results_dir.iterdir():
-                if item.is_file():
-                    item.unlink()
-                else:
-                    shutil.rmtree(item)
+            if results_dir.exists():
+                for item in results_dir.iterdir():
+                    if item.is_file():
+                        item.unlink()
+                    else:
+                        shutil.rmtree(item)
+            else:
+                results_dir.mkdir(parents=True, exist_ok=True)
         else:
             results_dir.mkdir(parents=True, exist_ok=True)
 
     # Load text from PDF or plain text file
     if file_path.suffix.lower() == ".pdf":
+        # copy the pdf to the results directory for reference and to ensure consistent caching based on file path
+        cached_pdf_path = results_dir / file_path.name
+        if not cached_pdf_path.exists():
+            cached_pdf_path.write_bytes(file_path.read_bytes())
         extracted_text_path = results_dir / f"{file_path.stem}_extracted.txt"
         if extracted_text_path.exists():
             console.print(
@@ -136,7 +145,7 @@ async def _process_file(
     )
     console.print(
         Panel.fit(
-            f"[bold]Graph Extraction Pipeline[/bold]\n"
+            f"[bold]Knwler Graph Extraction Pipeline[/bold]\n"
             f"Backend: {backend}  \u2022  File: [dim]{file_path.name}[/dim]  "
             f"\u2022  Language: [magenta]{lang_name}[/magenta]{mode}",
             border_style="blue",
@@ -348,7 +357,7 @@ async def _process_file(
     # HTML export
     if html_report:
         html_content = export_html(
-            output_data,           
+            output_data,
             template=template,
         )
         html_path = results_dir / "index.html"
@@ -459,13 +468,14 @@ def extract(
         bool,
         typer.Option("--no-cache", help="Disable LLM response caching, default: false"),
     ] = False,
-    openai: Annotated[
-        bool,
+    backend: Annotated[
+        str,
         typer.Option(
-            "--openai",
-            help="Use OpenAI API instead of Ollama (requires OPENAI_API_KEY env var), default: false",
+            "--backend",
+            "-b",
+            help="LLM backend to use: ollama (default), openai, anthropic, github.",
         ),
-    ] = False,
+    ] = "ollama",
     base_url: Annotated[
         str,
         typer.Option(
@@ -473,13 +483,6 @@ def extract(
             help="Base URL of the LLM backend. Applies to all backends.",
         ),
     ] = None,
-    anthropic: Annotated[
-        bool,
-        typer.Option(
-            "--anthropic",
-            help="Use Anthropic API instead of Ollama (requires ANTHROPIC_API_KEY env var), default: false",
-        ),
-    ] = False,
     output: Annotated[
         Optional[Path],
         typer.Option(
@@ -600,28 +603,27 @@ def extract(
         return typer.Exit(1)
 
     # Config
-    if openai and anthropic:
-        typer.echo("Error: --openai and --anthropic are mutually exclusive.")
+    _valid_backends = {"ollama", "openai", "anthropic", "github"}
+    backend = backend.lower()
+    if backend not in _valid_backends:
+        typer.echo(
+            f"Error: unknown backend '{backend}'. Choose from: {', '.join(sorted(_valid_backends))}."
+        )
         return typer.Exit(1)
-    backend = "openai" if openai else ("anthropic" if anthropic else "ollama")
-    resolved_extraction_model = extraction_model or (
-        DEFAULT_OPENAI_EXTRACTION_MODEL
-        if openai
-        else (
-            DEFAULT_ANTHROPIC_EXTRACTION_MODEL
-            if anthropic
-            else DEFAULT_OLLAMA_EXTRACTION_MODEL
-        )
-    )
-    resolved_discovery = discovery_model or (
-        DEFAULT_OPENAI_DISCOVERY_MODEL
-        if openai
-        else (
-            DEFAULT_ANTHROPIC_DISCOVERY_MODEL
-            if anthropic
-            else DEFAULT_OLLAMA_DISCOVERY_MODEL
-        )
-    )
+    _default_extraction = {
+        "openai": DEFAULT_OPENAI_EXTRACTION_MODEL,
+        "anthropic": DEFAULT_ANTHROPIC_EXTRACTION_MODEL,
+        "github": DEFAULT_GITHUB_EXTRACTION_MODEL,
+        "ollama": DEFAULT_OLLAMA_EXTRACTION_MODEL,
+    }
+    _default_discovery = {
+        "openai": DEFAULT_OPENAI_DISCOVERY_MODEL,
+        "anthropic": DEFAULT_ANTHROPIC_DISCOVERY_MODEL,
+        "github": DEFAULT_GITHUB_DISCOVERY_MODEL,
+        "ollama": DEFAULT_OLLAMA_DISCOVERY_MODEL,
+    }
+    resolved_extraction_model = extraction_model or _default_extraction[backend]
+    resolved_discovery = discovery_model or _default_discovery[backend]
     config = Config(
         backend=backend,
         extraction_model=resolved_extraction_model,
@@ -683,3 +685,6 @@ def extract(
     # Cleanup temp file if we fetched from a URL
     if _tmp_file_path is not None and _tmp_file_path.exists():
         _tmp_file_path.unlink()
+        console.print(
+            f"[green]\u2713[/green] Cleaned up temporary file: {_tmp_file_path}"
+        )

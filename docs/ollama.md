@@ -8,3 +8,12 @@ There are two Ollama model parameters you can set:
 
 - `--extraction-model`: the model used for summary, title and graph extraction. Default is `qwen2.5:7b`.
 - `--discovery-model`: used for language and schema detection. Default is `qwen2.5:14b`.
+
+
+> **Tip:** When running Ollama locally, launch it via CLI with parallel processing for best throughput:
+>
+> ```bash
+> OLLAMA_NUM_PARALLEL=8 ollama serve
+> ```
+>
+> Adjust the number based on your machine specs (8 is suitable for a Mac M4 Pro with 64 GB RAM).

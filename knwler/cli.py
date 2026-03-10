@@ -18,6 +18,12 @@ from rich.padding import Padding
 from knwler.config import (
     DEFAULT_OLLAMA_EXTRACTION_MODEL,
     DEFAULT_OLLAMA_DISCOVERY_MODEL,
+    DEFAULT_OPENAI_EXTRACTION_MODEL,
+    DEFAULT_OPENAI_DISCOVERY_MODEL,
+    DEFAULT_ANTHROPIC_EXTRACTION_MODEL,
+    DEFAULT_ANTHROPIC_DISCOVERY_MODEL,
+    DEFAULT_GITHUB_EXTRACTION_MODEL,
+    DEFAULT_GITHUB_DISCOVERY_MODEL,
     Config,
     console,
 )
@@ -77,6 +83,13 @@ def consolidate_graphs_command(
         typer.Option(
             "--anthropic",
             help="Use Anthropic models for consolidation (overrides --extraction-model and --discovery-model).",
+        ),
+    ] = False,
+    github: Annotated[
+        bool,
+        typer.Option(
+            "--github",
+            help="Use GitHub Models API for consolidation (requires GITHUB_TOKEN env var).",
         ),
     ] = False,
     extraction_model: Annotated[
@@ -142,14 +155,26 @@ def consolidate_graphs_command(
     if openai and anthropic:
         typer.echo("Error: --openai and --anthropic are mutually exclusive.")
         return typer.Exit(1)
-    backend = "openai" if openai else ("anthropic" if anthropic else "ollama")
+    backend_flags = sum([openai, anthropic, github])
+    if backend_flags > 1:
+        typer.echo("Error: --openai, --anthropic, and --github are mutually exclusive.")
+        return typer.Exit(1)
+    backend = (
+        "openai"
+        if openai
+        else ("anthropic" if anthropic else ("github" if github else "ollama"))
+    )
     resolved_extraction = extraction_model or (
         DEFAULT_OPENAI_EXTRACTION_MODEL
         if openai
         else (
             DEFAULT_ANTHROPIC_EXTRACTION_MODEL
             if anthropic
-            else DEFAULT_OLLAMA_EXTRACTION_MODEL
+            else (
+                DEFAULT_GITHUB_EXTRACTION_MODEL
+                if github
+                else DEFAULT_OLLAMA_EXTRACTION_MODEL
+            )
         )
     )
     resolved_discovery = discovery_model or (
@@ -158,7 +183,11 @@ def consolidate_graphs_command(
         else (
             DEFAULT_ANTHROPIC_DISCOVERY_MODEL
             if anthropic
-            else DEFAULT_OLLAMA_DISCOVERY_MODEL
+            else (
+                DEFAULT_GITHUB_DISCOVERY_MODEL
+                if github
+                else DEFAULT_OLLAMA_DISCOVERY_MODEL
+            )
         )
     )
     config = Config(

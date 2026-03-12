@@ -19,6 +19,7 @@ dependencies = [
     "jinja2>=3.1.6",
     "anthropic>=0.40.0",
     "markdown>=3.10.2",
+    "openai>=2.26.0",
 ]
 [project.urls]
 Homepage = "https://knwler.com"

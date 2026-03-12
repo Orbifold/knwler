@@ -28,7 +28,4 @@ tests/graph.html
 tests/graph.json
 tests/data/consolidated.json
 tests/data/consolidated.json
-batching/batch.db
-batching/batch.db-shm
-batching/batch.db-wal
-batching/batches/round1_discovery_input.jsonl
+batchings/

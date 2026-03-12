@@ -39,8 +39,10 @@ So many new features added in v0.5.0 so here is a comprehensive checklist (for m
 
 ## Integrations
 
-- Neo4j export
-- Surreal export
+- [x] Neo4j export
+- [x] Surreal export
+- [x] GraphDB import
+- [ ] AWS import
 
 ## Tests
 

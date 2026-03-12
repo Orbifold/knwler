@@ -77,6 +77,13 @@ INITIAL_POLL_INTERVAL = 30
 MAX_POLL_INTERVAL = 300
 SUMMARIZATION_BATCH_SIZE = 20
 
+# OpenAI Batch API limits
+MAX_REQUESTS_PER_BATCH = 50_000
+MAX_BATCH_FILE_SIZE_BYTES = 200 * 1024 * 1024  # 200 MB
+MAX_BATCH_TOKENS = 2_000_000
+TOKEN_BUFFER_FACTOR = 0.90  # 10% safety buffer
+MAX_BATCH_TOKENS_SAFE = int(MAX_BATCH_TOKENS * TOKEN_BUFFER_FACTOR)
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Database
@@ -124,11 +131,21 @@ class Database:
                 status          TEXT DEFAULT 'pending',
                 request_count   INTEGER DEFAULT 0,
                 created_at      TEXT,
-                completed_at    TEXT
+                completed_at    TEXT,
+                error_details   TEXT
             );
         """
         )
         self.conn.commit()
+        self._migrate()
+
+    def _migrate(self):
+        """Add columns that may be missing in databases created by older versions."""
+        cursor = self.conn.execute("PRAGMA table_info(batches)")
+        columns = {row[1] for row in cursor.fetchall()}
+        if "error_details" not in columns:
+            self.conn.execute("ALTER TABLE batches ADD COLUMN error_details TEXT")
+            self.conn.commit()
 
     def upsert_file(self, file_id: str, file_path: str, file_name: str):
         self.conn.execute(
@@ -157,6 +174,14 @@ class Database:
             "SELECT * FROM batches WHERE round_name = ?", (round_name,)
         ).fetchone()
         return dict(row) if row else None
+
+    def get_round_parts(self, round_name: str) -> list[dict]:
+        """Get all sub-batch parts for a multi-part round."""
+        rows = self.conn.execute(
+            "SELECT * FROM batches WHERE round_name GLOB ?",
+            (f"{round_name}__part*",),
+        ).fetchall()
+        return sorted([dict(r) for r in rows], key=lambda x: x["round_name"])
 
     def upsert_batch(self, round_name: str, **kwargs):
         existing = self.get_batch(round_name)
@@ -457,6 +482,57 @@ def _prompt_community(communities: list[dict]) -> str:
             "    ...\n  }\n}"
         )
     return prompt
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Batch limit helpers
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+def _count_request_tokens(request: dict, encoder) -> int:
+    """Estimate prompt token count for a batch request using tiktoken (cl100k_base)."""
+    body = request.get("body", {})
+    tokens = 0
+    for msg in body.get("messages", []):
+        tokens += len(encoder.encode(msg.get("content", "")))
+        tokens += 4  # per-message overhead
+    tokens += 2  # conversation framing
+    return tokens
+
+
+def _split_into_batches(requests: list[dict], encoder) -> list[list[dict]]:
+    """Split requests into sub-batches respecting OpenAI per-batch limits.
+
+    Limits enforced (with 10 % token buffer):
+      - Max 50,000 requests per batch
+      - Max ~1,800,000 prompt tokens per batch (2M * 0.90)
+    File size (200 MB) is verified after the JSONL is written.
+    """
+    if not requests:
+        return [requests]
+
+    batches: list[list[dict]] = []
+    current_batch: list[dict] = []
+    current_tokens = 0
+
+    for req in requests:
+        req_tokens = _count_request_tokens(req, encoder)
+
+        would_exceed_requests = len(current_batch) >= MAX_REQUESTS_PER_BATCH
+        would_exceed_tokens = (current_tokens + req_tokens) > MAX_BATCH_TOKENS_SAFE
+
+        if current_batch and (would_exceed_requests or would_exceed_tokens):
+            batches.append(current_batch)
+            current_batch = []
+            current_tokens = 0
+
+        current_batch.append(req)
+        current_tokens += req_tokens
+
+    if current_batch:
+        batches.append(current_batch)
+
+    return batches
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -845,17 +921,60 @@ class BatchProcessor:
 
             self.db.update_file(fid, text_content=text, chunks_json=json.dumps(chunks))
 
+    # ── Round status helpers ─────────────────────────────────────────────
+
+    def _is_round_complete(self, round_name: str) -> bool:
+        """Check if a round (single or multi-part) is fully completed."""
+        batch = self.db.get_batch(round_name)
+        if not batch:
+            parts = self.db.get_round_parts(round_name)
+            if parts:
+                return all(p["status"] == "completed" for p in parts)
+            return False
+        if batch["status"] == "completed":
+            return True
+        if batch["status"] == "multi_part":
+            parts = self.db.get_round_parts(round_name)
+            return len(parts) > 0 and all(p["status"] == "completed" for p in parts)
+        return False
+
+    def _has_round_started(self, round_name: str) -> bool:
+        """Check if a round has any submitted or completed batches.
+
+        Returns False when all submitted parts have either completed or
+        failed, because failed parts need re-submission (not just polling).
+        """
+        batch = self.db.get_batch(round_name)
+        if not batch:
+            parts = self.db.get_round_parts(round_name)
+            return len(parts) > 0 and any(
+                p["status"] not in ("failed", "expired", "cancelled")
+                for p in parts
+                if p["status"] != "completed"
+            )
+        if batch["status"] in ("submitted", "completed"):
+            return True
+        if batch["status"] == "multi_part":
+            parts = self.db.get_round_parts(round_name)
+            # Only count as "started" if at least one part is still in-flight
+            # (submitted/pending).  If every non-completed part has failed we
+            # should re-enter the submission path so failed parts get retried.
+            return any(
+                p["status"] not in ("completed", "failed", "expired", "cancelled")
+                for p in parts
+            )
+        return False
+
     # ── Phase 1: discovery ───────────────────────────────────────────────
 
     async def round1(self):
         """Round 1 — language detection + schema discovery."""
         rnd = "round1_discovery"
-        batch = self.db.get_batch(rnd)
 
-        if batch and batch["status"] == "completed":
+        if self._is_round_complete(rnd):
             console.print("[green]✓[/green] Round 1 already completed")
             return
-        if batch and batch["status"] == "submitted":
+        if self._has_round_started(rnd):
             console.print("Resuming Round 1 polling …")
             await self._poll_and_save(rnd)
             self._parse_round1()
@@ -922,12 +1041,11 @@ class BatchProcessor:
     async def round2(self):
         """Round 2 — title, summary, rephrase, extraction."""
         rnd = "round2_processing"
-        batch = self.db.get_batch(rnd)
 
-        if batch and batch["status"] == "completed":
+        if self._is_round_complete(rnd):
             console.print("[green]✓[/green] Round 2 already completed")
             return
-        if batch and batch["status"] == "submitted":
+        if self._has_round_started(rnd):
             console.print("Resuming Round 2 polling …")
             await self._poll_and_save(rnd)
             self._parse_round2()
@@ -1043,13 +1161,12 @@ class BatchProcessor:
     async def round3(self):
         """Round 3 — summarisation + community labeling."""
         rnd = "round3_consolidation"
-        batch = self.db.get_batch(rnd)
 
-        if batch and batch["status"] == "completed":
+        if self._is_round_complete(rnd):
             console.print("[green]✓[/green] Round 3 already completed")
             self._finalise()
             return
-        if batch and batch["status"] == "submitted":
+        if self._has_round_started(rnd):
             console.print("Resuming Round 3 polling …")
             await self._poll_and_save(rnd)
             self._parse_round3()
@@ -1240,20 +1357,91 @@ class BatchProcessor:
     # ── Batch helpers ────────────────────────────────────────────────────
 
     async def _submit(self, round_name: str, requests: list[dict]):
-        jsonl_path = self.batches_dir / f"{round_name}_input.jsonl"
+        encoder = get_encoder()
+        total_tokens = sum(_count_request_tokens(r, encoder) for r in requests)
+        console.print(
+            f"  Total: {len(requests):,} requests, ~{total_tokens:,} prompt tokens"
+        )
+
+        sub_batches = _split_into_batches(requests, encoder)
+        n_parts = len(sub_batches)
+
+        if n_parts > 1:
+            console.print(
+                f"  [yellow]Splitting into {n_parts} sub-batches "
+                f"(limits: {MAX_REQUESTS_PER_BATCH:,} reqs, "
+                f"{MAX_BATCH_TOKENS_SAFE:,} tokens per batch)[/yellow]"
+            )
+            console.print(
+                "  [yellow]Submitting sequentially to stay within "
+                "organisation enqueued-token limit[/yellow]"
+            )
+
+        for i, part_reqs in enumerate(sub_batches):
+            part_name = f"{round_name}__part{i}" if n_parts > 1 else round_name
+            if n_parts > 1:
+                part_tokens = sum(_count_request_tokens(r, encoder) for r in part_reqs)
+                console.print(
+                    f"  Sub-batch {i + 1}/{n_parts}: "
+                    f"{len(part_reqs):,} requests, ~{part_tokens:,} tokens"
+                )
+
+            # Skip parts already completed (resume support)
+            existing = self.db.get_batch(part_name)
+            if existing and existing["status"] == "completed":
+                console.print(f"  [green]✓[/green] {part_name} already completed")
+                continue
+
+            await self._submit_part(part_name, part_reqs)
+
+            # For multi-part rounds, poll each sub-batch to completion before
+            # submitting the next one.  This prevents the total enqueued tokens
+            # across all in-progress batches from exceeding the organisation
+            # limit (e.g. 2 000 000 tokens for gpt-4o-mini).
+            if n_parts > 1:
+                await self._poll_and_save_part(part_name)
+
+        if n_parts > 1:
+            self.db.upsert_batch(round_name, status="multi_part", request_count=n_parts)
+
+    async def _submit_part(self, part_name: str, requests: list[dict]):
+        """Upload JSONL and create a single batch, validating file size."""
+        jsonl_path = self.batches_dir / f"{part_name}_input.jsonl"
         with open(jsonl_path, "w") as fh:
             for r in requests:
                 fh.write(json.dumps(r) + "\n")
 
-        file_id = await self.client.upload_jsonl(jsonl_path)
-        console.print(f"  Uploaded → file [dim]{file_id}[/dim]")
+        # Validate file size (200 MB limit)
+        file_size = jsonl_path.stat().st_size
+        if file_size > MAX_BATCH_FILE_SIZE_BYTES:
+            raise ValueError(
+                f"Batch input file {jsonl_path.name} is "
+                f"{file_size / (1024 ** 2):.1f} MB, exceeding the "
+                f"{MAX_BATCH_FILE_SIZE_BYTES / (1024 ** 2):.0f} MB limit. "
+                "Try processing fewer documents at once."
+            )
 
-        result = await self.client.create_batch(file_id, metadata={"round": round_name})
+        file_id = await self.client.upload_jsonl(jsonl_path)
+        console.print(
+            f"  Uploaded → file [dim]{file_id}[/dim]  "
+            f"({file_size / (1024 ** 2):.1f} MB)"
+        )
+
+        result = await self.client.create_batch(file_id, metadata={"round": part_name})
         batch_id = result["id"]
         console.print(f"  Batch created → [dim]{batch_id}[/dim]")
 
+        # Log token/request counts from API response
+        req_counts = result.get("request_counts", {})
+        if req_counts:
+            console.print(
+                f"  [dim]API counts: total={req_counts.get('total', 0)}, "
+                f"completed={req_counts.get('completed', 0)}, "
+                f"failed={req_counts.get('failed', 0)}[/dim]"
+            )
+
         self.db.upsert_batch(
-            round_name,
+            part_name,
             batch_id=batch_id,
             input_file_id=file_id,
             status="submitted",
@@ -1262,7 +1450,26 @@ class BatchProcessor:
         )
 
     async def _poll_and_save(self, round_name: str):
-        info = self.db.get_batch(round_name)
+        batch = self.db.get_batch(round_name)
+        if batch and batch["status"] == "multi_part":
+            parts = self.db.get_round_parts(round_name)
+            pending = [p for p in parts if p["status"] != "completed"]
+            if pending:
+                for part in pending:
+                    await self._poll_and_save_part(part["round_name"])
+                console.print(
+                    f"  [green]✓[/green] All {len(parts)} sub-batches complete"
+                )
+            else:
+                console.print(
+                    f"  [green]✓[/green] All {len(parts)} sub-batches already complete"
+                )
+        else:
+            await self._poll_and_save_part(round_name)
+
+    async def _poll_and_save_part(self, part_name: str):
+        """Poll a single batch part until terminal and save outputs."""
+        info = self.db.get_batch(part_name)
         batch_id = info["batch_id"]
 
         console.print(f"  Polling batch [dim]{batch_id}[/dim] …")
@@ -1272,35 +1479,87 @@ class BatchProcessor:
         out_fid = result.get("output_file_id")
         err_fid = result.get("error_file_id")
 
+        # Log usage from completed batch
+        usage = result.get("usage", {})
+        if usage:
+            console.print(
+                f"  [dim]Usage: prompt_tokens={usage.get('prompt_tokens', 0):,}, "
+                f"completion_tokens={usage.get('completion_tokens', 0):,}, "
+                f"total_tokens={usage.get('total_tokens', 0):,}[/dim]"
+            )
+
         if status == "completed":
             if out_fid:
                 content = await self.client.download_file(out_fid)
-                (self.batches_dir / f"{round_name}_output.jsonl").write_text(content)
+                (self.batches_dir / f"{part_name}_output.jsonl").write_text(content)
             if err_fid:
                 errs = await self.client.download_file(err_fid)
-                (self.batches_dir / f"{round_name}_errors.jsonl").write_text(errs)
+                (self.batches_dir / f"{part_name}_errors.jsonl").write_text(errs)
                 n_err = sum(1 for line in errs.strip().splitlines() if line.strip())
                 if n_err:
                     console.print(f"  [yellow]{n_err} error(s) saved[/yellow]")
 
             self.db.upsert_batch(
-                round_name,
+                part_name,
                 status="completed",
                 output_file_id=out_fid or "",
                 error_file_id=err_fid or "",
                 completed_at=time.strftime("%Y-%m-%d %H:%M:%S"),
             )
-            console.print(f"  [green]✓[/green] Round complete")
+            console.print(f"  [green]✓[/green] Batch {part_name} complete")
         else:
-            self.db.upsert_batch(round_name, status=status)
+            # Extract error details from the batch response
+            errors = result.get("errors", {})
+            error_data = errors.get("data", []) if isinstance(errors, dict) else []
+            error_details = json.dumps(
+                {
+                    "status": status,
+                    "errors": [
+                        {
+                            "code": e.get("code", ""),
+                            "message": e.get("message", ""),
+                        }
+                        for e in error_data
+                    ],
+                    "failed_at": result.get("failed_at"),
+                    "expired_at": result.get("expired_at"),
+                    "cancelled_at": result.get("cancelled_at"),
+                }
+            )
+            self.db.upsert_batch(
+                part_name,
+                status=status,
+                error_file_id=err_fid or "",
+                error_details=error_details,
+            )
+
+            # Print error summary
+            for e in error_data:
+                console.print(
+                    f"  [red]{e.get('code', 'error')}: {e.get('message', 'unknown')}[/red]"
+                )
+
             raise RuntimeError(
-                f"Batch {round_name} ended with status '{status}'. "
+                f"Batch {part_name} ended with status '{status}'. "
                 "Check the errors file and re-run to retry."
             )
 
     def _load_responses(self, round_name: str) -> dict[str, str]:
-        """Parse a JSONL output file → {custom_id: content}."""
-        path = self.batches_dir / f"{round_name}_output.jsonl"
+        """Parse JSONL output file(s) → {custom_id: content}.
+
+        Handles both single-batch and multi-part rounds transparently.
+        """
+        batch = self.db.get_batch(round_name)
+        if batch and batch["status"] == "multi_part":
+            merged: dict[str, str] = {}
+            for part in self.db.get_round_parts(round_name):
+                merged.update(self._load_responses_file(part["round_name"]))
+            return merged
+        return self._load_responses_file(round_name)
+
+    def _load_responses_file(self, part_name: str) -> dict[str, str]:
+        """Parse a single JSONL output file → {custom_id: content}."""
+        path = self.batches_dir / f"{part_name}_output.jsonl"
         if not path.exists():
             return {}
         out: dict[str, str] = {}
@@ -1334,12 +1593,11 @@ class BatchProcessor:
     async def round4(self):
         """Round 4 — cross-file consolidation with batch-submitted summarization."""
         rnd = "round4_cross_consolidation"
-        batch = self.db.get_batch(rnd)
 
-        if batch and batch["status"] == "completed":
+        if self._is_round_complete(rnd):
             console.print("[green]✓[/green] Round 4 already completed")
             return
-        if batch and batch["status"] == "submitted":
+        if self._has_round_started(rnd):
             console.print("Resuming Round 4 polling …")
             await self._poll_and_save(rnd)
             self._parse_round4()
@@ -1558,10 +1816,36 @@ class BatchProcessor:
         for rnd in rounds:
             b = self.db.get_batch(rnd)
             if b:
-                console.print(
-                    f"  {rnd}: [{('green' if b['status'] == 'completed' else 'yellow')}]"
-                    f"{b['status']}[/] ({b.get('request_count', 0)} requests)"
-                )
+                if b["status"] == "multi_part":
+                    parts = self.db.get_round_parts(rnd)
+                    done = sum(1 for p in parts if p["status"] == "completed")
+                    failed = [p for p in parts if p["status"] == "failed"]
+                    total_reqs = sum(p.get("request_count", 0) for p in parts)
+                    color = "green" if done == len(parts) else "yellow"
+                    console.print(
+                        f"  {rnd}: [{color}]{done}/{len(parts)} parts complete[/] "
+                        f"({total_reqs} requests total)"
+                    )
+                    for fp in failed:
+                        err = fp.get("error_details")
+                        if err:
+                            details = json.loads(err)
+                            for e in details.get("errors", []):
+                                console.print(
+                                    f"    [red]{fp['round_name']}: "
+                                    f"{e.get('code', '?')} — {e.get('message', '?')}[/red]"
+                                )
+                else:
+                    console.print(
+                        f"  {rnd}: [{('green' if b['status'] == 'completed' else 'yellow')}]"
+                        f"{b['status']}[/] ({b.get('request_count', 0)} requests)"
+                    )
+                    if b["status"] == "failed" and b.get("error_details"):
+                        details = json.loads(b["error_details"])
+                        for e in details.get("errors", []):
+                            console.print(
+                                f"    [red]{e.get('code', '?')} — {e.get('message', '?')}[/red]"
+                            )
             else:
                 console.print(f"  {rnd}: [dim]not started[/dim]")
 

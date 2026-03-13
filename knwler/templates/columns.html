@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="{{ html_lang }}">
+<html lang="{{ lang }}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -382,7 +382,7 @@
       <div class="header-summary">{{ summary }}</div>
       {% endif %}
       <div class="header-meta">
-        <span>{{ extracted_info }}</span>
+        <span>{{ metadata }}</span>
         {% if url %}
         <span>
           {{ labels.source }}:
@@ -401,14 +401,14 @@
         <div class="col-header">
           <h2>{{ labels.topics_title }}</h2>
         </div>
-        {% if communities %} {% for community in communities %}
+        {% if clusters %} {% for cluster in clusters %}
         <div class="card">
-          <div class="tags">{{ community.topics | join(', ') }}</div>
+          <div class="tags">{{ cluster.topics | join(', ') }}</div>
           <ul>
-            {% if community.description %}
-            <li>{{ community.description }}</li>
-            {% endif %} {% if community.member_links %}
-            <li>{{ community.member_links | safe }}</li>
+            {% if cluster.description %}
+            <li>{{ cluster.description }}</li>
+            {% endif %} {% if cluster.member_links %}
+            <li>{{ cluster.member_links | safe }}</li>
             {% endif %}
           </ul>
         </div>

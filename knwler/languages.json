@@ -14,7 +14,7 @@
     "ui": {
       "title": "Knowledge Graph",
       "summary_label": "Summary",
-      "extracted_info": "Extracted {entities} entities, {relations} relations and {communities} topics on {date}",
+      "metadata": "Extracted {entities} entities, {relations} relations and {communities} topics on {date}",
       "source_label": "Source",
       "nav_chunks": "Text Chunks",
       "nav_topics": "Topics",
@@ -58,7 +58,7 @@
     "ui": {
       "title": "Wissensgraph",
       "summary_label": "Zusammenfassung",
-      "extracted_info": "{entities} Entitäten, {relations} Beziehungen und {communities} Themen am {date} extrahiert",
+      "metadata": "{entities} Entitäten, {relations} Beziehungen und {communities} Themen am {date} extrahiert",
       "source_label": "Quelle",
       "nav_chunks": "Textabschnitte",
       "nav_topics": "Themen",
@@ -102,7 +102,7 @@
     "ui": {
       "title": "Graphe de Connaissances",
       "summary_label": "Résumé",
-      "extracted_info": "{entities} entités, {relations} relations et {communities} sujets extraits le {date}",
+      "metadata": "{entities} entités, {relations} relations et {communities} sujets extraits le {date}",
       "source_label": "Source",
       "nav_chunks": "Sections de Texte",
       "nav_topics": "Sujets",
@@ -146,7 +146,7 @@
     "ui": {
       "title": "Grafo de Conocimiento",
       "summary_label": "Resumen",
-      "extracted_info": "{entities} entidades, {relations} relaciones y {communities} temas extraídos el {date}",
+      "metadata": "{entities} entidades, {relations} relaciones y {communities} temas extraídos el {date}",
       "source_label": "Fuente",
       "nav_chunks": "Secciones de Texto",
       "nav_topics": "Temas",
@@ -190,7 +190,7 @@
     "ui": {
       "title": "Kennisgraaf",
       "summary_label": "Samenvatting",
-      "extracted_info": "{entities} entiteiten, {relations} relaties en {communities} onderwerpen geëxtraheerd op {date}",
+      "metadata": "{entities} entiteiten, {relations} relaties en {communities} onderwerpen geëxtraheerd op {date}",
       "source_label": "Bron",
       "nav_chunks": "Tekstsecties",
       "nav_topics": "Onderwerpen",

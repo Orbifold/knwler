@@ -1900,7 +1900,7 @@ class BatchProcessor:
 # ═══════════════════════════════════════════════════════════════════════════
 
 
-app = typer.Typer(
+batch_openai_app = typer.Typer(
     help="Process documents with Knwler via OpenAI Batch API.",
     rich_markup_mode="rich",
     no_args_is_help=True,
@@ -1908,7 +1908,7 @@ app = typer.Typer(
 )
 
 
-@app.command(
+@batch_openai_app.command(
     "run",
     help="Run the full batch pipeline (optionally with cross-file consolidation).",
 )
@@ -1960,7 +1960,7 @@ def cmd_run(
         proc.close()
 
 
-@app.command(
+@batch_openai_app.command(
     "consolidate",
     help="Run cross-file consolidation on an already-processed output directory.",
 )
@@ -2021,7 +2021,7 @@ def cmd_consolidate(
         proc.close()
 
 
-@app.command("status", help="Show the current pipeline status.")
+@batch_openai_app.command("status", help="Show the current pipeline status.")
 def cmd_status(
     input: Annotated[
         Path,
@@ -2058,4 +2058,6 @@ def cmd_status(
 
 
 if __name__ == "__main__":
-    app()
+    batch_openai_app()
+
+

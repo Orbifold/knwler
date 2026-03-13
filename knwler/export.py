@@ -82,10 +82,10 @@ def export_html(
     summary = results_data.get("summary", "")
     url = results_data.get("url", "")
     chunks = results_data.get("chunks", [])
-    consolidated = results_data.get("graph", {})
-    entities = consolidated.get("entities", [])
-    relations = consolidated.get("relations", [])
-    communities = consolidated.get("communities", [])
+    graph = results_data.get("graph", {})
+    entities = graph.get("entities", [])
+    relations = graph.get("relations", [])
+    communities = graph.get("communities", [])
 
     entity_names = {e["name"] for e in entities}
     chunk_mapping = {
@@ -107,35 +107,31 @@ def export_html(
 
     node_elements = [
         {
-            "data": {
-                "id": e.get("name", ""),
-                "label": e.get("name", ""),
-                "type": e.get("type", ""),
-                "description": e.get("description", ""),
-                "chunk_ids": e.get("chunk_ids", []),
-                "community_id": e.get("community_id"),
-            }
+            "id": e.get("name", ""),
+            "label": e.get("name", ""),
+            "type": e.get("type", ""),
+            "description": e.get("description", ""),
+            "chunk_ids": e.get("chunk_ids", []),
+            "community_id": e.get("community_id"),
         }
         for e in entities
     ]
     edge_elements = [
         {
-            "data": {
-                "id": f"e{idx}",
-                "source": r.get("source", ""),
-                "source_type": r.get("source_type", ""),
-                "target": r.get("target", ""),
-                "target_type": r.get("target_type", ""),
-                "type": r.get("type", ""),
-                "description": r.get("description", ""),
-            }
+            "id": f"e{idx}",
+            "source": r.get("source", ""),
+            "source_type": r.get("source_type", ""),
+            "target": r.get("target", ""),
+            "target_type": r.get("target_type", ""),
+            "type": r.get("type", ""),
+            "description": r.get("description", ""),
         }
         for idx, r in enumerate(relations)
         if r.get("source", "") in entity_names and r.get("target", "") in entity_names
     ]
 
     # Prepare communities display data
-    communities_display = []
+    clusters = []
     for c in communities:
         topics = c.get("topics", [])
         members = c.get("members", [])
@@ -144,7 +140,7 @@ def export_html(
             f"{html_mod.escape(m)}</a>"
             for m in sorted(members)
         )
-        communities_display.append(
+        clusters.append(
             {
                 "topics": topics,
                 "description": c.get("description", ""),
@@ -163,6 +159,8 @@ def export_html(
         chunks_display.append(
             {
                 "id": f"chunk-{chunk.get('id')}",
+                "index": i + 1,
+                "text": original,
                 "linkified": _linkify_entities(
                     display_html, chunk.get("entities", []), already_html=True
                 ),
@@ -214,8 +212,8 @@ def export_html(
 
     # Get localized labels
     date_info = datetime.now().strftime("%b %d, %Y")
-    extracted_info = get_ui(
-        "extracted_info",
+    metadata = get_ui(
+        "metadata",
         entities=len(entities),
         relations=len(relations),
         communities=len(communities),
@@ -263,7 +261,6 @@ def export_html(
         "assumes no liability for any actions taken in reliance upon this information."
     )
 
-    community_desc = {str(c.get("id")): c.get("description", "") for c in communities}
 
     # Setup Jinja2 environment
     templates_dir = Path(__file__).parent / "templates"
@@ -274,19 +271,18 @@ def export_html(
     template = env.get_template(f"{template}.html")
 
     html_content = template.render(
-        html_lang=get_current_language() or "en",
+        lang=get_current_language() or "en",
         title=title,
         summary=summary,
         url=url,
-        extracted_info=extracted_info,
+        metadata=metadata,
         labels=labels,
-        communities=communities_display,
+        clusters=clusters,
         chunks=chunks_display,
         entities_display=entities_display,
         disclaimer=disclaimer,
         node_elements=node_elements,
         edge_elements=edge_elements,
-        community_desc=community_desc,
         js_labels=js_labels,
         rawData=json.dumps(results_data, indent=2),
     )

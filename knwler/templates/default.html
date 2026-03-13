@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="{{ html_lang }}">
+<html lang="{{ lang }}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -517,7 +517,7 @@
       {% if summary %}
       <p>{{ summary }}</p>
       {% endif %}
-      <div class="detail">{{ extracted_info }}</div>
+      <div class="detail">{{ metadata }}</div>
       {% if url %}
       <div class="detail">
         {{ labels.source }}:
@@ -531,7 +531,7 @@
     {# Navigation #}
     <div class="card">
       {% if chunks %}‣<a href="#chunks">{{ labels.nav_chunks }}</a> {% endif %}
-      {% if communities %}‣<a href="#topics">{{ labels.nav_topics }}</a> {%
+      {% if clusters %}‣<a href="#topics">{{ labels.nav_topics }}</a> {%
       endif %} {% if entities_display %}‣<a href="#entities"
         >{{ labels.nav_entities }}</a
       >{% endif %}
@@ -604,17 +604,17 @@
     <div id="tooltip"></div>
     <div id="node-info"></div>
 
-    {# Topics (communities) section #} {% if communities %}
+    {# Topics (clusters) section #} {% if clusters %}
     <h2 id="topics">{{ labels.topics_title }}</h2>
-    {% for community in communities %}
+    {% for cluster in clusters %}
     <div class="card">
-      <div class="tags">{{ community.topics | join(', ') }}</div>
+      <div class="tags">{{ cluster.topics | join(', ') }}</div>
       <div>
-        {% if community.description %} {{ community.description }} {% endif %}
+        {% if cluster.description %} {{ cluster.description }} {% endif %}
       </div>
       <ul>
-        {% if community.member_links %}
-        <li>{{ community.member_links | safe }}</li>
+        {% if cluster.member_links %}
+        <li>{{ cluster.member_links | safe }}</li>
         {% endif %}
       </ul>
     </div>

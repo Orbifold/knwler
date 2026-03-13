@@ -53,6 +53,7 @@ from knwler.cli_cache import cache_app
 from knwler.cli_demo import demo_app
 from knwler.cli_benchmark import benchmark_app
 from knwler.cli_graph import graph_app
+from knwler.cli_batch_openai import batch_openai_app
 
 app = typer.Typer(
     help="Turn documents into structured knowledge.",
@@ -268,11 +269,23 @@ app.add_typer(
     help="Convert and analyse graph.json files",
 )
 
+app.add_typer(batch_openai_app, name="batch", help="Run batch API pipeline.")
+
 
 def main():
     set_language(DEFAULT_LANGUAGE)
 
-    _KNOWN_SUBCOMMANDS = {"extract", "info", "consolidate", "fetch"}
+    _KNOWN_SUBCOMMANDS = {
+        "extract",
+        "info",
+        "consolidate",
+        "fetch",
+        "cache",
+        "demo",
+        "benchmark",
+        "graph",
+        "batch",
+    }
     _GLOBAL_FLAGS = {"--version", "-V", "--help", "-h"}
     args = sys.argv[1:]
     if (

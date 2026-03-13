@@ -98,20 +98,50 @@ async def test_disambiguation():
         }
         for r in extraction_results
     ]
+    g["communities"] = [
+        {
+            "id": 0,
+            "topics": [
+                "Apples",
+            ],
+            "description": "One happy cluster about apples.",
+            "members": [
+                "Apple::Fruit",
+                "Apple::Company",
+            ],
+        }
+    ]
     output = {
         "id": "Apples",
         "title": "Apple Test",
+        "url": "https://knwler.com",
         "summary": "This graph tests disambiguation of entities with the same name but different types (Apple as a company and Apple as a fruit). It should correctly identify two separate entities for Apple and extract the relation that Apple Inc. was founded by Steve Jobs, while Gala is a variety of Apple fruit.",
         "graph": g,
         "chunks": extracted_chunks,
     }
+    # here is the actual disambiguation test
+    apple_fruit = next(
+        e for e in g["entities"] if e["name"] == "Apple" and e["type"] == "Fruit"
+    )
+    apple_company = next(
+        e for e in g["entities"] if e["name"] == "Apple" and e["type"] == "Company"
+    )
+    assert apple_fruit is not None
+    assert apple_company is not None
+    assert apple_fruit["description"] != apple_company["description"]
     # save the output for inspection and debugging
     with open("tests/graph.json", "w") as f:
         json.dump(output, f, indent=2)
     # save the output as HTML for inspection and debugging
     content = export_html(
         output,
-        template="columns",
+        template="default",
     )
     output_path = Path("tests/apple.html")
+    output_path.write_text(content, encoding="utf-8")
+    content = export_html(
+        output,
+        template="blank",
+    )
+    output_path = Path("tests/apple_blank.html")
     output_path.write_text(content, encoding="utf-8")

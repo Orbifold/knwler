@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="{{ lang }}">
+  <head>
+    <meta charset="UTF-8" />
+    <title>KG Summary</title>
+  </head>
+  <body>
+    <h1>{{ title }}</h1>
+    <p><strong>Summary: </strong>{{ summary }}</p>
+    <p><strong>URL: </strong>{{ url }}</p>
+    <p><strong>Metadata: </strong>{{ metadata }}</p>
+    <p><strong>Labels: </strong>{{ labels }}</p>
+
+    <h2>Clusters</h2>
+    <ul>
+      {% for cluster in clusters %}
+      <li>
+        <strong>{{ cluster.topics | join(', ') }}</strong>: {{
+        cluster.description }} {% if cluster.member_links %}({{
+        cluster.member_links | safe }}){% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    <h2>Chunks</h2>
+    <ul>
+      {% for chunk in chunks %}
+      <li>{{chunk.text}}</li>
+      {% endfor %}
+    </ul>
+    <h2>Entities</h2>
+    <ul>
+      {% for entity in entities_display %}
+      <li>
+        <strong>{{ entity.name }}</strong> ({{ entity.type }}): {{
+        entity.description }}<br />
+        {% if entity.chunk_links %}
+        <em>Found in:</em> {{ entity.chunk_links | safe }} {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+
+    <h2>Nodes</h2>
+    <ul>
+      {% for node in node_elements %}
+      <li>
+        <strong>{{ node.label }}</strong> ({{ node.type }}): {{
+        node.description}}
+      </li>
+      {% endfor %}
+    </ul>
+    <h2>Edges</h2>
+    <ul>
+      {% for edge in edge_elements %}
+      <li>
+        <strong>{{ edge.label }}</strong> ({{ edge.type }}): {{ edge.description }}
+      </li>
+      {% endfor %}
+    </ul>
+    <p style="font-size: small">{{disclaimer}}</p>
+  </body>
+</html>

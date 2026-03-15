@@ -1339,11 +1339,11 @@ class BatchProcessor:
             file_dir.mkdir(exist_ok=True)
 
             graph_path = file_dir / "graph.json"
-            graph_path.write_text(json.dumps(output, indent=2))
+            graph_path.write_text(json.dumps(output, indent=2), encoding="utf-8")
 
             try:
                 html = export_html(output, template=self.template)
-                (file_dir / "index.html").write_text(html)
+                (file_dir / "index.html").write_text(html, encoding="utf-8")
             except Exception as exc:
                 console.print(
                     f"  [yellow]HTML export failed for {f['file_name']}: {exc}[/yellow]"
@@ -1407,7 +1407,7 @@ class BatchProcessor:
     async def _submit_part(self, part_name: str, requests: list[dict]):
         """Upload JSONL and create a single batch, validating file size."""
         jsonl_path = self.batches_dir / f"{part_name}_input.jsonl"
-        with open(jsonl_path, "w") as fh:
+        with open(jsonl_path, "w", encoding="utf-8") as fh:
             for r in requests:
                 fh.write(json.dumps(r) + "\n")
 
@@ -1491,10 +1491,14 @@ class BatchProcessor:
         if status == "completed":
             if out_fid:
                 content = await self.client.download_file(out_fid)
-                (self.batches_dir / f"{part_name}_output.jsonl").write_text(content)
+                (self.batches_dir / f"{part_name}_output.jsonl").write_text(
+                    content, encoding="utf-8"
+                )
             if err_fid:
                 errs = await self.client.download_file(err_fid)
-                (self.batches_dir / f"{part_name}_errors.jsonl").write_text(errs)
+                (self.batches_dir / f"{part_name}_errors.jsonl").write_text(
+                    errs, encoding="utf-8"
+                )
                 n_err = sum(1 for line in errs.strip().splitlines() if line.strip())
                 if n_err:
                     console.print(f"  [yellow]{n_err} error(s) saved[/yellow]")
@@ -1637,10 +1641,10 @@ class BatchProcessor:
 
         # Persist aggregated maps so we can resume after a poll
         (self.batches_dir / "cross_agg_entities.json").write_text(
-            json.dumps(_serialize_map(emap))
+            json.dumps(_serialize_map(emap)), encoding="utf-8"
         )
         (self.batches_dir / "cross_agg_relations.json").write_text(
-            json.dumps(_serialize_map(rmap))
+            json.dumps(_serialize_map(rmap)), encoding="utf-8"
         )
 
         # Build summarization requests for nodes with multiple descriptions
@@ -1662,7 +1666,7 @@ class BatchProcessor:
         pre_graph = _build_graph(emap, rmap)
         clusters, cpayload = _detect_communities(pre_graph)
         (self.batches_dir / "cross_clusters.json").write_text(
-            json.dumps([sorted(c) for c in clusters])
+            json.dumps([sorted(c) for c in clusters]), encoding="utf-8"
         )
         if cpayload:
             reqs.append(
@@ -1766,7 +1770,7 @@ class BatchProcessor:
         }
 
         out_path = self.output_dir / "consolidated_graph.json"
-        out_path.write_text(json.dumps(output, indent=2))
+        out_path.write_text(json.dumps(output, indent=2), encoding="utf-8")
         console.print(
             f"[green]✓[/green] Consolidated graph ({len(consolidated.get('entities', []))} entities, "
             f"{len(consolidated.get('relations', []))} relations) → [cyan]{out_path}[/cyan]"
@@ -1775,7 +1779,7 @@ class BatchProcessor:
         try:
             html = export_html(output, template=self.template)
             html_path = self.output_dir / "consolidated_graph.html"
-            html_path.write_text(html)
+            html_path.write_text(html, encoding="utf-8")
             console.print(
                 f"[green]✓[/green] Consolidated report → [cyan]{html_path}[/cyan]"
             )
@@ -2059,5 +2063,3 @@ def cmd_status(
 
 if __name__ == "__main__":
     batch_openai_app()
-
-

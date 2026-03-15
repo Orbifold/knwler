@@ -2,10 +2,23 @@
 
 [OpenAI](https://openai.com) will return high-quality extraction for little money and usually a lot faster than a local Ollama setup.
 If you run the process in your terminal the code will look for the usual `OPENAI_API_KEY`.
-You can assign it explicitly via a terminal export
+
+### Linux / macOS
 
 ```bash
 export OPENAI_API_KEY=...
+```
+
+### Windows (PowerShell)
+
+```powershell
+$env:OPENAI_API_KEY = "..."
+```
+
+### Windows (cmd.exe)
+
+```cmd
+setx OPENAI_API_KEY "..."
 ```
 
 or in the code (look for `os.environ.get("OPENAI_API_KEY", "")`).

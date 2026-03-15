@@ -115,7 +115,7 @@ def _save_partial_results(
             for r in sorted(results, key=lambda x: x.chunk_idx)
         ],
     }
-    partial_path.write_text(json.dumps(partial_json, indent=2))
+    partial_path.write_text(json.dumps(partial_json, indent=2), encoding="utf-8")
 
 
 # ---------------------------------------------------------------------------

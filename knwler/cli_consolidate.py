@@ -67,7 +67,9 @@ async def cli_consolidate_graphs(
                 if output
                 else (Path("results") / "consolidated_graph.json")
             )
-        consolidated_path.write_text(json.dumps(consolidated, indent=2))
+        consolidated_path.write_text(
+            json.dumps(consolidated, indent=2), encoding="utf-8"
+        )
         console.print(
             f"[green]\u2713[/green] Consolidated graph saved to [cyan]{consolidated_path}[/cyan]"
         )

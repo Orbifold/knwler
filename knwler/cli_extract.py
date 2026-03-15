@@ -345,7 +345,7 @@ async def _process_file(
         ),
         "chunks": final_chunks,
     }
-    graph_json_path.write_text(json.dumps(output_data, indent=2))
+    graph_json_path.write_text(json.dumps(output_data, indent=2), encoding="utf-8")
     console.print(
         f"\n[green]\u2713[/green] Results saved to [cyan]{graph_json_path}[/cyan]"
     )
@@ -368,7 +368,7 @@ async def _process_file(
             template=template,
         )
         html_path = results_dir / "index.html"
-        html_path.write_text(html_content)
+        html_path.write_text(html_content, encoding="utf-8")
         console.print(
             f"[green]\u2713[/green] HTML report saved to [cyan]{html_path}[/cyan]"
         )

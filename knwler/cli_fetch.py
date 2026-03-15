@@ -86,7 +86,7 @@ def fetch_command(
             try:
                 content, _meta = asyncio.run(parse_file(output_path))
                 text_path = output_path.with_suffix(".md")
-                text_path.write_text(content)
+                text_path.write_text(content, encoding="utf-8")
                 console.print(f"[green]Saved parsed text to[/green] {text_path}")
             except Exception as e:
                 console.print(f"[red]Error parsing document:[/red] {e}")

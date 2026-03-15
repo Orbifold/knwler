@@ -36,7 +36,7 @@ No big package dependencies, runs local if you wish, no licenses, no fuss.
 ## Table of Contents
 
 - [Why Knwler?](#why-knwler)
-- [What's New in v1.0](#whats-new-in-v1)
+- [What's New in v1.0](#whats-new-in-v10)
 - [Key Features](#key-features)
 - [Supported Backends](#supported-backends)
 - [Cost & Performance](#cost--performance)
@@ -66,7 +66,7 @@ Knwler does not implement graph RAG — it focuses on one thing: turning unstruc
 
 ---
 
-## What's New in v1.0.0
+## What's New in v1.0
 
 This is a major release with many new features and improvements. See the full [CHANGELOG](./CHANGELOG.md) for details.
 
@@ -498,4 +498,8 @@ The information extracted by Knwler is generated via machine learning and natura
 
 ---
 
-_Built by [Orbifold Consulting](https://orbifold.net) and inspired by [Knwl](https://knwl.ai)_.
+## Support and Consulting
+
+- [Leave your issues and deepest wishes on Github](https://github.com/Orbifold/knwler/issues)
+- [Contact Info and Consulting](https://graphsandnetworks.com/contact/)
+- Via [LinkedIn](https://www.linkedin.com/in/francoisvanderseypen/) you can find updates and more.

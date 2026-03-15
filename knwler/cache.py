@@ -38,7 +38,9 @@ def _write_cache(subdir: str, key: str, response: Any, extra: dict | None = None
     data = {"response": response, "cached_at": time.strftime("%Y-%m-%d %H:%M:%S")}
     if extra:
         data.update(extra)
-    (_subdir(subdir) / f"{key}.json").write_text(json.dumps(data, indent=2))
+    (_subdir(subdir) / f"{key}.json").write_text(
+        json.dumps(data, indent=2), encoding="utf-8"
+    )
 
 
 def _clear_cache(subdir: str):

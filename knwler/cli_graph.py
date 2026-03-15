@@ -125,7 +125,8 @@ def _to_cytoscape(entities: list, relations: list, output_path: Path) -> None:
         if r.get("source") and r.get("target")
     ]
     output_path.write_text(
-        json.dumps({"elements": {"nodes": nodes, "edges": edges}}, indent=2)
+        json.dumps({"elements": {"nodes": nodes, "edges": edges}}, indent=2),
+        encoding="utf-8",
     )
 
 
@@ -135,7 +136,7 @@ def _to_edgelist(relations: list, output_path: Path) -> None:
         for r in relations
         if r.get("source") and r.get("target")
     ]
-    output_path.write_text("\n".join(lines))
+    output_path.write_text("\n".join(lines), encoding="utf-8")
 
 
 def _to_jsonld(entities: list, relations: list, title: str, output_path: Path) -> None:
@@ -194,7 +195,8 @@ def _to_jsonld(entities: list, relations: list, title: str, output_path: Path) -
         )
 
     output_path.write_text(
-        json.dumps({"@context": context, "@graph": graph_nodes}, indent=2)
+        json.dumps({"@context": context, "@graph": graph_nodes}, indent=2),
+        encoding="utf-8",
     )
 
 
@@ -474,13 +476,13 @@ def analyze_graph(
         analysis = _compute_analysis(data, top_n=top)
 
     # Save JSON
-    json_out.write_text(json.dumps(analysis, indent=2, default=str))
+    json_out.write_text(json.dumps(analysis, indent=2, default=str), encoding="utf-8")
     console.print(f"[green]✓[/green] Analysis JSON → [cyan]{json_out}[/cyan]")
 
     # Render and save HTML
     with console.status("[cyan]Rendering HTML report…"):
         html = _render_analysis_html(analysis)
-    html_out.write_text(html)
+    html_out.write_text(html, encoding="utf-8")
     console.print(f"[green]✓[/green] Analysis report → [cyan]{html_out}[/cyan]")
 
     stats = analysis["stats"]

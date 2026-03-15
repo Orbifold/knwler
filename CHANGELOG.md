@@ -40,6 +40,7 @@
 - AWS Neptune import script and documentation
 - additional languages: Italian, Portuguese and Simplified Chinese
 - Google Gemini added as backend
+- batch processing using Google Gemini
 
 ## v0.4.1
 

@@ -57,7 +57,7 @@ from knwler.cli_cache import cache_app
 from knwler.cli_demo import demo_app
 from knwler.cli_benchmark import benchmark_app
 from knwler.cli_graph import graph_app
-from knwler.cli_batch_openai import batch_openai_app
+from knwler.cli_batch import batch_app
 
 app = typer.Typer(
     help="Turn documents into structured knowledge.",
@@ -306,7 +306,7 @@ app.add_typer(
     help="Convert and analyse graph.json files",
 )
 
-app.add_typer(batch_openai_app, name="batch", help="Run batch API pipeline.")
+app.add_typer(batch_app, name="batch", help="Run batch API pipeline (OpenAI / Gemini).")
 
 
 def main():

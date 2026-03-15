@@ -77,3 +77,5 @@ So many new features added in v0.5.0 so here is a comprehensive checklist (for m
 - [x] uv run main.py fetch url https://knwler.com/pdfs/HumanRights.pdf --output ~/temp/things/ --parse
 - [x] uv run main.py extract -f https://knwler.com/pdfs/mbti.pdf --output ~/temp/things/ --backend openai
 - [x] uv run main.py -f https://knwler.com --backend gemini
+- [x] uv run main.py batch run --input /Users/swa/temp/pdfs --output ~/temp/batching
+- [x] uv run main.py batch run --input /Users/swa/temp/pdfs --output ~/temp/batching --backend gemini

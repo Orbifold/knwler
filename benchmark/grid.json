@@ -32,5 +32,19 @@
             "discovery_model": "claude-sonnet-4-6",
             "extraction_model": "claude-haiku-4-5-20251001"
         }
+    ],
+    "gemini": [
+        {
+            "discovery_model": "gemini-3.1-flash-lite-preview",
+            "extraction_model": "gemini-3.1-flash-lite-preview"
+        },
+        {
+            "discovery_model": "gemini-3-flash-preview",
+            "extraction_model": "gemini-3-flash-preview"
+        },
+        {
+            "discovery_model": "gemini-3.1-pro-preview",
+            "extraction_model": "gemini-3.1-pro-preview"
+        }
     ]
 }

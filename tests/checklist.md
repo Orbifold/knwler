@@ -58,7 +58,7 @@ So many new features added in v0.5.0 so here is a comprehensive checklist (for m
 - [x] benchmark
 - [ ] Windows
 - [ ] Linux
-- [ ] LMStudio => works on Windows?
+- [x] LMStudio
 - [ ] OpenRouter
 - [ ] rename community to cluster
 - [x] check localization file again

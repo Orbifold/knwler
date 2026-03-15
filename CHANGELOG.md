@@ -40,7 +40,7 @@
 - AWS Neptune import script and documentation
 - additional languages: Italian, Portuguese and Simplified Chinese
 - Google Gemini added as backend
-- batch processing using Google Gemini
+- batch processing using Google Gemini, same characteristics as OpenaI (SQLite resume etc.)
 
 ## v0.4.1
 

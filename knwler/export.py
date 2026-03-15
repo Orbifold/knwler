@@ -24,7 +24,11 @@ from dataclasses import asdict
 # ---------------------------------------------------------------------------
 def _md_to_html(text: str) -> str:
     """Convert a markdown string to an HTML fragment."""
-    return md_lib.markdown(text, extensions=["nl2br", "sane_lists"])
+    try:
+        return md_lib.markdown(text, extensions=["nl2br", "sane_lists"])
+    except Exception as e:
+        console.print(f"[red]Error converting markdown to HTML:[/red] {e}")
+        return ""
 
 
 def _linkify_entities(
@@ -152,22 +156,26 @@ def export_html(
     # Prepare chunks display data
     chunks_display = []
     for i, chunk in enumerate(chunks):
-        rephrase = chunk.get("rephrase", "")
-        original = chunk.get("text", "")
-        display = rephrase if rephrase else original
-        display_html = _md_to_html(display)
-        original_html = _md_to_html(original)
-        chunks_display.append(
-            {
-                "id": f"chunk-{chunk.get('id')}",
-                "index": i + 1,
-                "text": original,
-                "linkified": _linkify_entities(
-                    display_html, chunk.get("entities", []), already_html=True
-                ),
-                "original": original_html,
-            }
-        )
+        try:
+            rephrase = chunk.get("rephrase", "")
+            original = chunk.get("text", "")
+            display = rephrase if rephrase else original
+            display_html = _md_to_html(display)
+            original_html = _md_to_html(original)
+            chunks_display.append(
+                {
+                    "id": f"chunk-{chunk.get('id')}",
+                    "index": i + 1,
+                    "text": original,
+                    "linkified": _linkify_entities(
+                        display_html, chunk.get("entities", []), already_html=True
+                    ),
+                    "original": original_html,
+                }
+            )
+        except Exception as e:
+            console.print(f"[red]Error processing chunk {i}:[/red] {e}")
+            continue
 
     # Prepare entities display data
     chunk_label = get_ui("chunk_label") or "Part"

@@ -36,6 +36,9 @@ DEFAULT_GITHUB_EXTRACTION_MODEL = "github-copilot/claude-opus-4.5"
 DEFAULT_LMSTUDIO_DISCOVERY_MODEL = "glm-4.7-flash"
 DEFAULT_LMSTUDIO_EXTRACTION_MODEL = "glm-4.7-flash"
 
+DEFAULT_GEMINI_DISCOVERY_MODEL = "gemini-3.1-flash-lite-preview"
+DEFAULT_GEMINI_EXTRACTION_MODEL = "gemini-3.1-flash-lite-preview"
+
 
 # ---------------------------------------------------------------------------
 # Default backend URLs
@@ -45,6 +48,7 @@ DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1"
 DEFAULT_ANTHROPIC_URL = "https://api.anthropic.com/v1"
 DEFAULT_GITHUB_BASE_URL = "https://models.inference.ai.azure.com"
 DEFAULT_LMSTUDIO_BASE_URL = "http://localhost:1234/api/v1"
+DEFAULT_GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai"
 
 
 # ---------------------------------------------------------------------------
@@ -54,7 +58,7 @@ DEFAULT_LMSTUDIO_BASE_URL = "http://localhost:1234/api/v1"
 class Config:
     """Pipeline configuration."""
 
-    # Backend selection: "ollama" | "openai" | "anthropic" | "github" | "lmstudio"
+    # Backend selection: "ollama" | "openai" | "anthropic" | "github" | "lmstudio" | "gemini"
     backend: str = "ollama"
 
     api_key: str = None
@@ -84,6 +88,8 @@ class Config:
                 self.base_url = DEFAULT_GITHUB_BASE_URL
             elif self.backend == "lmstudio":
                 self.base_url = DEFAULT_LMSTUDIO_BASE_URL
+            elif self.backend == "gemini":
+                self.base_url = DEFAULT_GEMINI_BASE_URL
             else:
                 self.base_url = DEFAULT_OLLAMA_URL
 
@@ -96,6 +102,8 @@ class Config:
                 self.extraction_model = DEFAULT_GITHUB_EXTRACTION_MODEL
             elif self.backend == "lmstudio":
                 self.extraction_model = DEFAULT_LMSTUDIO_EXTRACTION_MODEL
+            elif self.backend == "gemini":
+                self.extraction_model = DEFAULT_GEMINI_EXTRACTION_MODEL
             else:
                 self.extraction_model = DEFAULT_OLLAMA_EXTRACTION_MODEL
 
@@ -108,5 +116,7 @@ class Config:
                 self.discovery_model = DEFAULT_GITHUB_DISCOVERY_MODEL
             elif self.backend == "lmstudio":
                 self.discovery_model = DEFAULT_LMSTUDIO_DISCOVERY_MODEL
+            elif self.backend == "gemini":
+                self.discovery_model = DEFAULT_GEMINI_DISCOVERY_MODEL
             else:
                 self.discovery_model = DEFAULT_OLLAMA_DISCOVERY_MODEL

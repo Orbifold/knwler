@@ -39,6 +39,7 @@
 - graph conversion CLI command to take the `graph.json` to JSONLD, GML, GraphML and more.
 - AWS Neptune import script and documentation
 - additional languages: Italian, Portuguese and Simplified Chinese
+- Google Gemini added as backend
 
 ## v0.4.1
 

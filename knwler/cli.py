@@ -26,6 +26,8 @@ from knwler.config import (
     DEFAULT_GITHUB_DISCOVERY_MODEL,
     DEFAULT_LMSTUDIO_EXTRACTION_MODEL,
     DEFAULT_LMSTUDIO_DISCOVERY_MODEL,
+    DEFAULT_GEMINI_EXTRACTION_MODEL,
+    DEFAULT_GEMINI_DISCOVERY_MODEL,
     Config,
     console,
 )
@@ -103,6 +105,13 @@ def consolidate_graphs_command(
             help="Use LM Studio (local OpenAI-compatible server at http://localhost:1234/v1).",
         ),
     ] = False,
+    gemini: Annotated[
+        bool,
+        typer.Option(
+            "--gemini",
+            help="Use Google Gemini API for consolidation (requires GEMINI_API_KEY env var).",
+        ),
+    ] = False,
     extraction_model: Annotated[
         Optional[str],
         typer.Option(
@@ -163,10 +172,10 @@ def consolidate_graphs_command(
     ] = False,
 ):
     """Consolidate extracted graphs into a single graph."""
-    backend_flags = sum([openai, anthropic, github, lmstudio])
+    backend_flags = sum([openai, anthropic, github, lmstudio, gemini])
     if backend_flags > 1:
         console.print(
-            "[red]\u2717[/red] [bold red]Error:[/bold red] --openai, --anthropic, --github, and --lmstudio are mutually exclusive."
+            "[red]\u2717[/red] [bold red]Error:[/bold red] --openai, --anthropic, --github, --lmstudio, and --gemini are mutually exclusive."
         )
         raise typer.Exit(1)
     backend = (
@@ -175,7 +184,11 @@ def consolidate_graphs_command(
         else (
             "anthropic"
             if anthropic
-            else ("github" if github else ("lmstudio" if lmstudio else "ollama"))
+            else (
+                "github"
+                if github
+                else ("lmstudio" if lmstudio else ("gemini" if gemini else "ollama"))
+            )
         )
     )
     resolved_extraction = extraction_model or (
@@ -190,7 +203,11 @@ def consolidate_graphs_command(
                 else (
                     DEFAULT_LMSTUDIO_EXTRACTION_MODEL
                     if lmstudio
-                    else DEFAULT_OLLAMA_EXTRACTION_MODEL
+                    else (
+                        DEFAULT_GEMINI_EXTRACTION_MODEL
+                        if gemini
+                        else DEFAULT_OLLAMA_EXTRACTION_MODEL
+                    )
                 )
             )
         )
@@ -207,7 +224,11 @@ def consolidate_graphs_command(
                 else (
                     DEFAULT_LMSTUDIO_DISCOVERY_MODEL
                     if lmstudio
-                    else DEFAULT_OLLAMA_DISCOVERY_MODEL
+                    else (
+                        DEFAULT_GEMINI_DISCOVERY_MODEL
+                        if gemini
+                        else DEFAULT_OLLAMA_DISCOVERY_MODEL
+                    )
                 )
             )
         )

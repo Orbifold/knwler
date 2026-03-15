@@ -17,7 +17,6 @@ So many new features added in v0.5.0 so here is a comprehensive checklist (for m
 - [x] LinkedIn
 - [x] license
 
-
 ## Documentation
 
 - [ ] CLI help
@@ -74,7 +73,7 @@ So many new features added in v0.5.0 so here is a comprehensive checklist (for m
 - [x] uv run main.py extract -f https://cnn.com --output ~/temp
 - [x] uv run main.py fetch wiki quantum --open
 - [x] uv run main.py fetch url https://knwler.com/pdfs/HumanRights.pdf --output ~/temp
-- [x] uv run main.py fetch wiki topology  --output ~/temp/ --open
+- [x] uv run main.py fetch wiki topology --output ~/temp/ --open
 - [x] uv run main.py fetch url https://knwler.com/pdfs/HumanRights.pdf --output ~/temp/things/ --parse
-- [x] uv run main.py extract -f  https://knwler.com/pdfs/mbti.pdf --output ~/temp/things/ --backend openai
-
+- [x] uv run main.py extract -f https://knwler.com/pdfs/mbti.pdf --output ~/temp/things/ --backend openai
+- [x] uv run main.py -f https://knwler.com --backend gemini

@@ -1,5 +1,5 @@
 """
-LLM backends (Ollama, OpenAI, Anthropic, GitHub Models, LM Studio) and JSON response parsing.
+LLM backends (Ollama, OpenAI, Anthropic, GitHub Models, LM Studio, Google Gemini) and JSON response parsing.
 """
 
 import json
@@ -24,6 +24,12 @@ async def _post_json(
     timeout_seconds: int = 360,
 ) -> dict[str, Any]:
     """POST JSON payload and parse JSON response using aiohttp."""
+    # Debug: print equivalent curl command
+    # header_args = " ".join(f"-H '{k}: {v}'" for k, v in (headers or {}).items())
+    # print(
+    #     f"curl -X POST '{url}' {header_args} -H 'Content-Type: application/json' -d '{json.dumps(payload)}'"
+    # )
+
     timeout = aiohttp.ClientTimeout(total=timeout_seconds)
     try:
         async with aiohttp.ClientSession(timeout=timeout) as session:
@@ -31,6 +37,7 @@ async def _post_json(
                 resp.raise_for_status()
                 return await resp.json()
     except aiohttp.ClientResponseError as e:
+
         if e.status == 401:
             raise RuntimeError(
                 "Authentication failed (HTTP 401): the API key is missing or invalid. "
@@ -349,6 +356,63 @@ async def github_generate(
 
 
 # ---------------------------------------------------------------------------
+# Google Gemini
+# ---------------------------------------------------------------------------
+async def gemini_generate(
+    prompt: str,
+    config: Config,
+    model: str | None = None,
+    format_json: bool = True,
+    id: str | None = None,
+) -> str:
+    """Call the Google Gemini API via its OpenAI-compatible endpoint and return the
+    response text (cached).
+
+    Requires a ``GEMINI_API_KEY`` environment variable (or ``config.api_key``).
+    The default base URL is ``https://generativelanguage.googleapis.com/v1beta/openai``.
+    See https://ai.google.dev/gemini-api/docs/openai for details.
+    """
+    actual_model = model or config.extraction_model
+    api_key = config.api_key or os.environ.get("GEMINI_API_KEY", "")
+
+    if not api_key:
+        raise ValueError(
+            "Gemini API key not set. Set GEMINI_API_KEY env var or config.api_key"
+        )
+
+    if config.use_cache:
+        key = create_llm_cache_key(
+            prompt, actual_model, config.temperature, config.num_predict
+        )
+        cached = get_cached_llm_response(key)
+        if cached is not None:
+            return cached
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    messages = [{"role": "user", "content": prompt}]
+    payload = {
+        "model": actual_model,
+        "messages": messages,
+        "temperature": config.temperature,
+        "max_tokens": config.num_predict,
+    }
+    if format_json:
+        payload["response_format"] = {"type": "json_object"}
+
+    url = f"{config.base_url.rstrip('/')}/chat/completions"
+    response_json = await _post_json(url, payload=payload, headers=headers)
+    response = response_json["choices"][0]["message"]["content"]
+
+    if config.use_cache:
+        save_llm_response_to_cache(key, response, actual_model, id)
+
+    return response
+
+
+# ---------------------------------------------------------------------------
 # Dispatcher
 # ---------------------------------------------------------------------------
 async def llm_generate(
@@ -373,6 +437,8 @@ async def llm_generate(
         return await github_generate(prompt, config, model, format_json, id)
     if config.backend == "lmstudio":
         return await lmstudio_generate(prompt, config, model, format_json, id)
+    if config.backend == "gemini":
+        return await gemini_generate(prompt, config, model, format_json, id)
     return await ollama_generate(prompt, config, model, format_json, id)
 
 

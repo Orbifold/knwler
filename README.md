@@ -14,13 +14,21 @@ Built for compliance teams, legal departments, research analysts, and anyone who
 
 No big package dependencies, runs local if you wish, no licenses, no fuss.
 
-<div style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px;">
-<a href="https://knwler.com/benchmark" target="_blank"><img src="./docs/images/benchmarks.png" style="height:200px;"/></a>
-<a href="https://knwler.com/images/Ogma.png" target="_blank"><img src="./docs/images/ogma.jpg" style="height:200px;"/></a>
-<a href="https://knwler.com/images/Surreal.jpg" target="_blank"><img src="./docs/images/SurrealExport.jpg" style="height:200px;"/></a>
-<a href="https://knwler.com/images/yEd.png" target="_blank"><img src="./docs/images/yEd.png" style="height:200px;"/></a>
-<a href="https://knwler.com/images/yFilesKnwler.png" target="_blank"><img src="./docs/images/yFilesKnwler.jpg" style="height:200px;"/></a>
-<a href="https://knwler.com/images/yFilesKnwlerDark.png" target="_blank"><img src="./docs/images/yFilesKnwlerDark.jpg" style="height:200px;"/></a>
+<div style="display:grid; grid-template-columns:repeat(4,1fr); gap:2px;">
+<a href="https://knwler.com/benchmark" target="_blank"><img src="https://github.com/Orbifold/knwler/docs/images/benchmarks.png" style="height:200px;"/></a>
+<a href="https://knwler.com/images/Ogma.png" target="_blank"><img src="https://github.com/Orbifold/knwler/docs/images/ogma.jpg" style="height:200px;"/></a>
+<a href="https://knwler.com/images/Surreal.jpg" target="_blank"><img src="https://github.com/Orbifold/knwler/docs/images/SurrealExport.jpg" style="height:200px;"/></a>
+<a href="https://knwler.com/images/yEd.png" target="_blank"><img src="https://github.com/Orbifold/knwler/docs/images/yEd.png" style="height:200px;"/></a>
+<a href="https://knwler.com/images/yFilesKnwler.png" target="_blank"><img src="https://github.com/Orbifold/knwler/docs/images/yFilesKnwler.jpg" style="height:200px;"/></a>
+<a href="https://knwler.com/images/yFilesKnwlerDark.png" target="_blank"><img src="https://github.com/Orbifold/knwler/docs/images/yFilesKnwlerDark.jpg" style="height:200px;"/></a>
+<a href="https://knwler.com/images/OgmaKnwler.png" target="_blank"><img src="https://github.com/Orbifold/knwler/docs/images/OgmaKnwler.jpg" style="height:200px;"/></a>
+<a href="https://knwler.com/images/Neo4jExport.jpg" target="_blank"><img src="https://github.com/Orbifold/knwler/docs/images/Neo4jExport.jpg" style="height:200px;"/></a>
+<a href="https://knwler.com/images/HumanRightsFancy.png" target="_blank"><img src="https://github.com/Orbifold/knwler/docs/images/HumanRightsFancy.jpg" style="height:200px;"/></a>
+<a href="https://knwler.com/images/GraphDBVisualGraph.png" target="_blank"><img src="https://github.com/Orbifold/knwler/docs/images/GraphDBVisualGraph.jpg" style="height:200px;"/></a>
+<a href="https://knwler.com/images/ColumnsTemplate.jpg" target="_blank"><img src="https://github.com/Orbifold/knwler/docs/images/ColumnsTemplate.jpg" style="height:200px;"/></a>
+<a href="https://knwler.com/images/DefaultTemplate.jpg" target="_blank"><img src="https://github.com/Orbifold/knwler/docs/images/DefaultTemplate.jpg" style="height:200px;"/></a>
+<a href="https://knwler.com/images/Disambiguation.jpg" target="_blank"><img src="https://github.com/Orbifold/knwler/docs/images/Disambiguation.jpg" style="height:200px;"/></a>
+<a href="https://knwler.com/images/BurgerlijkRaw.jpg" target="_blank"><img src="https://github.com/Orbifold/knwler/docs/images/BurgerlijkRaw.jpg" style="height:200px;"/></a>
 </div>
 
 ---

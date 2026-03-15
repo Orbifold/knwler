@@ -24,6 +24,8 @@ from knwler.config import (
     DEFAULT_ANTHROPIC_DISCOVERY_MODEL,
     DEFAULT_GITHUB_EXTRACTION_MODEL,
     DEFAULT_GITHUB_DISCOVERY_MODEL,
+    DEFAULT_LMSTUDIO_EXTRACTION_MODEL,
+    DEFAULT_LMSTUDIO_DISCOVERY_MODEL,
     Config,
     console,
 )
@@ -94,6 +96,13 @@ def consolidate_graphs_command(
             help="Use GitHub Models API for consolidation (requires GITHUB_TOKEN env var). Experimental.",
         ),
     ] = False,
+    lmstudio: Annotated[
+        bool,
+        typer.Option(
+            "--lmstudio",
+            help="Use LM Studio (local OpenAI-compatible server at http://localhost:1234/v1).",
+        ),
+    ] = False,
     extraction_model: Annotated[
         Optional[str],
         typer.Option(
@@ -154,21 +163,20 @@ def consolidate_graphs_command(
     ] = False,
 ):
     """Consolidate extracted graphs into a single graph."""
-    if openai and anthropic:
-        console.print(
-            "[red]\u2717[/red] [bold red]Error:[/bold red] --openai and --anthropic are mutually exclusive."
-        )
-        raise typer.Exit(1)
-    backend_flags = sum([openai, anthropic, github])
+    backend_flags = sum([openai, anthropic, github, lmstudio])
     if backend_flags > 1:
         console.print(
-            "[red]\u2717[/red] [bold red]Error:[/bold red] --openai, --anthropic, and --github are mutually exclusive."
+            "[red]\u2717[/red] [bold red]Error:[/bold red] --openai, --anthropic, --github, and --lmstudio are mutually exclusive."
         )
         raise typer.Exit(1)
     backend = (
         "openai"
         if openai
-        else ("anthropic" if anthropic else ("github" if github else "ollama"))
+        else (
+            "anthropic"
+            if anthropic
+            else ("github" if github else ("lmstudio" if lmstudio else "ollama"))
+        )
     )
     resolved_extraction = extraction_model or (
         DEFAULT_OPENAI_EXTRACTION_MODEL
@@ -179,7 +187,11 @@ def consolidate_graphs_command(
             else (
                 DEFAULT_GITHUB_EXTRACTION_MODEL
                 if github
-                else DEFAULT_OLLAMA_EXTRACTION_MODEL
+                else (
+                    DEFAULT_LMSTUDIO_EXTRACTION_MODEL
+                    if lmstudio
+                    else DEFAULT_OLLAMA_EXTRACTION_MODEL
+                )
             )
         )
     )
@@ -192,7 +204,11 @@ def consolidate_graphs_command(
             else (
                 DEFAULT_GITHUB_DISCOVERY_MODEL
                 if github
-                else DEFAULT_OLLAMA_DISCOVERY_MODEL
+                else (
+                    DEFAULT_LMSTUDIO_DISCOVERY_MODEL
+                    if lmstudio
+                    else DEFAULT_OLLAMA_DISCOVERY_MODEL
+                )
             )
         )
     )

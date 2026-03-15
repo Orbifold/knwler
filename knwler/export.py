@@ -72,17 +72,18 @@ def _linkify_entities(
 # Export
 # ---------------------------------------------------------------------------
 def export_html(
-    results_data: KnowledgeGraph | dict,
+    kg: KnowledgeGraph | dict,
     template: str = "default",
+    **kwargs: Any,
 ) -> str:
     """Export results.json data to an HTML report using Jinja2 template."""
-    if isinstance(results_data, KnowledgeGraph):
-        results_data = asdict(results_data)
-    title = results_data.get("title") or "Knowledge Graph"
-    summary = results_data.get("summary", "")
-    url = results_data.get("url", "")
-    chunks = results_data.get("chunks", [])
-    graph = results_data.get("graph", {})
+    if isinstance(kg, KnowledgeGraph):
+        kg = asdict(kg)
+    title = kg.get("title") or "Knowledge Graph"
+    summary = kg.get("summary", "")
+    url = kg.get("url", "")
+    chunks = kg.get("chunks", [])
+    graph = kg.get("graph", {})
     entities = graph.get("entities", [])
     relations = graph.get("relations", [])
     communities = graph.get("communities", [])
@@ -261,7 +262,6 @@ def export_html(
         "assumes no liability for any actions taken in reliance upon this information."
     )
 
-
     # Setup Jinja2 environment
     templates_dir = Path(__file__).parent / "templates"
     env = Environment(
@@ -284,7 +284,8 @@ def export_html(
         node_elements=node_elements,
         edge_elements=edge_elements,
         js_labels=js_labels,
-        rawData=json.dumps(results_data, indent=2),
+        rawData=json.dumps(kg, indent=2),
+        minimumDegree=kwargs.get("minimum_degree", 1),
     )
 
     return html_content

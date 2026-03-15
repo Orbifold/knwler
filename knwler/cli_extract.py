@@ -40,6 +40,8 @@ from knwler.config import (
     DEFAULT_ANTHROPIC_DISCOVERY_MODEL,
     DEFAULT_GITHUB_EXTRACTION_MODEL,
     DEFAULT_GITHUB_DISCOVERY_MODEL,
+    DEFAULT_LMSTUDIO_EXTRACTION_MODEL,
+    DEFAULT_LMSTUDIO_DISCOVERY_MODEL,
     Config,
     console,
 )
@@ -136,6 +138,8 @@ async def _process_file(
         "openai": "[cyan]OpenAI[/cyan]",
         "anthropic": "[magenta]Anthropic[/magenta]",
         "ollama": "[green]Ollama[/green]",
+        "github": "[blue]GitHub Models[/blue]",
+        "lmstudio": "[yellow]LM Studio[/yellow]",
     }
     backend = _backend_labels.get(config.backend, "[green]Ollama[/green]")
     mode = (
@@ -473,7 +477,7 @@ def extract(
         typer.Option(
             "--backend",
             "-b",
-            help="LLM backend to use: ollama (default), openai, anthropic, github.",
+            help="LLM backend to use: ollama (default), openai, anthropic, github, lmstudio.",
         ),
     ] = "ollama",
     base_url: Annotated[
@@ -603,7 +607,7 @@ def extract(
         return typer.Exit(1)
 
     # Config
-    _valid_backends = {"ollama", "openai", "anthropic", "github"}
+    _valid_backends = {"ollama", "openai", "anthropic", "github", "lmstudio"}
     backend = backend.lower()
     if backend not in _valid_backends:
         typer.echo(
@@ -615,12 +619,14 @@ def extract(
         "anthropic": DEFAULT_ANTHROPIC_EXTRACTION_MODEL,
         "github": DEFAULT_GITHUB_EXTRACTION_MODEL,
         "ollama": DEFAULT_OLLAMA_EXTRACTION_MODEL,
+        "lmstudio": DEFAULT_LMSTUDIO_EXTRACTION_MODEL,
     }
     _default_discovery = {
         "openai": DEFAULT_OPENAI_DISCOVERY_MODEL,
         "anthropic": DEFAULT_ANTHROPIC_DISCOVERY_MODEL,
         "github": DEFAULT_GITHUB_DISCOVERY_MODEL,
         "ollama": DEFAULT_OLLAMA_DISCOVERY_MODEL,
+        "lmstudio": DEFAULT_LMSTUDIO_DISCOVERY_MODEL,
     }
     resolved_extraction_model = extraction_model or _default_extraction[backend]
     resolved_discovery = discovery_model or _default_discovery[backend]

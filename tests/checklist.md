@@ -13,13 +13,10 @@ So many new features added in v0.5.0 so here is a comprehensive checklist (for m
 
 - [x] version set
 - [ ] Pypi deployment
-- [ ] Screenshots
-- [ ] LinkedIn
+- [x] Screenshots
+- [x] LinkedIn
 - [x] license
 
-## CLI
-
-- [ ] version
 
 ## Documentation
 
@@ -42,37 +39,42 @@ So many new features added in v0.5.0 so here is a comprehensive checklist (for m
 - [x] Neo4j export
 - [x] Surreal export
 - [x] GraphDB import
-- [ ] AWS import
+- [x] AWS import
+- [ ] Gemini + batch
 
 ## Tests
 
-- [ ] green green super green `uv run tests`
+- [x] green green super green `uv run tests`
 
 ## Nice to have
 
-- [ ] cache CLI `knwler cache clear`
-- [ ] full graphviz report template
+- [x] cache CLI `knwler cache clear`
+- [x] full graphviz report template
 
 ## Diverse
 
-- [ ] apple test network viz should show two apple nodes
-- [ ] promised RDF
+- [x] apple test network viz should show two apple nodes
+- [x] promised RDF
 - [x] rephrased chunks are markdown and should be rendered as such
 - [x] benchmark
 - [ ] Windows
 - [ ] Linux
 - [ ] LMStudio => works on Windows?
+- [ ] OpenRouter
 - [ ] rename community to cluster
+- [x] check localization file again
 
-```bash
+## Commands
 
-uv run main.py -f ./pdfs/HumanRights.pdf --url https://www.ohchr.org/sites/default/files/UDHR/Documents/UDHR_Translations/eng.pdf --overwrite-dir
+- [x] uv run main.py demo
+- [x] uv run main.py fetch url https://knwler.com/pdfs/HumanRights.pdf
+- [x] uv run main.py fetch wiki quantum
+- [x] uv run main.py cache clear wikipedia
+- [x] uv run main.py fetch url http://cnn.com --output ~/temp --open
+- [x] uv run main.py extract -f https://cnn.com --output ~/temp
+- [x] uv run main.py fetch wiki quantum --open
+- [x] uv run main.py fetch url https://knwler.com/pdfs/HumanRights.pdf --output ~/temp
+- [x] uv run main.py fetch wiki topology  --output ~/temp/ --open
+- [x] uv run main.py fetch url https://knwler.com/pdfs/HumanRights.pdf --output ~/temp/things/ --parse
+- [x] uv run main.py extract -f  https://knwler.com/pdfs/mbti.pdf --output ~/temp/things/ --backend openai
 
-uv run main.py -f ./pdfs/HumanRights.pdf --url https://www.ohchr.org/sites/default/files/UDHR/Documents/UDHR_Translations/eng.pdf --overwrite-dir --discovery-model gemma3:4b  --extraction-model gemma3:4b
-
-uv run main.py -f ./pdfs/HumanRights.pdf --url https://www.ohchr.org/sites/default/files/UDHR/Documents/UDHR_Translations/eng.pdf --overwrite-dir --discovery-model qwen3.5:0.8b  --extraction-model qwen3.5:0.8b
-
-uv run main.py fetch https://knwler.com/pdfs/HumanRights.pdf --output ~/temp/things/ --parse
-
- uv run main.py fetch wiki topology  --output ~/temp/ --open
-```

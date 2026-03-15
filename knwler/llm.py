@@ -1,5 +1,5 @@
 """
-LLM backends (Ollama, OpenAI) and JSON response parsing.
+LLM backends (Ollama, OpenAI, Anthropic, GitHub Models, LM Studio) and JSON response parsing.
 """
 
 import json
@@ -86,6 +86,7 @@ async def ollama_generate(
     config: Config,
     model: str | None = None,
     format_json: bool = True,
+    id: str | None = None,
 ) -> str:
     """Call Ollama and return the response text (cached)."""
     if config.base_url not in _ollama_checked:
@@ -115,14 +116,16 @@ async def ollama_generate(
     if format_json:
         payload["format"] = "json"
     try:
-        response_json = await _post_json(config.base_url, payload=payload)
+        generate_url = f"{config.base_url.rstrip('/')}/api/generate"
+        response_json = await _post_json(generate_url, payload=payload)
+        print(response_json)
         response = response_json["response"]
 
         if config.use_cache:
-            save_llm_response_to_cache(key, response, actual_model)
+            save_llm_response_to_cache(key, response, actual_model, id)
     except Exception as e:
         response = f"Error calling Ollama: {str(e)}"
-
+        raise e
     return response
 
 
@@ -134,6 +137,7 @@ async def openai_generate(
     config: Config,
     model: str | None = None,
     format_json: bool = True,
+    id: str | None = None,
 ) -> str:
     """Call OpenAI API and return the response text (cached)."""
     actual_model = model or config.extraction_model
@@ -171,7 +175,7 @@ async def openai_generate(
     response = response_json["choices"][0]["message"]["content"]
 
     if config.use_cache:
-        save_llm_response_to_cache(key, response, actual_model)
+        save_llm_response_to_cache(key, response, actual_model, id)
 
     return response
 
@@ -184,6 +188,7 @@ async def anthropic_generate(
     config: Config,
     model: str | None = None,
     format_json: bool = True,
+    id: str | None = None,
 ) -> str:
     """Call Anthropic API and return the response text (cached)."""
     import anthropic as _anthropic
@@ -202,8 +207,6 @@ async def anthropic_generate(
         )
         cached = get_cached_llm_response(key)
         if cached is not None:
-            print(cached)
-
             return cached
 
     client = _anthropic.Anthropic(api_key=api_key)
@@ -227,9 +230,67 @@ async def anthropic_generate(
     content = response.content[0].text
 
     if config.use_cache:
-        save_llm_response_to_cache(key, content, actual_model)
+        save_llm_response_to_cache(key, content, actual_model, id)
 
     return content
+
+
+# ---------------------------------------------------------------------------
+# LM Studio
+# ---------------------------------------------------------------------------
+async def lmstudio_generate(
+    prompt: str,
+    config: Config,
+    model: str | None = None,
+    format_json: bool = True,
+    id: str | None = None,
+) -> str:
+    """Call LM Studio's OpenAI-compatible API and return the response text (cached).
+
+    LM Studio runs locally at http://localhost:1234/v1 by default.
+    No API key is required; a placeholder value is sent to satisfy the protocol.
+    The model name should match whatever model is currently loaded in LM Studio.
+    See https://lmstudio.ai/docs/developer/rest
+    """
+    actual_model = model or config.extraction_model
+
+    if config.use_cache:
+        key = create_llm_cache_key(
+            prompt, actual_model, config.temperature, config.num_predict
+        )
+        cached = get_cached_llm_response(key)
+        if cached is not None:
+            return cached
+
+    headers = {
+        "Authorization": "Bearer lm-studio",
+        "Content-Type": "application/json",
+    }
+    messages = [{"type": "text", "content": prompt}]
+    payload = {
+        "model": actual_model,
+        "input": messages,
+        "temperature": config.temperature,
+        "max_output_tokens": config.num_predict,
+        # "reasoning": "off",  # "off" means no step-by-step reasoning, just final answer (LM Studio-specific)
+    }
+    # if format_json:
+    #     payload["response_format"] = {"type": "json_object"}
+
+    url = f"{config.base_url.rstrip('/')}/chat"
+    response_json = await _post_json(url, payload=payload, headers=headers)
+    output = response_json["output"]
+    for item in output:
+        if item["type"] == "message":
+            response = item["content"]
+            break
+    else:
+        response = ""
+
+    if config.use_cache:
+        save_llm_response_to_cache(key, response, actual_model, id)
+
+    return response
 
 
 # ---------------------------------------------------------------------------
@@ -240,6 +301,7 @@ async def github_generate(
     config: Config,
     model: str | None = None,
     format_json: bool = True,
+    id: str | None = None,
 ) -> str:
     """Call the GitHub Models API (OpenAI-compatible) and return the response text (cached).
 
@@ -281,7 +343,7 @@ async def github_generate(
     response = response_json["choices"][0]["message"]["content"]
 
     if config.use_cache:
-        save_llm_response_to_cache(key, response, actual_model)
+        save_llm_response_to_cache(key, response, actual_model, id)
 
     return response
 
@@ -294,16 +356,24 @@ async def llm_generate(
     config: Config,
     model: str | None = None,
     format_json: bool = True,
+    id: str | None = None,
 ) -> str:
-    """Dispatch to appropriate LLM backend based on config."""
+    """
+    Dispatch to appropriate LLM backend based on config.
+    Uses caching for all backends. The cache key is based on the prompt, model, temperature, and num_predict parameters.
+
+    The id parameter helps to identify a group of cached calls, e.g. to invalidate them together later if needed. It is not used in the cache key generation, but it is included in the cache metadata when saving responses.
+    """
 
     if config.backend == "anthropic":
-        return await anthropic_generate(prompt, config, model, format_json)
+        return await anthropic_generate(prompt, config, model, format_json, id)
     if config.backend == "openai":
-        return await openai_generate(prompt, config, model, format_json)
+        return await openai_generate(prompt, config, model, format_json, id)
     if config.backend == "github":
-        return await github_generate(prompt, config, model, format_json)
-    return await ollama_generate(prompt, config, model, format_json)
+        return await github_generate(prompt, config, model, format_json, id)
+    if config.backend == "lmstudio":
+        return await lmstudio_generate(prompt, config, model, format_json, id)
+    return await ollama_generate(prompt, config, model, format_json, id)
 
 
 # ---------------------------------------------------------------------------

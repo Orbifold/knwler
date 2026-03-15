@@ -91,12 +91,17 @@ def get_cached_llm_response(key: str) -> str | None:
     return _read_cache("llm", key)
 
 
-def save_llm_response_to_cache(key: str, response: str, model: str):
+def save_llm_response_to_cache(
+    key: str, response: str, model: str, id: str | None = None
+):
     """Save an LLM response to cache."""
-    _write_cache("llm", key, response, {"model": model})
+    extra = {"model": model}
+    if id is not None:
+        extra["id"] = id
+    _write_cache("llm", key, response, extra)
 
 
-def find_cached_llm_items(model: str = None) -> list[dict]:
+def find_items_by_model(model: str = None) -> list[dict]:
     """Find all cached LLM items, optionally filtered by model."""
     llm_dir = CACHE_DIR / "llm"
     if not llm_dir.exists():
@@ -116,6 +121,26 @@ def find_cached_llm_items(model: str = None) -> list[dict]:
         except (json.JSONDecodeError, IOError):
             continue
     return items
+
+
+def find_item_by_id(id: str) -> dict | None:
+    """Find a cached LLM item by its ID."""
+    llm_dir = CACHE_DIR / "llm"
+    if not llm_dir.exists():
+        return None
+    for f in llm_dir.glob("*.json"):
+        try:
+            data = json.loads(f.read_text())
+            if data.get("id") == id:
+                return {
+                    "key": f.stem,
+                    "model": data.get("model"),
+                    "cached_at": data.get("cached_at"),
+                    "response": data.get("response"),
+                }
+        except (json.JSONDecodeError, IOError):
+            continue
+    return None
 
 
 def clear_llm_cache():

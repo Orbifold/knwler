@@ -31,7 +31,11 @@ demo_app = typer.Typer(help="Demo commands for Knwler.")
 async def run_demo(backend: str | None = None):
     # default config, can be customized as needed
     config = Config(backend=backend or "ollama", use_cache=False)
-    print(f"Running demo with config: {asdict(config)}")
+    config_dic = asdict(config)
+    console.print(f"Running demo with config:")
+    for k, v in config_dic.items():
+        console.print(f"\t• [bold]{k}[/bold]: {v}")
+
     os.makedirs("knwler_demo", exist_ok=True)
     output = Path("knwler_demo")
     pdf_path = output / "HumanRights.pdf"

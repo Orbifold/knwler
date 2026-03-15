@@ -38,6 +38,7 @@
 - graph analytics CLI commands, including an analytics report (what is the most important chunk in this document...?)
 - graph conversion CLI command to take the `graph.json` to JSONLD, GML, GraphML and more.
 - AWS Neptune import script and documentation
+- additional languages: Italian, Portuguese and Simplified Chinese
 
 ## v0.4.1
 

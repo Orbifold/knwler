@@ -85,7 +85,7 @@ def fetch_command(
         if parse:
             try:
                 content, _meta = asyncio.run(parse_file(output_path))
-                text_path = output_path.with_suffix(".txt")
+                text_path = output_path.with_suffix(".md")
                 text_path.write_text(content)
                 console.print(f"[green]Saved parsed text to[/green] {text_path}")
             except Exception as e:
@@ -127,7 +127,7 @@ def wiki_command(
             "--no-cache", help="Bypass the cache and fetch directly from Wikipedia."
         ),
     ] = False,
-     open: Annotated[
+    open: Annotated[
         bool,
         typer.Option(
             "--open",

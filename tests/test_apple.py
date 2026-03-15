@@ -113,7 +113,7 @@ async def test_disambiguation():
     ]
     output = {
         "id": "Apples",
-        "title": "Apple Test",
+        "title": "Semantic Disambiguiation: Apple Inc. vs Apple Fruit",
         "url": "https://knwler.com",
         "summary": "This graph tests disambiguation of entities with the same name but different types (Apple as a company and Apple as a fruit). It should correctly identify two separate entities for Apple and extract the relation that Apple Inc. was founded by Steve Jobs, while Gala is a variety of Apple fruit.",
         "graph": g,

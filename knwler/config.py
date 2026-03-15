@@ -21,8 +21,8 @@ PACKAGE_ROOT = PROJECT_ROOT / "knwler"
 # ---------------------------------------------------------------------------
 # Default model names
 # ---------------------------------------------------------------------------
-DEFAULT_OLLAMA_DISCOVERY_MODEL = "qwen2.5:14b"
-DEFAULT_OLLAMA_EXTRACTION_MODEL = "qwen2.5:3b"
+DEFAULT_OLLAMA_DISCOVERY_MODEL = "llama3.2:latest"
+DEFAULT_OLLAMA_EXTRACTION_MODEL = "llama3.2:latest"
 
 DEFAULT_OPENAI_DISCOVERY_MODEL = "gpt-4o-mini"
 DEFAULT_OPENAI_EXTRACTION_MODEL = "gpt-4o-mini"
@@ -33,14 +33,18 @@ DEFAULT_ANTHROPIC_EXTRACTION_MODEL = "claude-haiku-4-5-20251001"
 DEFAULT_GITHUB_DISCOVERY_MODEL = "github-copilot/claude-opus-4.5"
 DEFAULT_GITHUB_EXTRACTION_MODEL = "github-copilot/claude-opus-4.5"
 
+DEFAULT_LMSTUDIO_DISCOVERY_MODEL = "glm-4.7-flash"
+DEFAULT_LMSTUDIO_EXTRACTION_MODEL = "glm-4.7-flash"
+
 
 # ---------------------------------------------------------------------------
 # Default backend URLs
 # ---------------------------------------------------------------------------
-DEFAULT_OLLAMA_URL = "http://localhost:11434/api/generate"
+DEFAULT_OLLAMA_URL = "http://localhost:11434"
 DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1"
 DEFAULT_ANTHROPIC_URL = "https://api.anthropic.com/v1"
 DEFAULT_GITHUB_BASE_URL = "https://models.inference.ai.azure.com"
+DEFAULT_LMSTUDIO_BASE_URL = "http://localhost:1234/api/v1"
 
 
 # ---------------------------------------------------------------------------
@@ -50,7 +54,7 @@ DEFAULT_GITHUB_BASE_URL = "https://models.inference.ai.azure.com"
 class Config:
     """Pipeline configuration."""
 
-    # Backend selection: "ollama" | "openai" | "anthropic" | "github"
+    # Backend selection: "ollama" | "openai" | "anthropic" | "github" | "lmstudio"
     backend: str = "ollama"
 
     api_key: str = None
@@ -78,6 +82,8 @@ class Config:
                 self.base_url = DEFAULT_ANTHROPIC_URL
             elif self.backend == "github":
                 self.base_url = DEFAULT_GITHUB_BASE_URL
+            elif self.backend == "lmstudio":
+                self.base_url = DEFAULT_LMSTUDIO_BASE_URL
             else:
                 self.base_url = DEFAULT_OLLAMA_URL
 
@@ -88,6 +94,8 @@ class Config:
                 self.extraction_model = DEFAULT_ANTHROPIC_EXTRACTION_MODEL
             elif self.backend == "github":
                 self.extraction_model = DEFAULT_GITHUB_EXTRACTION_MODEL
+            elif self.backend == "lmstudio":
+                self.extraction_model = DEFAULT_LMSTUDIO_EXTRACTION_MODEL
             else:
                 self.extraction_model = DEFAULT_OLLAMA_EXTRACTION_MODEL
 
@@ -98,5 +106,7 @@ class Config:
                 self.discovery_model = DEFAULT_ANTHROPIC_DISCOVERY_MODEL
             elif self.backend == "github":
                 self.discovery_model = DEFAULT_GITHUB_DISCOVERY_MODEL
+            elif self.backend == "lmstudio":
+                self.discovery_model = DEFAULT_LMSTUDIO_DISCOVERY_MODEL
             else:
                 self.discovery_model = DEFAULT_OLLAMA_DISCOVERY_MODEL

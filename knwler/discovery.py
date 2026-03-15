@@ -99,6 +99,9 @@ async def discover_schema(
     result = parse_json_response(response)
 
     if not result.get("entity_types"):
+        console.print(
+            "[yellow]Warning:[/yellow] Schema discovery failed to identify any entity types, using defaults."
+        )
         return Schema(
             entity_types=Schema.default().entity_types,
             relation_types=Schema.default().relation_types,

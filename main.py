@@ -41,6 +41,7 @@ if __name__ == "__main__":
         # '-f ...' → 'extract extract -f ...'
         sys.argv.insert(1, "extract")
         sys.argv.insert(2, "extract")
+
     app()
 
     # try:

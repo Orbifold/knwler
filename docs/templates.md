@@ -18,3 +18,4 @@ There is a plain 'blank' template from which you can start which contain the bar
 - **node_elements**: the actual nodes
 - **edge_elements**: the actual edges
 - **rawData**: which can be used to feed a graphviz
+- **minimumDegree**: the minimum node degree to filter out (helps to show only linked data)

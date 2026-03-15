@@ -1,6 +1,6 @@
 # QA Checklist
 
-So many new features added in v0.5.0 so here is a comprehensive checklist (for myself).
+So many new features added in v1.0.0 so here is a comprehensive checklist (for myself).
 
 ## Setup
 

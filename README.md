@@ -1,7 +1,7 @@
 # Knwler
 
 [![Pypi](https://img.shields.io/pypi/dm/knwler)](https://pypi.org/project/knwler/)
-[![Version](https://img.shields.io/badge/version-0.5.0-green.svg)](https://github.com/Orbifold/knwler)
+[![Version](https://img.shields.io/badge/version-1.0.0-green.svg)](https://github.com/Orbifold/knwler)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
 [![Stars](https://img.shields.io/github/stars/Orbifold/knwler)](https://github.com/Orbifold/knwler)
@@ -23,7 +23,7 @@ No big package dependencies, runs local if you wish, no licenses, no fuss.
 ## Table of Contents
 
 - [Why Knwler?](#why-knwler)
-- [What's New in v0.5.0](#whats-new-in-v050)
+- [What's New in v1.0](#whats-new-in-v1)
 - [Key Features](#key-features)
 - [Supported Backends](#supported-backends)
 - [Cost & Performance](#cost--performance)
@@ -53,7 +53,7 @@ Knwler does not implement graph RAG — it focuses on one thing: turning unstruc
 
 ---
 
-## What's New in v0.5.0
+## What's New in v1.0.0
 
 This is a major release with many new features and improvements. See the full [CHANGELOG](./CHANGELOG.md) for details.
 

@@ -14,9 +14,14 @@ Built for compliance teams, legal departments, research analysts, and anyone who
 
 No big package dependencies, runs local if you wish, no licenses, no fuss.
 
-![](./Screenshot1.png)
-
-![](./Screenshot2.png)
+<div style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px;">
+<a href="https://knwler.com/benchmark" target="_blank"><img src="./docs/images/benchmarks.png" style="height:200px;"/></a>
+<a href="https://knwler.com/images/Ogma.png" target="_blank"><img src="./docs/images/ogma.jpg" style="height:200px;"/></a>
+<a href="https://knwler.com/images/Surreal.jpg" target="_blank"><img src="./docs/images/SurrealExport.jpg" style="height:200px;"/></a>
+<a href="https://knwler.com/images/yEd.png" target="_blank"><img src="./docs/images/yEd.png" style="height:200px;"/></a>
+<a href="https://knwler.com/images/yFilesKnwler.png" target="_blank"><img src="./docs/images/yFilesKnwler.jpg" style="height:200px;"/></a>
+<a href="https://knwler.com/images/yFilesKnwlerDark.png" target="_blank"><img src="./docs/images/yFilesKnwlerDark.jpg" style="height:200px;"/></a>
+</div>
 
 ---
 

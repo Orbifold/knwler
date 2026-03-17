@@ -44,7 +44,7 @@ No big package dependencies, runs local if you wish, no licenses, no fuss.
 - [CLI Overview](#cli-overview)
 - [Examples](#examples)
 - [Integration & Export](#integration--export)
-- [Documentation](#documentation)
+- [Documentation](https://knwler.com/docs/features.html)
 - [Benchmarking](#benchmarking)
 - [Disclaimer](#disclaimer)
 
@@ -459,46 +459,7 @@ Knwler has been tested on
 
 ## Documentation
 
-### Getting Started
-
-- [Setup & Installation](./docs/setup.md)
-- [CLI Reference](./docs/cli.md)
-- [Python API](./docs/api.md)
-- [pipx Installation](./docs/pipx.md)
-
-### LLM Backends
-
-- [Models & Providers Overview](./docs/models.md)
-- [Ollama (local)](./docs/ollama.md)
-- [LM Studio (local)](./docs/lmstudio.md)
-- [OpenAI](./docs/openai.md)
-- [Anthropic](./docs/anthropic.md)
-
-### Features
-
-- [Fetching Data (URLs, Wikipedia)](./docs/fetch.md)
-- [Batch Processing](./docs/batch.md)
-- [Caching](./docs/caching.md)
-- [Language & Localization](./docs/language.md)
-- [Templates & HTML Export](./docs/templates.md)
-- [Graph Analytics](./docs/analytics.md)
-- [Benchmark](./docs/benchmark.md)
-
-### Export & Integration
-
-- [HTML Export](./docs/html.md)
-- [JSONLD / RDF](./docs/jsonld.md)
-- [Visualization](./docs/visualization.md)
-- [Neo4j](./docs/neo4j.md)
-- [SurrealDB](./docs/surreal.md)
-- [GraphDB](./docs/graphdb.md)
-- [AWS Neptune](./docs/neptune.md)
-
-### Project
-
-- [Changelog](./CHANGELOG.md)
-- [QA Checklist](./tests/checklist.md)
-- [License (MIT)](./LICENSE)
+Extensive document can be found on the [Knwler site](https://knwler.com/docs/features.html)
 
 ---
 

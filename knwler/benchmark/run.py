@@ -26,6 +26,7 @@ from rich.console import Console
 console = Console()
 root_path = Path(__file__).parent.parent
 output_path = root_path / "benchmark" / "output"
+os.makedirs(output_path, exist_ok=True)  # v1.0.4
 
 
 def get_path(config: Config):

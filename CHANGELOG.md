@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.0.4
+
+- fix: benchmark output dir check
+- other: reinstated global try-catch
+
+## v1.0.3
+
+- fix: pipx deployment fixes
+
 ## v1.0.0
 
 - Version info via CLI

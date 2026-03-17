@@ -125,7 +125,6 @@ async def ollama_generate(
     try:
         generate_url = f"{config.base_url.rstrip('/')}/api/generate"
         response_json = await _post_json(generate_url, payload=payload)
-        print(response_json)
         response = response_json["response"]
 
         if config.use_cache:

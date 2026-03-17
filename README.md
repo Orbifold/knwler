@@ -447,6 +447,16 @@ The benchmark uses a configurable grid of providers/models and computes a **Know
 
 ---
 
+## Supported OS
+
+Knwler has been tested on
+
+- MacOS Tahoe 26+
+- Windows 11
+- Ubuntu 25.10
+
+---
+
 ## Documentation
 
 ### Getting Started

@@ -23,7 +23,7 @@ So many new features added in v1.0.0 so here is a comprehensive checklist (for m
 - [ ] get started
 - [x] models and providers
 - [x] pipx
-- [ ] wetboeken dataset sample
+- [x] wetboeken dataset sample
 - [ ] knwler.com website
 - [ ] readme
 - [x] knwler as API
@@ -56,7 +56,7 @@ So many new features added in v1.0.0 so here is a comprehensive checklist (for m
 - [x] promised RDF
 - [x] rephrased chunks are markdown and should be rendered as such
 - [x] benchmark
-- [ ] Windows
+- [x] Windows
 - [ ] Linux
 - [x] LMStudio
 - [ ] OpenRouter
@@ -79,3 +79,7 @@ So many new features added in v1.0.0 so here is a comprehensive checklist (for m
 - [x] uv run main.py -f https://knwler.com --backend gemini
 - [x] uv run main.py batch run --input /Users/swa/temp/pdfs --output ~/temp/batching
 - [x] uv run main.py batch run --input /Users/swa/temp/pdfs --output ~/temp/batching --backend gemini
+- [x] uv run main.py graph analyze /Users/swa/Desktop/AI/knwler-website/examples/burgerlijk/BurgerlijkAll.json --output /Users/swa/Desktop/AI/knwler-website/examples/CivilAnalytics --open
+- [x] uv run main.py -f /Users/swa/Desktop/AI/knwler-website/pdfs/Deloitte.pdf --output /Users/swa/Desktop/AI/knwler-website/examples/Deloitte --url https://www.deloitte.com/de/de/legal/publikationen.html --backend gemini
+- [x] uv run main.py -f /Users/swa/Desktop/AI/knwler-website/pdfs/NIST.pdf --output /Users/swa/Desktop/AI/knwler-website/examples/NIST --url https://nvlpubs.nist.gov/nistpubs/ai/nist.ai.100-1.pdf --backend gemini --template columns
+- [x] uv run main.py graph analyze /Users/swa/Desktop/AI/knwler-website/examples/EUAI_anthropic/default/graph.json --output /Users/swa/Desktop/AI/knwler-website/examples/HumanRightsAnalytics --open

@@ -122,17 +122,60 @@
         line-height: 1.7;
       }
       .theme-toggle {
-        cursor: pointer;
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        width: 56px;
+        height: 28px;
         background: var(--surface2);
         border: 1px solid var(--border-subtle);
-        border-radius: 20px;
-        padding: 5px 14px;
-        font-size: 12px;
-        color: var(--text-muted);
-        transition: background 0.2s;
+        border-radius: 99px;
+        cursor: pointer;
+        padding: 0;
+        transition:
+          background 0.3s,
+          border-color 0.3s;
+        flex-shrink: 0;
       }
       .theme-toggle:hover {
-        background: var(--surface);
+        border-color: var(--accent);
+      }
+      .theme-toggle .toggle-thumb {
+        position: absolute;
+        left: 3px;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: var(--accent);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition:
+          left 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+          background 0.3s;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+      }
+      [data-theme="dark"] .theme-toggle .toggle-thumb {
+        left: 29px;
+      }
+      .theme-toggle .toggle-icon {
+        width: 14px;
+        height: 14px;
+        fill: var(--surface);
+        transition: opacity 0.2s;
+      }
+      .theme-toggle .icon-sun {
+        opacity: 1;
+      }
+      .theme-toggle .icon-moon {
+        opacity: 0;
+        position: absolute;
+      }
+      [data-theme="dark"] .theme-toggle .icon-sun {
+        opacity: 0;
+      }
+      [data-theme="dark"] .theme-toggle .icon-moon {
+        opacity: 1;
       }
 
       /* ── Section headings ───────────────────────────── */
@@ -142,7 +185,7 @@
         color: var(--text);
         border-left: 4px solid var(--accent);
         padding-left: 10px;
-        margin-bottom: 20px;
+        margin: 20px 0;
       }
       .section-subtitle {
         font-size: 13px;
@@ -500,6 +543,156 @@
         border-left: 4px solid var(--accent);
       }
 
+      /* ── Header / page shell ────────────────────────── */
+      .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px 0 28px;
+        border-bottom: 2px solid var(--border);
+        margin-bottom: 40px;
+      }
+      .header h1 {
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--text);
+        margin-bottom: 4px;
+      }
+      .subtitle {
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 24px 64px;
+      }
+
+      /* ── Generic card shell ─────────────────────────── */
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+      }
+
+      /* ── Table rank cell ────────────────────────────── */
+      td.rank {
+        font-weight: 700;
+        font-size: 13px;
+        color: var(--text-muted);
+        width: 36px;
+        text-align: center;
+      }
+      td.rank-1 {
+        color: var(--gold);
+      }
+      td.rank-2 {
+        color: var(--silver);
+      }
+      td.rank-3 {
+        color: var(--bronze);
+      }
+
+      /* ── Entity type badge ──────────────────────────── */
+      .badge {
+        display: inline-block;
+        background: var(--surface2);
+        border: 1px solid var(--border-subtle);
+        border-radius: 20px;
+        padding: 2px 9px;
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--text-muted);
+        white-space: nowrap;
+      }
+
+      /* ── Inline bar cells ───────────────────────────── */
+      .bar-cell {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .mini-bar {
+        height: 6px;
+        min-width: 4px;
+        border-radius: 3px;
+        background: var(--accent);
+        opacity: 0.7;
+      }
+
+      /* ── Truncated text cells ───────────────────────── */
+      .desc-cell,
+      .preview-cell {
+        max-width: 340px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: var(--text-muted);
+        font-size: 12px;
+      }
+
+      /* ── Community / cluster grid ───────────────────── */
+      .community-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 16px;
+      }
+      .community-card {
+        background: var(--surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius);
+        padding: 16px 18px;
+        box-shadow: var(--shadow);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .comm-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .comm-id {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--accent2);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .comm-size {
+        background: var(--surface2);
+        border-radius: 99px;
+        padding: 2px 10px;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-muted);
+      }
+      .comm-topics {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+      }
+      .topic-tag {
+        background: var(--rank-bg);
+        color: var(--rank-text);
+        border-radius: 99px;
+        padding: 2px 9px;
+        font-size: 11px;
+        font-weight: 500;
+      }
+      .comm-desc {
+        font-size: 12px;
+        color: var(--text-muted);
+        line-height: 1.55;
+      }
+      .comm-members {
+        font-size: 12px;
+        color: var(--text);
+        line-height: 1.6;
+        word-break: break-word;
+      }
+
       /* ── Footer ─────────────────────────────────────── */
       footer {
         margin-top: 48px;
@@ -512,18 +705,34 @@
     </style>
   </head>
   <body>
-    <div class="header">
-      <div>
-        <h1>Graph Analysis: {{ title }}</h1>
-        <div class="subtitle">
-          Generated {{ generated_at }} &nbsp;·&nbsp; {{ stats.num_entities }}
-          entities &nbsp;·&nbsp; {{ stats.num_relations }} relations
-        </div>
-      </div>
-      <button class="theme-btn" onclick="toggleTheme()">Toggle Theme</button>
-    </div>
-
     <div class="container">
+      <div class="header">
+        <div>
+          <h1>Graph Analysis: {{ title }}</h1>
+          <div class="subtitle">
+            Generated {{ generated_at }} &nbsp;·&nbsp; {{ stats.num_entities }}
+            entities &nbsp;·&nbsp; {{ stats.num_relations }} relations
+          </div>
+        </div>
+        <button
+          class="theme-toggle"
+          onclick="toggleTheme()"
+          aria-label="Toggle theme"
+        >
+          <span class="toggle-thumb">
+            <svg class="toggle-icon icon-sun" viewBox="0 0 24 24">
+              <path
+                d="M12 7a5 5 0 100 10 5 5 0 000-10zm0-3a1 1 0 01-1-1V1a1 1 0 112 0v2a1 1 0 01-1 1zm0 18a1 1 0 01-1-1v-2a1 1 0 112 0v2a1 1 0 01-1 1zm9-9a1 1 0 01-1 1h-2a1 1 0 110-2h2a1 1 0 011 1zM4 13H2a1 1 0 110-2h2a1 1 0 110 2zm14.36-6.36a1 1 0 01-.7-.3l-1.42-1.4a1 1 0 111.41-1.42l1.42 1.42a1 1 0 01-.71 1.7zM6.05 19.07a1 1 0 01-.7-.3l-1.42-1.4a1 1 0 111.41-1.42l1.42 1.42a1 1 0 01-.71 1.7zm12.02 0a1 1 0 01-.71-1.7l1.42-1.42a1 1 0 111.41 1.41l-1.42 1.42a1 1 0 01-.7.29zM6.05 6.64a1 1 0 01-.71-1.7L6.76 3.5a1 1 0 011.41 1.41L6.76 6.34a1 1 0 01-.71.3z"
+              />
+            </svg>
+            <svg class="toggle-icon icon-moon" viewBox="0 0 24 24">
+              <path
+                d="M21.64 13a1 1 0 00-1.05-.14 8.05 8.05 0 01-3.37.73A8.15 8.15 0 019.08 5.49a8.59 8.59 0 01.25-2 1 1 0 00-1.32-1.17A10 10 0 1021.64 13z"
+              />
+            </svg>
+          </span>
+        </button>
+      </div>
       <!-- Overview KPIs -->
       <section>
         <div class="section-title">Overview</div>
@@ -538,7 +747,7 @@
           </div>
           <div class="kpi-card">
             <div class="kpi-value">{{ stats.num_communities }}</div>
-            <div class="kpi-label">Communities</div>
+            <div class="kpi-label">Clusters</div>
           </div>
           <div class="kpi-card">
             <div class="kpi-value">{{ stats.num_chunks }}</div>
@@ -782,12 +991,12 @@
       <!-- Communities -->
       {% if communities %}
       <section>
-        <div class="section-title">Communities</div>
+        <div class="section-title">Clusters</div>
         <div class="community-grid">
-          {% for c in communities %}
+          {% for c in communities[:9] %}
           <div class="community-card">
             <div class="comm-meta">
-              <span class="comm-id">Community {{ c.id }}</span>
+              <span class="comm-id">Cluster {{ c.id }}</span>
               <span class="comm-size">{{ c.size }}</span>
             </div>
             {% if c.topics %}

@@ -293,7 +293,7 @@ def export_html(
         edge_elements=edge_elements,
         js_labels=js_labels,
         rawData=json.dumps(kg, indent=2),
-        minimumDegree=kwargs.get("minimum_degree", 1),
+        minimumDegree=kwargs.get("minimum_degree", 3),
     )
 
     return html_content

@@ -96,7 +96,7 @@ Highlights:
 
 ### Multiple LLM Backends — Cloud or Fully Local
 
-Choose between **OpenAI**, **Anthropic**, or **Google Gemini** for cloud speed, or **Ollama** / **LM Studio** for fully offline, air-gapped operation. You can switch backends between runs and incrementally augment the same graph. See [Models & Providers](./docs/models.md).
+Choose between **OpenAI**, **Anthropic**, or **Google Gemini** for cloud speed, or **Ollama** / **LM Studio** for fully offline, air-gapped operation. You can switch backends between runs and incrementally augment the same graph. See [Models & Providers](https://knwler.com/docs/models.html).
 
 ### Automatic Schema Discovery
 
@@ -108,7 +108,7 @@ Apple as a company or apple as a fruit? Knwler identifies nodes based on name **
 
 ### Multilingual by Design
 
-Language is **auto-detected** on every run. All prompts and console/UI output are localized. Currently supported: English, German, French, Spanish, Dutch, Italian, Portuguese, and Simplified Chinese. Adding a new language means extending a single JSON file. See [Language](./docs/language.md).
+Language is **auto-detected** on every run. All prompts and console/UI output are localized. Currently supported: English, German, French, Spanish, Dutch, Italian, Portuguese, and Simplified Chinese. Adding a new language means extending a single JSON file. See [Language](https://knwler.com/docs/language.html).
 
 ### Multi-Document Consolidation
 
@@ -128,18 +128,18 @@ Multiple templates out of the box:
 - A 3-column report without graph viz
 - A graph-viz focused report with custom layout algorithm
 
-See [Templates](./docs/templates.md) and [HTML Export](./docs/html.md).
+See [Templates](https://knwler.com/docs/templates.html) and [HTML Export](https://knwler.com/docs/html.html).
 
 ### Rich Export Ecosystem
 
 - **JSON** — the canonical `graph.json` output for any downstream use
 - **GML / GraphML** — open directly in yEd, Gephi, or any standards-compliant graph tool
-- **JSONLD / RDF** — for triple stores like GraphDB, StarDog, and AWS Neptune. See [JSONLD](./docs/jsonld.md)
+- **JSONLD / RDF** — for triple stores like GraphDB, StarDog, and AWS Neptune. See [JSONLD](https://knwler.com/docs/jsonld.html)
 - **HTML** — standalone interactive report with customizable templates
-- **Neo4j** — direct import with constraints and indexes. See [Neo4j](./docs/neo4j.md)
-- **SurrealDB** — direct import included. See [SurrealDB](./docs/surreal.md)
-- **AWS Neptune** — import via SPARQL, OpenCypher, or bulk loading. See [Neptune](./docs/neptune.md)
-- **GraphDB** — import JSONLD into Ontotext GraphDB or other triple stores. See [GraphDB](./docs/graphdb.md)
+- **Neo4j** — direct import with constraints and indexes. See [Neo4j](https://knwler.com/docs/neo4j.html)
+- **SurrealDB** — direct import included. See [SurrealDB](https://knwler.com/docs/surreal.html)
+- **AWS Neptune** — import via SPARQL, OpenCypher, or bulk loading. See [Neptune](https://knwler.com/docs/neptune.html)
+- **GraphDB** — import JSONLD into Ontotext GraphDB or other triple stores. See [GraphDB](https://knwler.com/docs/graphdb.html)
 
 ### Graph Analytics
 
@@ -151,11 +151,11 @@ Process large document sets efficiently with OpenAI or Gemini batch APIs at redu
 
 ### Intelligent Caching
 
-Every LLM call, fetched document, and parsed PDF is **hashed and cached** locally under `~/.knwler/cache`. Re-generating reports, tweaking export settings, or re-running with a different schema costs zero additional API calls. Manage the cache with `knwler cache clear`. See [Caching](./docs/caching.md).
+Every LLM call, fetched document, and parsed PDF is **hashed and cached** locally under `~/.knwler/cache`. Re-generating reports, tweaking export settings, or re-running with a different schema costs zero additional API calls. Manage the cache with `knwler cache clear`. See [Caching](https://knwler.com/docs/caching.html).
 
 ### Data Fetching
 
-Fetch documents directly from URLs (PDFs, web pages) or fetch Wikipedia articles — all cached for convenience. Give Knwler a URL and it fetches, parses, and extracts in one step. See [Fetching Data](./docs/fetch.md).
+Fetch documents directly from URLs (PDFs, web pages) or fetch Wikipedia articles — all cached for convenience. Give Knwler a URL and it fetches, parses, and extracts in one step. See [Fetching Data](https://knwler.com/docs/fetch.html).
 
 ### Portable & Minimal
 
@@ -165,13 +165,13 @@ Minimal dependencies, no database, no backend server, no Docker required. Works 
 
 ## Supported Backends
 
-| Backend       | Type  | Default Models                                    | Docs                             |
-| ------------- | ----- | ------------------------------------------------- | -------------------------------- |
-| **Ollama**    | Local | `llama3.2:latest`                                 | [Ollama](./docs/ollama.md)       |
-| **LM Studio** | Local | `glm-4.7-flash`                                   | [LM Studio](./docs/lmstudio.md)  |
-| **OpenAI**    | Cloud | `gpt-4o-mini` (extraction & discovery)            | [OpenAI](./docs/openai.md)       |
-| **Anthropic** | Cloud | `claude-haiku-4-5-20251001` / `claude-sonnet-4-6` | [Anthropic](./docs/anthropic.md) |
-| **Gemini**    | Cloud | `gemini-3.1-flash-lite-preview`                   | [Models](./docs/models.md)       |
+| Backend       | Type  | Default Models                                    | Docs                                                |
+| ------------- | ----- | ------------------------------------------------- | --------------------------------------------------- |
+| **Ollama**    | Local | `llama3.2:latest`                                 | [Ollama](https://knwler.com/docs/ollama.html)       |
+| **LM Studio** | Local | `glm-4.7-flash`                                   | [LM Studio](https://knwler.com/docs/lmstudio.html)  |
+| **OpenAI**    | Cloud | `gpt-4o-mini` (extraction & discovery)            | [OpenAI](https://knwler.com/docs/openai.html)       |
+| **Anthropic** | Cloud | `claude-haiku-4-5-20251001` / `claude-sonnet-4-6` | [Anthropic](https://knwler.com/docs/anthropic.html) |
+| **Gemini**    | Cloud | `gemini-3.1-flash-lite-preview`                   | [Models](https://knwler.com/docs/models.html)       |
 
 All backends support `--extraction-model` and `--discovery-model` flags to override defaults.
 
@@ -185,7 +185,7 @@ All backends support `--extraction-model` and `--discovery-model` flags to overr
 | Ollama local (Mac M4 Pro, 64 GB) | ~20–40 minutes     | Free   |
 | Cached re-run (any backend)      | Seconds            | Free   |
 
-Use the [benchmark suite](./docs/benchmark.md) to compare models on your own hardware and documents.
+Use the [benchmark suite](https://knwler.com/docs/benchmark.html) to compare models on your own hardware and documents.
 
 ---
 
@@ -204,7 +204,7 @@ pip install knwler
 pipx install knwler
 ```
 
-See [Setup](./docs/setup.md) for detailed installation options including optional dependency groups (Neo4j, SurrealDB, data collection).
+See [Setup](https://knwler.com/docs/setup.html) for detailed installation options including optional dependency groups (Neo4j, SurrealDB, data collection).
 
 ### Basic Usage
 
@@ -251,7 +251,7 @@ knwler extract -f document.pdf --backend openai
 >
 > Adjust the number based on your machine specs (8 is suitable for a Mac M4 Pro with 64 GB RAM).
 
-See [pipx](./docs/pipx.md) for running Knwler as an isolated application.
+See [pipx](https://knwler.com/docs/pipx.html) for running Knwler as an isolated application.
 
 ---
 
@@ -271,7 +271,7 @@ The CLI is organized into subcommands:
 | `demo`          | Run a quick demo extraction                                |
 | `info`          | Show version and configuration info                        |
 
-Run `uv run main.py --help` or `knwler --help` for full details. See the comprehensive [CLI reference](./docs/cli.md).
+Run `uv run main.py --help` or `knwler --help` for full details. See the comprehensive [CLI reference](https://knwler.com/docs/cli.html).
 
 ---
 
@@ -326,7 +326,7 @@ uv run integrations/surreal_import.py ./results/graph.json
 uv run main.py graph convert --format jsonld
 ```
 
-See the individual integration docs: [Neo4j](./docs/neo4j.md) · [SurrealDB](./docs/surreal.md) · [GraphDB](./docs/graphdb.md) · [Neptune](./docs/neptune.md) · [JSONLD](./docs/jsonld.md) · [Visualization](./docs/visualization.md)
+See the individual integration docs: [Neo4j](https://knwler.com/docs/neo4j.html) · [SurrealDB](https://knwler.com/docs/surreal.html) · [GraphDB](https://knwler.com/docs/graphdb.html) · [Neptune](https://knwler.com/docs/neptune.html) · [JSONLD](https://knwler.com/docs/jsonld.html) · [Visualization](https://knwler.com/docs/visualization.html)
 
 ---
 
@@ -431,7 +431,7 @@ for r in consolidated["relations"]:
     )
 ```
 
-See [API documentation](./docs/api.md) for the full async pipeline, `Config` reference, and examples.
+See [API documentation](https://knwler.com/docs/features.html) for the full async pipeline, `Config` reference, and examples.
 
 ---
 
@@ -443,7 +443,7 @@ Compare speed and extraction quality across providers and models using the built
 uv run main.py benchmark run
 ```
 
-The benchmark uses a configurable grid of providers/models and computes a **Knowledge Yield Score (KYS)** — a combined metric of quality and speed. See [Benchmark](./docs/benchmark.md).
+The benchmark uses a configurable grid of providers/models and computes a **Knowledge Yield Score (KYS)** — a combined metric of quality and speed. See [Benchmark](https://knwler.com/docs/benchmark.html).
 
 ---
 

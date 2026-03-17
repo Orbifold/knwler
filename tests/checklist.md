@@ -19,19 +19,19 @@ So many new features added in v1.0.0 so here is a comprehensive checklist (for m
 
 ## Documentation
 
-- [ ] CLI help
-- [ ] get started
+- [x] CLI help
+- [x] get started
 - [x] models and providers
 - [x] pipx
 - [x] wetboeken dataset sample
-- [ ] knwler.com website
-- [ ] readme
+- [x] knwler.com website
+- [x] readme
 - [x] knwler as API
 - [x] Ollama
 - [x] OpenAI
 - [x] Anthropic
-- [ ] rerun the four sample docs
-- [ ] templates
+- [x] rerun the four sample docs
+- [x] templates
 
 ## Integrations
 
@@ -39,7 +39,7 @@ So many new features added in v1.0.0 so here is a comprehensive checklist (for m
 - [x] Surreal export
 - [x] GraphDB import
 - [x] AWS import
-- [ ] Gemini + batch
+- [x] Gemini + batch
 
 ## Tests
 
@@ -57,11 +57,13 @@ So many new features added in v1.0.0 so here is a comprehensive checklist (for m
 - [x] rephrased chunks are markdown and should be rendered as such
 - [x] benchmark
 - [x] Windows
-- [ ] Linux
+- [x] Linux
 - [x] LMStudio
-- [ ] OpenRouter
+- [x] OpenRouter
 - [ ] rename community to cluster
 - [x] check localization file again
+- [ ] Jupyter notebooks
+- [ ] Spanish, Italian, Chinese examples
 
 ## Commands
 

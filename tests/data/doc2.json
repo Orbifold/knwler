@@ -1,0 +1,88 @@
+{
+    "id": "doc2",
+    "title": "On the origin of species (second edition)",
+    "content": "On the amazing diversity of life on Earth, and how it came to be.",
+    "url": "https://en.wikipedia.org/wiki/On_the_Origin_of_Species",
+    "language": "en",
+    "schema": {
+        "entity_types": [
+            "Person",
+            "Place",
+            "Concept"
+        ],
+        "relation_types": [
+            "discovered",
+            "lived_in",
+            "obsessed_with"
+        ]
+    },
+    "stats": [],
+    "chunks": [
+        {
+            "id": "doc2-chunk1",
+            "document": "doc2",
+            "text": "Charles Darwin was a naturalist who lived in the 19th century.",
+            "tokens": 10,
+            "entities": [
+                {
+                    "text": "Charles Darwin",
+                    "type": "Person"
+                }
+            ],
+            "relations": []
+        },
+        {
+            "id": "doc2-chunk2",
+            "document": "doc2",
+            "text": "He is best known for his obsession with barnacles, which he studied obsessively from 1846 to 1854 to establish taxonomic expertise and understand species variation. This, along with his fascination with pigeon breeding, earthworms, orchids, and climbing plants, provided the empirical evidence for natural selection. ",
+            "tokens": 12,
+            "entities": [
+                {
+                    "text": "barnacles",
+                    "type": "Concept"
+                }
+            ],
+            "relations": [
+                {
+                    "source": "Charles Darwin",
+                    "target": "barnacles",
+                    "type": "obsessed_with",
+                    "description": "Charles Darwin was obsessed with the study of barnacles.",
+                    "strength": 0.12
+                }
+            ]
+        }
+    ],
+    "graph": {
+        "entities": [
+            {
+                "name": "Charles Darwin",
+                "type": "Person",
+                "description": "Charles Robert Darwin was an English naturalist, geologist, and biologist, widely known for his contributions to evolutionary biology. His proposition that all species of life have descended from a common ancestor is now generally accepted and considered a fundamental scientific concept.",
+                "chunk_ids": [
+                    "doc2-chunk1"
+                ]
+            },
+            {
+                "name": "barnacles",
+                "type": "Concept",
+                "description": "A group of marine crustaceans that Darwin studied obsessively.",
+                "chunk_ids": [
+                    "doc2-chunk2"
+                ]
+            }
+        ],
+        "relations": [
+            {
+                "source": "Charles Darwin",
+                "target": "barnacles",
+                "type": "obsessed_with",
+                "description": "Charles Darwin was obsessed with the study of barnacles.",
+                "strength": 0.12,
+                "chunk_ids": [
+                    "doc2-chunk2"
+                ]
+            }
+        ]
+    }
+}

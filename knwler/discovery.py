@@ -5,15 +5,16 @@ Schema discovery and language detection.
 import json
 import time
 
-from knwler.config import Config, Schema, console
+from knwler.config import Config, console
 from knwler.language import DEFAULT_LANGUAGE, get_prompt, load_languages
 from knwler.llm import llm_generate, parse_json_response
+from knwler.models import ExtractionResult, Schema, Graph
 
 
 # ---------------------------------------------------------------------------
 # Language detection
 # ---------------------------------------------------------------------------
-def detect_language(text: str, config: Config, sample_size: int = 1000) -> str:
+async def detect_language(text: str, config: Config, sample_size: int = 1000) -> str:
     """Detect the language of the input text using LLM."""
     sample = text[:sample_size] if len(text) > sample_size else text
 
@@ -26,7 +27,7 @@ def detect_language(text: str, config: Config, sample_size: int = 1000) -> str:
         '{\n  "language": "en"\n}'
     )
 
-    response = llm_generate(prompt, config, model=config.discovery_model)
+    response = await llm_generate(prompt, config, model=config.discovery_model)
     result = parse_json_response(response)
     detected = result.get("language", DEFAULT_LANGUAGE).lower().strip()
 
@@ -40,7 +41,7 @@ def detect_language(text: str, config: Config, sample_size: int = 1000) -> str:
 # ---------------------------------------------------------------------------
 # Schema discovery
 # ---------------------------------------------------------------------------
-def discover_schema(
+async def discover_schema(
     text: str,
     config: Config,
     sample_size: int = 4000,
@@ -92,15 +93,18 @@ def discover_schema(
         )
 
     t0 = time.perf_counter()
-    response = llm_generate(prompt, config, model=config.discovery_model)
+    response = await llm_generate(prompt, config, model=config.discovery_model)
     elapsed = time.perf_counter() - t0
 
     result = parse_json_response(response)
 
     if not result.get("entity_types"):
+        console.print(
+            "[yellow]Warning:[/yellow] Schema discovery failed to identify any entity types, using defaults."
+        )
         return Schema(
-            entity_types=config.default_entity_types,
-            relation_types=config.default_relation_types,
+            entity_types=Schema.default().entity_types,
+            relation_types=Schema.default().relation_types,
             reasoning="Discovery failed, using defaults",
             discovery_time=elapsed,
         )

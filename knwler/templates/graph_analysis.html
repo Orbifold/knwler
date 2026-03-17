@@ -1,0 +1,1086 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Graph Analysis — {{ title }}</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+      :root {
+        --bg: #f0f4f5;
+        --surface: #ffffff;
+        --surface2: #e8eef0;
+        --border: #26c6da;
+        --border-subtle: #c0d4d8;
+        --text: #1e2e30;
+        --text-muted: #5a7275;
+        --accent: #26c6da;
+        --accent2: #0e9aa7;
+        --gold: #f5a623;
+        --silver: #9aa8ab;
+        --bronze: #c47c3a;
+        --badge-ollama: #e8f4ea;
+        --badge-ollama-t: #2e6b3b;
+        --badge-openai: #e8eaf6;
+        --badge-openai-t: #303f9f;
+        --badge-anthropic: #fdecea;
+        --badge-anthropic-t: #b71c1c;
+        --badge-gemini: #e8f0fe;
+        --badge-gemini-t: #1a237e;
+        --rank-bg: #e0f7fa;
+        --rank-text: #006064;
+        --shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        --radius: 10px;
+        --chart-h: 280px;
+      }
+      [data-theme="dark"] {
+        --bg: #111b1d;
+        --surface: #1c2c2f;
+        --surface2: #243336;
+        --border: #26c6da;
+        --border-subtle: #2d4447;
+        --text: #d8e4e6;
+        --text-muted: #7a9ea3;
+        --accent: #26c6da;
+        --accent2: #4dd8e6;
+        --gold: #f5a623;
+        --silver: #8fa3a8;
+        --bronze: #c47c3a;
+        --badge-ollama: #1e3a22;
+        --badge-ollama-t: #6fcf8f;
+        --badge-openai: #1e2145;
+        --badge-openai-t: #8fa3e8;
+        --badge-anthropic: #3a1a1a;
+        --badge-anthropic-t: #f08080;
+        --badge-gemini: #1a237e;
+        --badge-gemini-t: #1a237e;
+        --rank-bg: #003b3f;
+        --rank-text: #4dd8e6;
+        --shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+      }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: "Inter", system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.6;
+        font-size: 14px;
+      }
+
+      /* ── Layout ─────────────────────────────────────── */
+      .page {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 32px 24px 64px;
+      }
+      .section {
+        margin-bottom: 48px;
+      }
+
+      /* ── Header ─────────────────────────────────────── */
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px 0 28px;
+        border-bottom: 2px solid var(--border);
+        margin-bottom: 40px;
+      }
+      a {
+        color: var(--accent);
+        text-decoration: none;
+        font-weight: 500;
+      }
+      a:hover {
+        background-color: #006064;
+        color: white;
+        padding: 2px 5px;
+        border-radius: 4px;
+      }
+      .logo {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--accent);
+        letter-spacing: -0.5px;
+      }
+      .logo span {
+        color: var(--text-muted);
+        font-weight: 400;
+        font-size: 15px;
+        margin-left: 10px;
+      }
+      .header-meta {
+        text-align: right;
+        color: var(--text-muted);
+        font-size: 12px;
+        line-height: 1.7;
+      }
+      .theme-toggle {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        width: 56px;
+        height: 28px;
+        background: var(--surface2);
+        border: 1px solid var(--border-subtle);
+        border-radius: 99px;
+        cursor: pointer;
+        padding: 0;
+        transition:
+          background 0.3s,
+          border-color 0.3s;
+        flex-shrink: 0;
+      }
+      .theme-toggle:hover {
+        border-color: var(--accent);
+      }
+      .theme-toggle .toggle-thumb {
+        position: absolute;
+        left: 3px;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: var(--accent);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition:
+          left 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+          background 0.3s;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+      }
+      [data-theme="dark"] .theme-toggle .toggle-thumb {
+        left: 29px;
+      }
+      .theme-toggle .toggle-icon {
+        width: 14px;
+        height: 14px;
+        fill: var(--surface);
+        transition: opacity 0.2s;
+      }
+      .theme-toggle .icon-sun {
+        opacity: 1;
+      }
+      .theme-toggle .icon-moon {
+        opacity: 0;
+        position: absolute;
+      }
+      [data-theme="dark"] .theme-toggle .icon-sun {
+        opacity: 0;
+      }
+      [data-theme="dark"] .theme-toggle .icon-moon {
+        opacity: 1;
+      }
+
+      /* ── Section headings ───────────────────────────── */
+      .section-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--text);
+        border-left: 4px solid var(--accent);
+        padding-left: 10px;
+        margin: 20px 0;
+      }
+      .section-subtitle {
+        font-size: 13px;
+        color: var(--text-muted);
+        margin-top: -14px;
+        margin-bottom: 20px;
+        padding-left: 14px;
+      }
+
+      /* ── Summary KPI cards ──────────────────────────── */
+      .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 16px;
+      }
+      .kpi-card {
+        background: var(--surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius);
+        padding: 18px 20px;
+        box-shadow: var(--shadow);
+      }
+      .kpi-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-muted);
+        margin-bottom: 6px;
+      }
+      .kpi-value {
+        font-size: 26px;
+        font-weight: 700;
+        color: var(--accent2);
+      }
+      .kpi-sub {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-top: 2px;
+      }
+
+      /* ── Leaderboard table ──────────────────────────── */
+      .table-wrap {
+        overflow-x: auto;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: var(--surface);
+      }
+      thead tr {
+        background: var(--surface2);
+      }
+      th {
+        padding: 11px 14px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
+        text-align: left;
+        border-bottom: 2px solid var(--border-subtle);
+        white-space: nowrap;
+      }
+      th.sortable {
+        cursor: default;
+      }
+      td {
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--border-subtle);
+        font-size: 13px;
+        white-space: nowrap;
+      }
+      tr:last-child td {
+        border-bottom: none;
+      }
+      tr:hover td {
+        background: var(--surface2);
+      }
+
+      .rank-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        font-weight: 700;
+        font-size: 13px;
+        background: var(--rank-bg);
+        color: var(--rank-text);
+      }
+      .rank-1 {
+        background: var(--gold);
+        color: #5a3a00;
+      }
+      .rank-2 {
+        background: var(--silver);
+        color: #2a3032;
+      }
+      .rank-3 {
+        background: var(--bronze);
+        color: #3a1f00;
+      }
+
+      .kys-bar-wrap {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .kys-bar-track {
+        flex: 1;
+        height: 8px;
+        background: var(--surface2);
+        border-radius: 4px;
+        overflow: hidden;
+        min-width: 60px;
+      }
+      .kys-bar-fill {
+        height: 100%;
+        border-radius: 4px;
+        background: var(--accent);
+      }
+      .kys-value {
+        font-weight: 600;
+        font-size: 13px;
+        min-width: 36px;
+        text-align: right;
+      }
+
+      .backend-badge {
+        border-radius: 20px;
+        padding: 2px 10px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        display: inline-block;
+      }
+      .b-ollama {
+        background: var(--badge-ollama);
+        color: var(--badge-ollama-t);
+      }
+      .b-openai {
+        background: var(--badge-openai);
+        color: var(--badge-openai-t);
+      }
+      .b-anthropic {
+        background: var(--badge-anthropic);
+        color: var(--badge-anthropic-t);
+      }
+      .b-gemini {
+        background: var(--badge-gemini);
+        color: var(--badge-gemini-t);
+      }
+
+      .time-total {
+        font-weight: 600;
+      }
+      .model-name {
+        font-weight: 500;
+      }
+      .model-pair {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-top: 1px;
+      }
+
+      /* ── Charts grid ────────────────────────────────── */
+      .charts-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+      }
+      @media (max-width: 768px) {
+        .charts-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .chart-card {
+        background: var(--surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius);
+        padding: 22px;
+        box-shadow: var(--shadow);
+      }
+      .chart-card h3 {
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 16px;
+        color: var(--text);
+      }
+      .chart-wrap {
+        position: relative;
+        height: var(--chart-h);
+      }
+
+      /* ── Detail cards ───────────────────────────────── */
+      .detail-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+        gap: 20px;
+      }
+      .detail-card {
+        background: var(--surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius);
+        padding: 20px;
+        box-shadow: var(--shadow);
+        position: relative;
+        overflow: hidden;
+      }
+      .detail-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: var(--accent);
+      }
+      .detail-card.rank-1::before {
+        background: var(--gold);
+      }
+      .detail-card.rank-2::before {
+        background: var(--silver);
+      }
+      .detail-card.rank-3::before {
+        background: var(--bronze);
+      }
+      .dc-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        margin-bottom: 14px;
+      }
+      .dc-title {
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .dc-pair {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-top: 2px;
+      }
+      .dc-rank {
+        font-size: 22px;
+        font-weight: 700;
+        opacity: 0.35;
+      }
+      .dc-kys {
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--accent2);
+        text-align: center;
+        margin: 10px 0;
+      }
+      .dc-kys-label {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: var(--text-muted);
+        text-align: center;
+      }
+      .dc-metrics {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 14px;
+      }
+      .dc-metric {
+        background: var(--surface2);
+        border-radius: 8px;
+        padding: 10px 12px;
+      }
+      .dc-metric-label {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-muted);
+        margin-bottom: 4px;
+      }
+      .dc-metric-val {
+        font-size: 16px;
+        font-weight: 600;
+      }
+      .dc-time-breakdown {
+        margin-top: 14px;
+      }
+      .dc-time-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 6px;
+        font-size: 12px;
+      }
+      .dc-time-label {
+        color: var(--text-muted);
+      }
+      .dc-time-bar {
+        flex: 1;
+        height: 6px;
+        margin: 0 10px;
+        background: var(--surface2);
+        border-radius: 3px;
+        overflow: hidden;
+      }
+      .dc-time-bar-fill {
+        height: 100%;
+        border-radius: 3px;
+      }
+      .schema-fill {
+        background: #26c6da;
+      }
+      .rephrase-fill {
+        background: #7986cb;
+      }
+      .extract-fill {
+        background: #ef9a9a;
+      }
+      .consolidate-fill {
+        background: #a5d6a7;
+      }
+
+      /* ── Methodology ────────────────────────────────── */
+      .method-box {
+        background: var(--surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius);
+        padding: 24px;
+        box-shadow: var(--shadow);
+      }
+      .method-box p {
+        margin-bottom: 10px;
+        color: var(--text-muted);
+        font-size: 13px;
+        line-height: 1.7;
+      }
+      .method-box code {
+        font-family: "SF Mono", "Fira Code", monospace;
+        font-size: 12px;
+        background: var(--surface2);
+        padding: 2px 6px;
+        border-radius: 4px;
+        color: var(--accent2);
+      }
+      .formula-block {
+        background: var(--surface2);
+        border-radius: 8px;
+        padding: 16px 20px;
+        margin: 14px 0;
+        font-family: "SF Mono", "Fira Code", monospace;
+        font-size: 12px;
+        line-height: 2;
+        color: var(--text);
+        border-left: 4px solid var(--accent);
+      }
+
+      /* ── Header / page shell ────────────────────────── */
+      .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px 0 28px;
+        border-bottom: 2px solid var(--border);
+        margin-bottom: 40px;
+      }
+      .header h1 {
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--text);
+        margin-bottom: 4px;
+      }
+      .subtitle {
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 24px 64px;
+      }
+
+      /* ── Generic card shell ─────────────────────────── */
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+      }
+
+      /* ── Table rank cell ────────────────────────────── */
+      td.rank {
+        font-weight: 700;
+        font-size: 13px;
+        color: var(--text-muted);
+        width: 36px;
+        text-align: center;
+      }
+      td.rank-1 {
+        color: var(--gold);
+      }
+      td.rank-2 {
+        color: var(--silver);
+      }
+      td.rank-3 {
+        color: var(--bronze);
+      }
+
+      /* ── Entity type badge ──────────────────────────── */
+      .badge {
+        display: inline-block;
+        background: var(--surface2);
+        border: 1px solid var(--border-subtle);
+        border-radius: 20px;
+        padding: 2px 9px;
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--text-muted);
+        white-space: nowrap;
+      }
+
+      /* ── Inline bar cells ───────────────────────────── */
+      .bar-cell {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .mini-bar {
+        height: 6px;
+        min-width: 4px;
+        border-radius: 3px;
+        background: var(--accent);
+        opacity: 0.7;
+      }
+
+      /* ── Truncated text cells ───────────────────────── */
+      .desc-cell,
+      .preview-cell {
+        max-width: 340px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: var(--text-muted);
+        font-size: 12px;
+      }
+
+      /* ── Community / cluster grid ───────────────────── */
+      .community-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 16px;
+      }
+      .community-card {
+        background: var(--surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius);
+        padding: 16px 18px;
+        box-shadow: var(--shadow);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .comm-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .comm-id {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--accent2);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .comm-size {
+        background: var(--surface2);
+        border-radius: 99px;
+        padding: 2px 10px;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-muted);
+      }
+      .comm-topics {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+      }
+      .topic-tag {
+        background: var(--rank-bg);
+        color: var(--rank-text);
+        border-radius: 99px;
+        padding: 2px 9px;
+        font-size: 11px;
+        font-weight: 500;
+      }
+      .comm-desc {
+        font-size: 12px;
+        color: var(--text-muted);
+        line-height: 1.55;
+      }
+      .comm-members {
+        font-size: 12px;
+        color: var(--text);
+        line-height: 1.6;
+        word-break: break-word;
+      }
+
+      /* ── Footer ─────────────────────────────────────── */
+      footer {
+        margin-top: 48px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border-subtle);
+        text-align: center;
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div>
+          <h1>Graph Analysis: {{ title }}</h1>
+          <div class="subtitle">
+            Generated {{ generated_at }} &nbsp;·&nbsp; {{ stats.num_entities }}
+            entities &nbsp;·&nbsp; {{ stats.num_relations }} relations
+          </div>
+        </div>
+        <button
+          class="theme-toggle"
+          onclick="toggleTheme()"
+          aria-label="Toggle theme"
+        >
+          <span class="toggle-thumb">
+            <svg class="toggle-icon icon-sun" viewBox="0 0 24 24">
+              <path
+                d="M12 7a5 5 0 100 10 5 5 0 000-10zm0-3a1 1 0 01-1-1V1a1 1 0 112 0v2a1 1 0 01-1 1zm0 18a1 1 0 01-1-1v-2a1 1 0 112 0v2a1 1 0 01-1 1zm9-9a1 1 0 01-1 1h-2a1 1 0 110-2h2a1 1 0 011 1zM4 13H2a1 1 0 110-2h2a1 1 0 110 2zm14.36-6.36a1 1 0 01-.7-.3l-1.42-1.4a1 1 0 111.41-1.42l1.42 1.42a1 1 0 01-.71 1.7zM6.05 19.07a1 1 0 01-.7-.3l-1.42-1.4a1 1 0 111.41-1.42l1.42 1.42a1 1 0 01-.71 1.7zm12.02 0a1 1 0 01-.71-1.7l1.42-1.42a1 1 0 111.41 1.41l-1.42 1.42a1 1 0 01-.7.29zM6.05 6.64a1 1 0 01-.71-1.7L6.76 3.5a1 1 0 011.41 1.41L6.76 6.34a1 1 0 01-.71.3z"
+              />
+            </svg>
+            <svg class="toggle-icon icon-moon" viewBox="0 0 24 24">
+              <path
+                d="M21.64 13a1 1 0 00-1.05-.14 8.05 8.05 0 01-3.37.73A8.15 8.15 0 019.08 5.49a8.59 8.59 0 01.25-2 1 1 0 00-1.32-1.17A10 10 0 1021.64 13z"
+              />
+            </svg>
+          </span>
+        </button>
+      </div>
+      <!-- Overview KPIs -->
+      <section>
+        <div class="section-title">Overview</div>
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-value">{{ stats.num_entities }}</div>
+            <div class="kpi-label">Entities</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-value">{{ stats.num_relations }}</div>
+            <div class="kpi-label">Relations</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-value">{{ stats.num_communities }}</div>
+            <div class="kpi-label">Clusters</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-value">{{ stats.num_chunks }}</div>
+            <div class="kpi-label">Chunks</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-value">{{ stats.avg_degree }}</div>
+            <div class="kpi-label">Avg Degree</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-value">{{ stats.density }}</div>
+            <div class="kpi-label">Density</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-value">{{ stats.n_components }}</div>
+            <div class="kpi-label">Components</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-value">{{ stats.largest_cc_pct }}%</div>
+            <div class="kpi-label">Largest Component</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Distribution charts -->
+      <section>
+        <div class="section-title">Distribution</div>
+        <div class="charts-grid">
+          <div class="chart-card">
+            <h3>Entity Types</h3>
+            <canvas id="chartEntityTypes"></canvas>
+          </div>
+          <div class="chart-card">
+            <h3>Relation Types</h3>
+            <canvas id="chartRelationTypes"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- Most important entities by PageRank -->
+      <section>
+        <div class="section-title">Most Important Entities (PageRank)</div>
+        <p
+          style="font-size: 0.8rem; color: var(--muted); margin-bottom: 0.75rem"
+        >
+          PageRank measures global importance — entities that are referenced by
+          many other highly-connected entities score highest.
+        </p>
+        <div class="card table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Entity</th>
+                <th>Type</th>
+                <th>Score</th>
+                <th>Degree</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for e in top_by_pagerank %}
+              <tr>
+                <td
+                  class="rank {% if loop.index <= 3 %}rank-{{ loop.index }}{% endif %}"
+                >
+                  {{ loop.index }}
+                </td>
+                <td><strong>{{ e.name | e }}</strong></td>
+                <td><span class="badge">{{ e.type | e }}</span></td>
+                <td>
+                  <div class="bar-cell">
+                    <div
+                      class="mini-bar"
+                      style="width: {{ [e.score * 1500, 100] | min | int }}px"
+                    ></div>
+                    {{ e.score }}
+                  </div>
+                </td>
+                <td>{{ e.degree }}</td>
+                <td class="desc-cell">{{ e.description | e }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Most connected entities by degree -->
+      <section>
+        <div class="section-title">Most Connected Entities (Degree)</div>
+        <p
+          style="font-size: 0.8rem; color: var(--muted); margin-bottom: 0.75rem"
+        >
+          Degree is the total number of edges (in + out). Highly connected
+          entities are hubs in the knowledge graph.
+        </p>
+        <div class="card table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Entity</th>
+                <th>Type</th>
+                <th>Degree</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% set max_deg = (top_by_degree | map(attribute='degree') | list |
+              max) if top_by_degree else 1 %} {% for e in top_by_degree %}
+              <tr>
+                <td
+                  class="rank {% if loop.index <= 3 %}rank-{{ loop.index }}{% endif %}"
+                >
+                  {{ loop.index }}
+                </td>
+                <td><strong>{{ e.name | e }}</strong></td>
+                <td><span class="badge">{{ e.type | e }}</span></td>
+                <td>
+                  <div class="bar-cell">
+                    <div
+                      class="mini-bar"
+                      style="width: {{ ([e.degree / max_deg * 100, 100] | min) | int }}px"
+                    ></div>
+                    {{ e.degree }}
+                  </div>
+                </td>
+                <td class="desc-cell">{{ e.description | e }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Bridge entities by betweenness -->
+      <section>
+        <div class="section-title">
+          Bridge Entities (Betweenness Centrality)
+        </div>
+        <p
+          style="font-size: 0.8rem; color: var(--muted); margin-bottom: 0.75rem"
+        >
+          Betweenness measures how often an entity lies on the shortest path
+          between two others — these are the connective tissue of the graph.
+        </p>
+        <div class="card table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Entity</th>
+                <th>Type</th>
+                <th>Betweenness</th>
+                <th>Degree</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% set max_bw = (top_by_betweenness | map(attribute='score') |
+              list | max) if top_by_betweenness else 1 %} {% for e in
+              top_by_betweenness %}
+              <tr>
+                <td
+                  class="rank {% if loop.index <= 3 %}rank-{{ loop.index }}{% endif %}"
+                >
+                  {{ loop.index }}
+                </td>
+                <td><strong>{{ e.name | e }}</strong></td>
+                <td><span class="badge">{{ e.type | e }}</span></td>
+                <td>
+                  <div class="bar-cell">
+                    <div
+                      class="mini-bar"
+                      style="width: {{ ([e.score / [max_bw, 0.0001] | max * 100, 100] | min) | int }}px"
+                    ></div>
+                    {{ e.score }}
+                  </div>
+                </td>
+                <td>{{ e.degree }}</td>
+                <td class="desc-cell">{{ e.description | e }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Most referenced chunks -->
+      {% if top_chunks %}
+      <section>
+        <div class="section-title">Most Referenced Chunks</div>
+        <p
+          style="font-size: 0.8rem; color: var(--muted); margin-bottom: 0.75rem"
+        >
+          Chunks are ranked by how many entities and relations were extracted
+          from them — the densest information sources.
+        </p>
+        <div class="card table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Chunk</th>
+                <th>References</th>
+                <th>Preview</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% set max_ref = (top_chunks | map(attribute='references') | list
+              | max) if top_chunks else 1 %} {% for c in top_chunks %}
+              <tr>
+                <td
+                  class="rank {% if loop.index <= 3 %}rank-{{ loop.index }}{% endif %}"
+                >
+                  {{ loop.index }}
+                </td>
+                <td>
+                  {% if c.chunk_idx is not none %} Part {{ c.chunk_idx + 1 }} {%
+                  else %} {{ c.id[:8] }}… {% endif %}
+                </td>
+                <td>
+                  <div class="bar-cell">
+                    <div
+                      class="mini-bar"
+                      style="width: {{ ([c.references / [max_ref, 1] | max * 80, 80] | min) | int }}px"
+                    ></div>
+                    {{ c.references }}
+                  </div>
+                </td>
+                <td class="preview-cell">{{ c.preview | e }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      {% endif %}
+
+      <!-- Communities -->
+      {% if communities %}
+      <section>
+        <div class="section-title">Clusters</div>
+        <div class="community-grid">
+          {% for c in communities[:9] %}
+          <div class="community-card">
+            <div class="comm-meta">
+              <span class="comm-id">Cluster {{ c.id }}</span>
+              <span class="comm-size">{{ c.size }}</span>
+            </div>
+            {% if c.topics %}
+            <div class="comm-topics">
+              {% for t in c.topics %}<span class="topic-tag">{{ t | e }}</span
+              >{% endfor %}
+            </div>
+            {% endif %} {% if c.description %}
+            <div class="comm-desc">{{ c.description | e }}</div>
+            {% endif %}
+            <div class="comm-members">
+              {{ c.members | map('e') | join(', ') }}{% if c.size > 12 %} …{%
+              endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+    </div>
+
+    <footer>
+      Knwler graph analysis &nbsp;·&nbsp;
+      <a href="https://knwler.com">knwler.com</a>
+    </footer>
+
+    <script>
+      var entityTypeLabels = {{ entity_type_labels | tojson }};
+      var entityTypeData   = {{ entity_type_data   | tojson }};
+      var relationTypeLabels = {{ relation_type_labels | tojson }};
+      var relationTypeData   = {{ relation_type_data   | tojson }};
+
+      var PALETTE = [
+        '#6366f1','#3b82f6','#10b981','#f59e0b','#ef4444',
+        '#8b5cf6','#06b6d4','#84cc16','#f97316','#ec4899',
+        '#14b8a6','#facc15','#a855f7','#0ea5e9','#22c55e',
+        '#d946ef','#64748b','#f43f5e','#0891b2','#65a30d',
+      ];
+
+      function cssVar(name) {
+        return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+      }
+
+      var chartET, chartRT;
+
+      function buildCharts() {
+        var gridColor = cssVar('--border');
+        var textColor = cssVar('--text');
+        var opts = function(labels, data) {
+          return {
+            type: 'bar',
+            data: {
+              labels: labels,
+              datasets: [{
+                label: 'Count',
+                data: data,
+                backgroundColor: PALETTE.slice(0, labels.length),
+                borderRadius: 4,
+              }]
+            },
+            options: {
+              indexAxis: 'y',
+              responsive: true,
+              plugins: { legend: { display: false } },
+              scales: {
+                x: { grid: { color: gridColor }, ticks: { color: textColor } },
+                y: { grid: { color: gridColor }, ticks: { color: textColor, font: { size: 11 } } }
+              }
+            }
+          };
+        };
+        if (chartET) chartET.destroy();
+        if (chartRT) chartRT.destroy();
+        chartET = new Chart(document.getElementById('chartEntityTypes'), opts(entityTypeLabels, entityTypeData));
+        chartRT = new Chart(document.getElementById('chartRelationTypes'), opts(relationTypeLabels, relationTypeData));
+      }
+
+      function toggleTheme() {
+        var el = document.documentElement;
+        el.setAttribute('data-theme', el.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+        buildCharts();
+      }
+
+      buildCharts();
+    </script>
+  </body>
+</html>

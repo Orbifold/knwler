@@ -8,67 +8,121 @@ from networkx.algorithms.community import louvain_communities
 from knwler.config import Config, console
 from knwler.language import get_console_msg, get_prompt
 from knwler.llm import llm_generate, parse_json_response
+from knwler.models import Graph, ClusteredGraph
+from dataclasses import asdict
 
 
 # ---------------------------------------------------------------------------
 # Network creation
 # ---------------------------------------------------------------------------
-def create_network(consolidated: dict) -> nx.MultiDiGraph:
+def create_network(
+    consolidated: dict | Graph,
+    title: str = None,
+    url: str = None,
+    language: str = None,
+    summary: str = None,
+) -> nx.MultiDiGraph:
     """Create a NetworkX graph from consolidated data."""
     g = nx.MultiDiGraph()
+    from knwler.cache import hash_args
+
+    if isinstance(consolidated, Graph):
+        consolidated = asdict(consolidated)  # type: ignore
+    # add a document node so we have a reference from the nodes to the source document
+    doc_hash = hash_args(consolidated.get("title", ""))
+    g.add_node(
+        doc_hash,
+        type="document",
+        title=title,
+        summary=summary,
+        url=consolidated.get("url", ""),
+        language=language,
+    )
     for e in consolidated["entities"]:
+        node_id = f"{e['name']}::{e['type']}" if e.get("type") else e["name"]
         g.add_node(
-            e["name"],
+            node_id,
+            name=e["name"],
             type=e["type"],
             description=e["description"],
             community_id=e.get("community_id"),
+            document=doc_hash,
         )
     for r in consolidated["relations"]:
-        g.add_edge(
-            r["source"], r["target"], type=r["type"], description=r["description"]
+        src_id = (
+            f"{r['source']}::{r['source_type']}"
+            if r.get("source_type")
+            else r["source"]
         )
+        tgt_id = (
+            f"{r['target']}::{r['target_type']}"
+            if r.get("target_type")
+            else r["target"]
+        )
+        g.add_edge(src_id, tgt_id, type=r["type"], description=r["description"])
     return g
 
 
 # ---------------------------------------------------------------------------
 # Community analysis
 # ---------------------------------------------------------------------------
-def analyze_communities(consolidated: dict, config: Config) -> dict:
+async def cluster_graph(
+    graph: dict | Graph, config: Config = Config()
+) -> ClusteredGraph:
     """Detect communities and label them with topics and descriptions."""
+    if not graph:
+        raise ValueError("No graph provided for clustering analysis.")
     analyzing_msg = (
         get_console_msg("analyzing_communities") or "Analyzing communities..."
     )
+    if isinstance(graph, Graph):
+        graph = asdict(graph)
     with console.status(f"[cyan]{analyzing_msg}"):
         g = nx.Graph()
-        for e in consolidated.get("entities", []):
-            g.add_node(e["name"])
-        for r in consolidated.get("relations", []):
+        for e in graph.get("entities", []):
+            node_id = f"{e['name']}::{e['type']}" if e.get("type") else e["name"]
+            g.add_node(node_id)
+        for r in graph.get("relations", []):
             weight = r.get("strength", 1)
-            g.add_edge(r["source"], r["target"], weight=weight)
+            src_id = (
+                f"{r['source']}::{r['source_type']}"
+                if r.get("source_type")
+                else r["source"]
+            )
+            tgt_id = (
+                f"{r['target']}::{r['target_type']}"
+                if r.get("target_type")
+                else r["target"]
+            )
+            g.add_edge(src_id, tgt_id, weight=weight)
 
         if g.number_of_nodes() == 0:
-            consolidated["communities"] = []
-            return consolidated
+            graph["communities"] = []
+            return ClusteredGraph(**graph)
 
-        communities = louvain_communities(g, weight="weight", seed=0)
-        entity_map = {e["name"]: e for e in consolidated.get("entities", [])}
+        clusters = louvain_communities(g, weight="weight", seed=0)
+        # Map composite node IDs (name::type) to entity dicts
+        entity_map = {}
+        for e in graph.get("entities", []):
+            node_id = f"{e['name']}::{e['type']}" if e.get("type") else e["name"]
+            entity_map[node_id] = e
 
         community_payload: list[dict] = []
-        for cid, members in enumerate(communities):
+        for cid, members in enumerate(clusters):
             member_objs = [
                 {
-                    "name": name,
-                    "type": entity_map.get(name, {}).get("type", ""),
-                    "description": entity_map.get(name, {}).get("description", ""),
+                    "name": entity_map.get(node_id, {}).get("name", node_id),
+                    "type": entity_map.get(node_id, {}).get("type", ""),
+                    "description": entity_map.get(node_id, {}).get("description", ""),
                 }
-                for name in sorted(members)
+                for node_id in sorted(members)
             ]
             community_payload.append({"id": str(cid), "members": member_objs})
 
         labels: dict = {}
         if community_payload:
             prompt = _build_community_prompt(community_payload)
-            response = llm_generate(prompt, config, model=config.extraction_model)
+            response = await llm_generate(prompt, config, model=config.extraction_model)
             parsed = parse_json_response(response)
             labels = parsed.get("communities", {})
 
@@ -76,7 +130,7 @@ def analyze_communities(consolidated: dict, config: Config) -> dict:
             labels = _fallback_community_labels(community_payload)
 
         communities_out: list[dict] = []
-        for cid, members in enumerate(communities):
+        for cid, members in enumerate(clusters):
             label = labels.get(str(cid), {"topics": ["misc"], "description": ""})
             communities_out.append(
                 {
@@ -86,17 +140,17 @@ def analyze_communities(consolidated: dict, config: Config) -> dict:
                     "members": sorted(members),
                 }
             )
-            for name in members:
-                if name in entity_map:
-                    entity_map[name]["community_id"] = cid
+            for node_id in members:
+                if node_id in entity_map:
+                    entity_map[node_id]["community_id"] = cid
 
-        consolidated["communities"] = communities_out
+        graph["communities"] = communities_out
         detected_msg = (
-            get_console_msg("detected_communities", count=len(communities))
-            or f"Detected {len(communities)} communities"
+            get_console_msg("detected_communities", count=len(clusters))
+            or f"Detected {len(clusters)} communities"
         )
         console.print(f"[white]{detected_msg}[/]")
-    return consolidated
+    return ClusteredGraph(**graph)
 
 
 # ---------------------------------------------------------------------------

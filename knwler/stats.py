@@ -6,7 +6,10 @@ from statistics import mean, median
 
 from rich.table import Table
 
-from knwler.config import ExtractionResult, Schema, console
+from knwler.config import console
+from knwler.models import ExtractionResult, Schema, Graph, ClusteredGraph
+
+from dataclasses import asdict
 
 
 # ---------------------------------------------------------------------------
@@ -53,8 +56,10 @@ def compute_stats(
     }
 
 
-def compute_community_stats(consolidated: dict) -> dict:
+def compute_community_stats(consolidated: dict | ClusteredGraph) -> dict:
     """Compute community detection statistics."""
+    if isinstance(consolidated, ClusteredGraph):
+        consolidated = asdict(consolidated)  # type: ignore
     communities = consolidated.get("communities", [])
     sizes = [len(c.get("members", [])) for c in communities]
 
@@ -82,7 +87,7 @@ def compute_community_stats(consolidated: dict) -> dict:
 # ---------------------------------------------------------------------------
 # Display
 # ---------------------------------------------------------------------------
-def print_stats(stats: dict, schema: Schema, consolidated: dict | None = None):
+def print_stats(stats: dict, schema: Schema, consolidated: dict | ClusteredGraph | None = None):
     """Print formatted statistics using rich tables."""
     console.print()
 
@@ -123,6 +128,8 @@ def print_stats(stats: dict, schema: Schema, consolidated: dict | None = None):
     table.add_row("Relations", f"{r['total']} total ({r['avg']:.1f}/chunk)")
 
     if consolidated:
+        if isinstance(consolidated, ClusteredGraph):
+            consolidated = asdict(consolidated)  # type: ignore
         table.add_row(
             "Consolidated",
             f"[bold green]{len(consolidated['entities'])}[/bold green] entities, "

@@ -1,9 +1,9 @@
 import pytest
 import networkx as nx
-from knwler.community import create_network
+from knwler.clustering import create_network
 
 """
-Tests for community.py
+Tests for clustering.py
 """
 
 
@@ -17,7 +17,9 @@ def test_create_network_with_entities_and_relations():
         "relations": [
             {
                 "source": "Alice",
+                "source_type": "person",
                 "target": "Bob",
+                "target_type": "person",
                 "type": "knows",
                 "description": "knows each other",
             },
@@ -27,13 +29,13 @@ def test_create_network_with_entities_and_relations():
     g = create_network(consolidated)
 
     assert isinstance(g, nx.MultiDiGraph)
-    assert g.number_of_nodes() == 2
+    assert g.number_of_nodes() == 2 + 1  # 2 entities + 1 document node
     assert g.number_of_edges() == 1
-    assert "Alice" in g.nodes()
-    assert "Bob" in g.nodes()
-    assert g.nodes["Alice"]["type"] == "person"
-    assert g.nodes["Bob"]["description"] == "Another person"
-    assert g.has_edge("Alice", "Bob")
+    assert "Alice::person" in g.nodes()
+    assert "Bob::person" in g.nodes()
+    assert g.nodes["Alice::person"]["type"] == "person"
+    assert g.nodes["Bob::person"]["description"] == "Another person"
+    assert g.has_edge("Alice::person", "Bob::person")
 
 
 def test_create_network_with_community_id():
@@ -52,7 +54,7 @@ def test_create_network_with_community_id():
 
     g = create_network(consolidated)
 
-    assert g.nodes["Entity1"]["community_id"] == 0
+    assert g.nodes["Entity1::type1"]["community_id"] == 0
 
 
 def test_create_network_without_community_id():
@@ -66,7 +68,7 @@ def test_create_network_without_community_id():
 
     g = create_network(consolidated)
 
-    assert g.nodes["Entity1"]["community_id"] is None
+    assert g.nodes["Entity1::type1"]["community_id"] is None
 
 
 def test_create_network_empty():
@@ -76,7 +78,7 @@ def test_create_network_empty():
     g = create_network(consolidated)
 
     assert isinstance(g, nx.MultiDiGraph)
-    assert g.number_of_nodes() == 0
+    assert g.number_of_nodes() == 1  # 0 entities + 1 document node
     assert g.number_of_edges() == 0
 
 
@@ -90,7 +92,9 @@ def test_create_network_edge_attributes():
         "relations": [
             {
                 "source": "A",
+                "source_type": "t1",
                 "target": "B",
+                "target_type": "t2",
                 "type": "connected",
                 "description": "edge desc",
             },
@@ -99,7 +103,7 @@ def test_create_network_edge_attributes():
 
     g = create_network(consolidated)
 
-    edge_data = g.get_edge_data("A", "B")
+    edge_data = g.get_edge_data("A::t1", "B::t2")
     assert edge_data[0]["type"] == "connected"
     assert edge_data[0]["description"] == "edge desc"
 
@@ -113,13 +117,34 @@ def test_create_network_multiple_edges():
             {"name": "Z", "type": "t3", "description": "d3"},
         ],
         "relations": [
-            {"source": "X", "target": "Y", "type": "rel1", "description": "d1"},
-            {"source": "Y", "target": "Z", "type": "rel2", "description": "d2"},
-            {"source": "X", "target": "Z", "type": "rel3", "description": "d3"},
+            {
+                "source": "X",
+                "source_type": "t1",
+                "target": "Y",
+                "target_type": "t2",
+                "type": "rel1",
+                "description": "d1",
+            },
+            {
+                "source": "Y",
+                "source_type": "t2",
+                "target": "Z",
+                "target_type": "t3",
+                "type": "rel2",
+                "description": "d2",
+            },
+            {
+                "source": "X",
+                "source_type": "t1",
+                "target": "Z",
+                "target_type": "t3",
+                "type": "rel3",
+                "description": "d3",
+            },
         ],
     }
 
     g = create_network(consolidated)
 
-    assert g.number_of_nodes() == 3
+    assert g.number_of_nodes() == 3 + 1  # 3 entities + 1 document node
     assert g.number_of_edges() == 3

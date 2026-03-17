@@ -1,0 +1,88 @@
+{
+    "id": "doc1",
+    "title": "On the origin of species",
+    "content": "On the amazing diversity of life on Earth, and how it came to be.",
+    "url": "https://en.wikipedia.org/wiki/On_the_Origin_of_Species",
+    "language": "en",
+    "schema": {
+        "entity_types": [
+            "Person",
+            "Place",
+            "Concept"
+        ],
+        "relation_types": [
+            "discovered",
+            "lived_in",
+            "related_to"
+        ]
+    },
+    "stats": [],
+    "chunks": [
+        {
+            "id": "doc1-chunk1",
+            "document_id": "doc1",
+            "text": "Charles Darwin was a naturalist who lived in the 19th century.",
+            "tokens": 10,
+            "entities": [
+                {
+                    "text": "Charles Darwin",
+                    "type": "Person"
+                }
+            ],
+            "relations": []
+        },
+        {
+            "id": "doc1-chunk2",
+            "document_id": "doc1",
+            "text": "He is best known for his theory of evolution by natural selection.",
+            "tokens": 12,
+            "entities": [
+                {
+                    "text": "theory of evolution",
+                    "type": "Concept"
+                }
+            ],
+            "relations": [
+                {
+                    "source": "Charles Darwin",
+                    "target": "theory of evolution",
+                    "type": "related_to",
+                    "description": "Charles Darwin is related to the theory of evolution.",
+                    "strength": 0.8
+                }
+            ]
+        }
+    ],
+    "graph": {
+        "entities": [
+            {
+                "name": "Charles Darwin",
+                "type": "Person",
+                "description": "Darwin spent the summer of 1825 as an apprentice doctor, helping his father treat impoverished people in Shropshire, before going to the well-regarded University of Edinburgh Medical School with his brother Erasmus in October 1825. Darwin found lectures dull and surgery distressing, so he neglected his studies.[24] He learned taxidermy in around 40 daily hour-long sessions from John Edmonstone, a Black Briton from Demerara in the South American rainforest, who had been taught there by Charles Waterton, and when brought to Scotland was freed from slavery",
+                "chunk_ids": [
+                    "doc1-chunk1"
+                ]
+            },
+            {
+                "name": "theory of evolution",
+                "type": "Concept",
+                "description": "A scientific theory explaining the process of natural selection.",
+                "chunk_ids": [
+                    "doc1-chunk2"
+                ]
+            }
+        ],
+        "relations": [
+            {
+                "source": "Charles Darwin",
+                "target": "theory of evolution",
+                "type": "related_to",
+                "description": "Charles Darwin is related to the theory of evolution.",
+                "chunk_ids": [
+                    "doc1-chunk2"
+                ],
+                "strength": 0.8
+            }
+        ]
+    }
+}

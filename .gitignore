@@ -1,4 +1,4 @@
-# Python-generated files
+# Python
 __pycache__/
 *.py[oc]
 build/
@@ -6,11 +6,26 @@ dist/
 wheels/
 *.egg-info
 
-# Virtual environments
+# Tools & env
 .venv
-model/
-cache/
-results/
 uv.lock
 .DS_Store
 .claude
+.vscode/
+.pytest_cache/
+
+# Runtime output
+model/
+cache/
+results/
+pdfs/
+knwler_demo/
+benchmark/output/
+
+# Test artifacts
+tests/apple.html
+tests/graph.html
+tests/graph.json
+tests/data/consolidated.json
+tests/data/consolidated.json
+batchings/

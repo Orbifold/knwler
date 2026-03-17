@@ -1,0 +1,937 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>knwler – Benchmark Report</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+    <style>
+      :root {
+        --bg: #f0f4f5;
+        --surface: #ffffff;
+        --surface2: #e8eef0;
+        --border: #26c6da;
+        --border-subtle: #c0d4d8;
+        --text: #1e2e30;
+        --text-muted: #5a7275;
+        --accent: #26c6da;
+        --accent2: #0e9aa7;
+        --gold: #f5a623;
+        --silver: #9aa8ab;
+        --bronze: #c47c3a;
+        --badge-ollama: #e8f4ea;
+        --badge-ollama-t: #2e6b3b;
+        --badge-openai: #e8eaf6;
+        --badge-openai-t: #303f9f;
+        --badge-anthropic: #fdecea;
+        --badge-anthropic-t: #b71c1c;
+        --rank-bg: #e0f7fa;
+        --rank-text: #006064;
+        --shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        --radius: 10px;
+        --chart-h: 280px;
+      }
+      [data-theme="dark"] {
+        --bg: #111b1d;
+        --surface: #1c2c2f;
+        --surface2: #243336;
+        --border: #26c6da;
+        --border-subtle: #2d4447;
+        --text: #d8e4e6;
+        --text-muted: #7a9ea3;
+        --accent: #26c6da;
+        --accent2: #4dd8e6;
+        --gold: #f5a623;
+        --silver: #8fa3a8;
+        --bronze: #c47c3a;
+        --badge-ollama: #1e3a22;
+        --badge-ollama-t: #6fcf8f;
+        --badge-openai: #1e2145;
+        --badge-openai-t: #8fa3e8;
+        --badge-anthropic: #3a1a1a;
+        --badge-anthropic-t: #f08080;
+        --rank-bg: #003b3f;
+        --rank-text: #4dd8e6;
+        --shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+      }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: "Inter", system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.6;
+        font-size: 14px;
+      }
+
+      /* ── Layout ─────────────────────────────────────── */
+      .page {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 32px 24px 64px;
+      }
+      .section {
+        margin-bottom: 48px;
+      }
+
+      /* ── Header ─────────────────────────────────────── */
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px 0 28px;
+        border-bottom: 2px solid var(--border);
+        margin-bottom: 40px;
+      }
+      .logo {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--accent);
+        letter-spacing: -0.5px;
+      }
+      .logo span {
+        color: var(--text-muted);
+        font-weight: 400;
+        font-size: 15px;
+        margin-left: 10px;
+      }
+      .header-meta {
+        text-align: right;
+        color: var(--text-muted);
+        font-size: 12px;
+        line-height: 1.7;
+      }
+      .theme-toggle {
+        cursor: pointer;
+        background: var(--surface2);
+        border: 1px solid var(--border-subtle);
+        border-radius: 20px;
+        padding: 5px 14px;
+        font-size: 12px;
+        color: var(--text-muted);
+        transition: background 0.2s;
+      }
+      .theme-toggle:hover {
+        background: var(--surface);
+      }
+
+      /* ── Section headings ───────────────────────────── */
+      .section-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--text);
+        border-left: 4px solid var(--accent);
+        padding-left: 10px;
+        margin-bottom: 20px;
+      }
+      .section-subtitle {
+        font-size: 13px;
+        color: var(--text-muted);
+        margin-top: -14px;
+        margin-bottom: 20px;
+        padding-left: 14px;
+      }
+
+      /* ── Summary KPI cards ──────────────────────────── */
+      .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 16px;
+      }
+      .kpi-card {
+        background: var(--surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius);
+        padding: 18px 20px;
+        box-shadow: var(--shadow);
+      }
+      .kpi-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-muted);
+        margin-bottom: 6px;
+      }
+      .kpi-value {
+        font-size: 26px;
+        font-weight: 700;
+        color: var(--accent2);
+      }
+      .kpi-sub {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-top: 2px;
+      }
+
+      /* ── Leaderboard table ──────────────────────────── */
+      .table-wrap {
+        overflow-x: auto;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: var(--surface);
+      }
+      thead tr {
+        background: var(--surface2);
+      }
+      th {
+        padding: 11px 14px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
+        text-align: left;
+        border-bottom: 2px solid var(--border-subtle);
+        white-space: nowrap;
+      }
+      th.sortable {
+        cursor: default;
+      }
+      td {
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--border-subtle);
+        font-size: 13px;
+        white-space: nowrap;
+      }
+      tr:last-child td {
+        border-bottom: none;
+      }
+      tr:hover td {
+        background: var(--surface2);
+      }
+
+      .rank-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        font-weight: 700;
+        font-size: 13px;
+        background: var(--rank-bg);
+        color: var(--rank-text);
+      }
+      .rank-1 {
+        background: var(--gold);
+        color: #5a3a00;
+      }
+      .rank-2 {
+        background: var(--silver);
+        color: #2a3032;
+      }
+      .rank-3 {
+        background: var(--bronze);
+        color: #3a1f00;
+      }
+
+      .kys-bar-wrap {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .kys-bar-track {
+        flex: 1;
+        height: 8px;
+        background: var(--surface2);
+        border-radius: 4px;
+        overflow: hidden;
+        min-width: 60px;
+      }
+      .kys-bar-fill {
+        height: 100%;
+        border-radius: 4px;
+        background: var(--accent);
+      }
+      .kys-value {
+        font-weight: 600;
+        font-size: 13px;
+        min-width: 36px;
+        text-align: right;
+      }
+
+      .backend-badge {
+        border-radius: 20px;
+        padding: 2px 10px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        display: inline-block;
+      }
+      .b-ollama {
+        background: var(--badge-ollama);
+        color: var(--badge-ollama-t);
+      }
+      .b-openai {
+        background: var(--badge-openai);
+        color: var(--badge-openai-t);
+      }
+      .b-anthropic {
+        background: var(--badge-anthropic);
+        color: var(--badge-anthropic-t);
+      }
+
+      .time-total {
+        font-weight: 600;
+      }
+      .model-name {
+        font-weight: 500;
+      }
+      .model-pair {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-top: 1px;
+      }
+
+      /* ── Charts grid ────────────────────────────────── */
+      .charts-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+      }
+      @media (max-width: 768px) {
+        .charts-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .chart-card {
+        background: var(--surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius);
+        padding: 22px;
+        box-shadow: var(--shadow);
+      }
+      .chart-card h3 {
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 16px;
+        color: var(--text);
+      }
+      .chart-wrap {
+        position: relative;
+        height: var(--chart-h);
+      }
+
+      /* ── Detail cards ───────────────────────────────── */
+      .detail-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+        gap: 20px;
+      }
+      .detail-card {
+        background: var(--surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius);
+        padding: 20px;
+        box-shadow: var(--shadow);
+        position: relative;
+        overflow: hidden;
+      }
+      .detail-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: var(--accent);
+      }
+      .detail-card.rank-1::before {
+        background: var(--gold);
+      }
+      .detail-card.rank-2::before {
+        background: var(--silver);
+      }
+      .detail-card.rank-3::before {
+        background: var(--bronze);
+      }
+      .dc-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        margin-bottom: 14px;
+      }
+      .dc-title {
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .dc-pair {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-top: 2px;
+      }
+      .dc-rank {
+        font-size: 22px;
+        font-weight: 700;
+        opacity: 0.35;
+      }
+      .dc-kys {
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--accent2);
+        text-align: center;
+        margin: 10px 0;
+      }
+      .dc-kys-label {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: var(--text-muted);
+        text-align: center;
+      }
+      .dc-metrics {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 14px;
+      }
+      .dc-metric {
+        background: var(--surface2);
+        border-radius: 8px;
+        padding: 10px 12px;
+      }
+      .dc-metric-label {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-muted);
+        margin-bottom: 4px;
+      }
+      .dc-metric-val {
+        font-size: 16px;
+        font-weight: 600;
+      }
+      .dc-time-breakdown {
+        margin-top: 14px;
+      }
+      .dc-time-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 6px;
+        font-size: 12px;
+      }
+      .dc-time-label {
+        color: var(--text-muted);
+      }
+      .dc-time-bar {
+        flex: 1;
+        height: 6px;
+        margin: 0 10px;
+        background: var(--surface2);
+        border-radius: 3px;
+        overflow: hidden;
+      }
+      .dc-time-bar-fill {
+        height: 100%;
+        border-radius: 3px;
+      }
+      .schema-fill {
+        background: #26c6da;
+      }
+      .rephrase-fill {
+        background: #7986cb;
+      }
+      .extract-fill {
+        background: #ef9a9a;
+      }
+      .consolidate-fill {
+        background: #a5d6a7;
+      }
+
+      /* ── Methodology ────────────────────────────────── */
+      .method-box {
+        background: var(--surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius);
+        padding: 24px;
+        box-shadow: var(--shadow);
+      }
+      .method-box p {
+        margin-bottom: 10px;
+        color: var(--text-muted);
+        font-size: 13px;
+        line-height: 1.7;
+      }
+      .method-box code {
+        font-family: "SF Mono", "Fira Code", monospace;
+        font-size: 12px;
+        background: var(--surface2);
+        padding: 2px 6px;
+        border-radius: 4px;
+        color: var(--accent2);
+      }
+      .formula-block {
+        background: var(--surface2);
+        border-radius: 8px;
+        padding: 16px 20px;
+        margin: 14px 0;
+        font-family: "SF Mono", "Fira Code", monospace;
+        font-size: 12px;
+        line-height: 2;
+        color: var(--text);
+        border-left: 4px solid var(--accent);
+      }
+
+      /* ── Footer ─────────────────────────────────────── */
+      footer {
+        margin-top: 48px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border-subtle);
+        text-align: center;
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <!-- ── Header ──────────────────────────────────────── -->
+      <header>
+        <div>
+          <div class="logo">knwler <span>Benchmark Report</span></div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 16px">
+          <div class="header-meta">
+            Generated: {{ generated_at }}<br />
+            Document: {{ document_name }}<br />
+            Runs: {{ runs | length }}
+          </div>
+          <button class="theme-toggle" onclick="toggleTheme()">
+            &#9680; Theme
+          </button>
+        </div>
+      </header>
+
+      <!-- ── KPI Summary ──────────────────────────────────── -->
+      <section class="section">
+        <div class="section-title">Summary</div>
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-label">Pipelines Evaluated</div>
+            <div class="kpi-value">{{ runs | length }}</div>
+            <div class="kpi-sub">{{ backends | join(", ") }}</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Best KYS</div>
+            <div class="kpi-value">{{ "%.3f" | format(runs[0].kys) }}</div>
+            <div class="kpi-sub">
+              {{ runs[0].discovery_model }} / {{ runs[0].extraction_model }}
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Most Knowledge</div>
+            <div class="kpi-value">{{ max_graph_size }}</div>
+            <div class="kpi-sub">entities + relations</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Fastest Pipeline</div>
+            <div class="kpi-value">{{ "%.1f" | format(min_total_time) }}s</div>
+            <div class="kpi-sub">end-to-end wall time</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Avg Knowledge Rate</div>
+            <div class="kpi-value">
+              {{ "%.2f" | format(avg_knowledge_rate) }}
+            </div>
+            <div class="kpi-sub">nodes+edges / second</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Total Entities (all)</div>
+            <div class="kpi-value">{{ total_entities }}</div>
+            <div class="kpi-sub">across all pipelines</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Leaderboard ──────────────────────────────────── -->
+      <section class="section">
+        <div class="section-title">Leaderboard</div>
+        <div class="section-subtitle">
+          Sorted by Knowledge Yield Score (KYS) — higher is better
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Backend</th>
+                <th>Discovery Model</th>
+                <th>Extraction Model</th>
+                <th>KYS ↓</th>
+                <th>Entities</th>
+                <th>Relations</th>
+                <th>Graph Size</th>
+                <th>Knowledge Rate</th>
+                <th>Total Time</th>
+                <th>Quality Score</th>
+                <th>Speed Score</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in runs %}
+              <tr>
+                <td>
+                  <span
+                    class="rank-badge {% if loop.index == 1 %}rank-1{% elif loop.index == 2 %}rank-2{% elif loop.index == 3 %}rank-3{% endif %}"
+                  >
+                    {{ loop.index }}
+                  </span>
+                </td>
+                <td>
+                  <span class="backend-badge b-{{ r.backend }}"
+                    >{{ r.backend }}</span
+                  >
+                </td>
+                <td class="model-name">{{ r.discovery_model }}</td>
+                <td class="model-name">{{ r.extraction_model }}</td>
+                <td>
+                  <div class="kys-bar-wrap">
+                    <div class="kys-bar-track">
+                      <div
+                        class="kys-bar-fill"
+                        style="width: {{ (r.kys * 100) | round(1) }}%"
+                      ></div>
+                    </div>
+                    <span class="kys-value">{{ "%.3f" | format(r.kys) }}</span>
+                  </div>
+                </td>
+                <td>{{ r.num_entities }}</td>
+                <td>{{ r.num_relations }}</td>
+                <td><strong>{{ r.graph_size }}</strong></td>
+                <td>{{ "%.2f" | format(r.knowledge_rate) }} /s</td>
+                <td class="time-total">{{ "%.1f" | format(r.total_time) }}s</td>
+                <td>{{ "%.3f" | format(r.quality_norm) }}</td>
+                <td>{{ "%.3f" | format(r.speed_norm) }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ── Charts ───────────────────────────────────────── -->
+      <section class="section">
+        <div class="section-title">Visual Analysis</div>
+        <div class="charts-grid">
+          <!-- KYS chart -->
+          <div class="chart-card">
+            <h3>Knowledge Yield Score (KYS)</h3>
+            <div class="chart-wrap">
+              <canvas id="chartKys"></canvas>
+            </div>
+          </div>
+
+          <!-- Pipeline time breakdown -->
+          <div class="chart-card">
+            <h3>Pipeline Time Breakdown (seconds)</h3>
+            <div class="chart-wrap">
+              <canvas id="chartTime"></canvas>
+            </div>
+          </div>
+
+          <!-- Graph size -->
+          <div class="chart-card">
+            <h3>Knowledge Graph Output</h3>
+            <div class="chart-wrap">
+              <canvas id="chartGraph"></canvas>
+            </div>
+          </div>
+
+          <!-- Knowledge rate -->
+          <div class="chart-card">
+            <h3>Knowledge Rate (graph elements / second)</h3>
+            <div class="chart-wrap">
+              <canvas id="chartRate"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Detail Cards ─────────────────────────────────── -->
+      <section class="section">
+        <div class="section-title">Pipeline Details</div>
+        <div class="detail-grid">
+          {% for r in runs %} {% set card_rank = loop.index %}
+          <div
+            class="detail-card {% if card_rank == 1 %}rank-1{% elif card_rank == 2 %}rank-2{% elif card_rank == 3 %}rank-3{% endif %}"
+          >
+            <div class="dc-header">
+              <div>
+                <div class="dc-title">{{ r.discovery_model }}</div>
+                <div class="dc-pair">extraction: {{ r.extraction_model }}</div>
+                <div style="margin-top: 5px">
+                  <span class="backend-badge b-{{ r.backend }}"
+                    >{{ r.backend }}</span
+                  >
+                </div>
+              </div>
+              <div class="dc-rank">#{{ card_rank }}</div>
+            </div>
+            <div class="dc-kys">{{ "%.3f" | format(r.kys) }}</div>
+            <div class="dc-kys-label">Knowledge Yield Score</div>
+            <div class="dc-metrics">
+              <div class="dc-metric">
+                <div class="dc-metric-label">Entities</div>
+                <div class="dc-metric-val">{{ r.num_entities }}</div>
+              </div>
+              <div class="dc-metric">
+                <div class="dc-metric-label">Relations</div>
+                <div class="dc-metric-val">{{ r.num_relations }}</div>
+              </div>
+              <div class="dc-metric">
+                <div class="dc-metric-label">Total Time</div>
+                <div class="dc-metric-val">
+                  {{ "%.1f" | format(r.total_time) }}s
+                </div>
+              </div>
+              <div class="dc-metric">
+                <div class="dc-metric-label">Knowledge Rate</div>
+                <div class="dc-metric-val">
+                  {{ "%.2f" | format(r.knowledge_rate) }}/s
+                </div>
+              </div>
+            </div>
+            <div class="dc-time-breakdown">
+              {% set t = r.total_time %} {% for phase, val, cls in [ ("Schema",
+              r.schema_time, "schema-fill"), ("Rephrase", r.rephrase_time,
+              "rephrase-fill"), ("Extraction", r.extraction_time,
+              "extract-fill"), ("Consolidation", r.consolidation_time,
+              "consolidate-fill") ] %}
+              <div class="dc-time-row">
+                <span class="dc-time-label">{{ phase }}</span>
+                <div class="dc-time-bar">
+                  <div
+                    class="dc-time-bar-fill {{ cls }}"
+                    style="width: {{ ((val / t) * 100) | round(1) }}%"
+                  ></div>
+                </div>
+                <span>{{ "%.1f" | format(val) }}s</span>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+
+      <!-- ── Methodology ──────────────────────────────────── -->
+      <section class="section">
+        <div class="section-title">
+          Methodology – Knowledge Yield Score (KYS)
+        </div>
+        <div class="method-box">
+          <p>
+            The <strong>Knowledge Yield Score (KYS)</strong> is a composite
+            metric that balances <em>output richness</em> (how much the pipeline
+            extracted) against <em>efficiency</em> (how fast it ran). It is the
+            <strong>geometric mean</strong> of two normalized sub-scores,
+            analogous to the F₁ score — it penalises runs that excel in only one
+            dimension.
+          </p>
+          <div class="formula-block">
+            graph_size = num_entities + num_relations<br />
+            total_time = schema_time + rephrase_time + extraction_time +
+            consolidation_time<br /><br />
+            quality_norm = graph_size / max(graph_size) &nbsp;# [0, 1]<br />
+            speed_norm = min(total_time) / total_time &nbsp;# [0, 1] — fastest
+            run scores 1.0<br /><br />
+            KYS = √(quality_norm × speed_norm) &nbsp;# geometric mean
+          </div>
+          <p>
+            <code>quality_norm</code> rewards pipelines that produce large,
+            dense knowledge graphs. <code>speed_norm</code> rewards pipelines
+            that finish quickly; the fastest run scores 1.0 and slower runs are
+            penalised proportionally. The geometric mean ensures a pipeline
+            cannot compensate for poor speed with high quality alone — both
+            dimensions must be strong for a high KYS.
+          </p>
+          <p>
+            <strong>Knowledge Rate</strong> (<code>graph_size / total_time</code
+            >) is a complementary raw throughput metric expressed in graph
+            elements per second, useful for absolute comparisons independent of
+            the normalization range.
+          </p>
+        </div>
+      </section>
+
+      <footer>
+        Generated by <strong>knwler</strong> benchmark tool &mdash; {{
+        generated_at }}
+      </footer>
+    </div>
+    <!-- .page -->
+
+    <script>
+      // ── Theme toggle ────────────────────────────────────────
+      function toggleTheme() {
+        const html = document.documentElement;
+        html.dataset.theme = html.dataset.theme === "dark" ? "light" : "dark";
+        updateChartColors();
+      }
+
+      // ── Data from Python ────────────────────────────────────
+      const labels = {{ chart_labels | tojson }};
+      const kysData = {{ chart_kys | tojson }};
+      const schemaTimes = {{ chart_schema_times | tojson }};
+      const rephraseTimes = {{ chart_rephrase_times | tojson }};
+      const extractTimes = {{ chart_extraction_times | tojson }};
+      const consolidateTimes = {{ chart_consolidation_times | tojson }};
+      const entitiesData = {{ chart_entities | tojson }};
+      const relationsData = {{ chart_relations | tojson }};
+      const rateData = {{ chart_rates | tojson }};
+      const backendColors = {{ chart_backend_colors | tojson }};
+
+      const CHART_DEFAULTS = {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+      };
+
+      function getTextColor() {
+        return document.documentElement.dataset.theme === "dark" ? "#d8e4e6" : "#1e2e30";
+      }
+      function getMutedColor() {
+        return document.documentElement.dataset.theme === "dark" ? "#7a9ea3" : "#5a7275";
+      }
+      function getGridColor() {
+        return document.documentElement.dataset.theme === "dark" ? "rgba(255,255,255,.07)" : "rgba(0,0,0,.07)";
+      }
+
+      function axisOpts(title) {
+        const color = getMutedColor();
+        return {
+          ticks: { color },
+          grid: { color: getGridColor() },
+          title: { display: !!title, text: title, color, font: { size: 11 } },
+        };
+      }
+
+      // ── KYS bar chart ────────────────────────────────────────
+      const chartKys = new Chart(document.getElementById("chartKys"), {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [{
+            data: kysData,
+            backgroundColor: backendColors,
+            borderRadius: 6,
+            borderSkipped: false,
+          }]
+        },
+        options: {
+          ...CHART_DEFAULTS,
+          indexAxis: "y",
+          scales: {
+            x: { ...axisOpts("KYS"), beginAtZero: true, max: 1,
+                 ticks: { color: getMutedColor(), callback: v => v.toFixed(2) } },
+            y: { ...axisOpts(null), ticks: { color: getTextColor(), font: { size: 11 } } },
+          },
+        }
+      });
+
+      // ── Time breakdown stacked bar ───────────────────────────
+      const chartTime = new Chart(document.getElementById("chartTime"), {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [
+            { label: "Schema",       data: schemaTimes,     backgroundColor: "#26c6da", borderRadius: 0, stack: "t" },
+            { label: "Rephrase",     data: rephraseTimes,   backgroundColor: "#7986cb", borderRadius: 0, stack: "t" },
+            { label: "Extraction",   data: extractTimes,    backgroundColor: "#ef9a9a", borderRadius: 0, stack: "t" },
+            { label: "Consolidation",data: consolidateTimes,backgroundColor: "#a5d6a7", borderRadius: 0, stack: "t" },
+          ]
+        },
+        options: {
+          ...CHART_DEFAULTS,
+          plugins: {
+            legend: { display: true, position: "bottom",
+              labels: { color: getMutedColor(), boxWidth: 12, padding: 12, font: { size: 11 } } }
+          },
+          scales: {
+            x: { ...axisOpts(null), stacked: true,
+                 ticks: { color: getTextColor(), font: { size: 10 }, maxRotation: 25 } },
+            y: { ...axisOpts("seconds"), stacked: true,
+                 ticks: { color: getMutedColor() } },
+          }
+        }
+      });
+
+      // ── Graph size grouped bar ───────────────────────────────
+      const chartGraph = new Chart(document.getElementById("chartGraph"), {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [
+            { label: "Entities",  data: entitiesData,  backgroundColor: "#26c6da", borderRadius: 4, barPercentage: .45 },
+            { label: "Relations", data: relationsData, backgroundColor: "#ff8a65", borderRadius: 4, barPercentage: .45 },
+          ]
+        },
+        options: {
+          ...CHART_DEFAULTS,
+          plugins: {
+            legend: { display: true, position: "bottom",
+              labels: { color: getMutedColor(), boxWidth: 12, padding: 12, font: { size: 11 } } }
+          },
+          scales: {
+            x: { ...axisOpts(null), ticks: { color: getTextColor(), font: { size: 10 }, maxRotation: 25 } },
+            y: { ...axisOpts("count"), beginAtZero: true, ticks: { color: getMutedColor() } },
+          }
+        }
+      });
+
+      // ── Knowledge rate bar chart ─────────────────────────────
+      const chartRate = new Chart(document.getElementById("chartRate"), {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [{
+            data: rateData,
+            backgroundColor: backendColors,
+            borderRadius: 6,
+            borderSkipped: false,
+          }]
+        },
+        options: {
+          ...CHART_DEFAULTS,
+          scales: {
+            x: { ...axisOpts(null), ticks: { color: getTextColor(), font: { size: 10 }, maxRotation: 25 } },
+            y: { ...axisOpts("elements / sec"), beginAtZero: true, ticks: { color: getMutedColor() } },
+          }
+        }
+      });
+
+      // ── Live chart color updates on theme change ─────────────
+      function updateChartColors() {
+        [chartKys, chartTime, chartGraph, chartRate].forEach(c => {
+          const scales = c.options.scales;
+          if (scales.x) {
+            scales.x.ticks.color = getTextColor();
+            if (scales.x.grid) scales.x.grid.color = getGridColor();
+            if (scales.x.title) scales.x.title.color = getMutedColor();
+          }
+          if (scales.y) {
+            scales.y.ticks.color = getMutedColor();
+            if (scales.y.grid) scales.y.grid.color = getGridColor();
+            if (scales.y.title) scales.y.title.color = getMutedColor();
+          }
+          if (c.options.plugins.legend?.labels) {
+            c.options.plugins.legend.labels.color = getMutedColor();
+          }
+          c.update();
+        });
+      }
+    </script>
+  </body>
+</html>

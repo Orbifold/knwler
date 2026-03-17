@@ -8,33 +8,59 @@ import re
 from datetime import datetime
 from pathlib import Path
 
+import markdown as md_lib
+
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from knwler.config import console
 from knwler.language import get_current_language, get_ui
+from typing import Tuple, List, Dict, Any
+from knwler.models import KnowledgeGraph
+from dataclasses import asdict
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-def _linkify_entities(text: str, entity_names: set[str]) -> str:
-    """Replace known entity names in text with hyperlinks to ``#entity-<name>``."""
-    esc = html_mod.escape(text)
-    if not entity_names:
+def _md_to_html(text: str) -> str:
+    """Convert a markdown string to an HTML fragment."""
+    try:
+        return md_lib.markdown(text, extensions=["nl2br", "sane_lists"])
+    except Exception as e:
+        console.print(f"[red]Error converting markdown to HTML:[/red] {e}")
+        return ""
+
+
+def _linkify_entities(
+    text: str, entities: list[dict], already_html: bool = False
+) -> str:
+    """Replace known entity names in text with hyperlinks to ``#entity-<name>::<type>``.
+
+    When *already_html* is ``True`` the input is treated as an HTML fragment
+    (e.g. produced by :func:`_md_to_html`) and initial HTML-escaping is skipped.
+    The regex is anchored so it won't match inside HTML tag attributes.
+    """
+    esc = text if already_html else html_mod.escape(text)
+    if not entities:
         return esc
 
     esc_to_anchor: dict[str, str] = {}
     esc_names: list[str] = []
-    for name in entity_names:
+    for entity in entities:
+        name = entity.get("name", "")
+        type = entity.get("type", "")
         esc_name = html_mod.escape(name)
         key = esc_name.lower()
         if key in esc_to_anchor:
             continue
-        esc_to_anchor[key] = f"entity-{name.lower().replace(' ', '-')}"
+        esc_to_anchor[key] = (
+            f"entity-{name.lower().replace(' ', '-')}::{type.lower().replace(' ', '-')}"
+        )
         esc_names.append(esc_name)
 
     esc_names.sort(key=len, reverse=True)
-    pattern = r"(?i)\b(" + "|".join(re.escape(n) for n in esc_names) + r")\b"
+    # The negative lookahead ``(?![^<]*>)`` prevents matching inside HTML tags.
+    pattern = r"(?i)(?![^<]*>)\b(" + "|".join(re.escape(n) for n in esc_names) + r")\b"
 
     def repl(match: re.Match) -> str:
         matched = match.group(1)
@@ -50,24 +76,31 @@ def _linkify_entities(text: str, entity_names: set[str]) -> str:
 # Export
 # ---------------------------------------------------------------------------
 def export_html(
-    results_data: dict, output_path: Path, title: str = "Knowledge Graph"
-) -> Path:
+    kg: KnowledgeGraph | dict,
+    template: str = "default",
+    **kwargs: Any,
+) -> str:
     """Export results.json data to an HTML report using Jinja2 template."""
-    title = results_data.get("title") or title
-    summary = results_data.get("summary", "")
-    url = results_data.get("url", "")
-    communities = results_data.get("communities", [])
-    chunks = results_data.get("chunks", [])
-    consolidated = results_data.get("graph", {})
-    entities = consolidated.get("entities", [])
-    relations = consolidated.get("relations", [])
+    if isinstance(kg, KnowledgeGraph):
+        kg = asdict(kg)
+    title = kg.get("title") or "Knowledge Graph"
+    summary = kg.get("summary", "")
+    url = kg.get("url", "")
+    chunks = kg.get("chunks", [])
+    graph = kg.get("graph", {})
+    entities = graph.get("entities", [])
+    relations = graph.get("relations", [])
+    communities = graph.get("communities", [])
 
     entity_names = {e["name"] for e in entities}
-
+    chunk_mapping = {
+        c["id"]: c["chunk_idx"] for c in chunks if "id" in c and "chunk_idx" in c
+    }
     # Build relation lookup: entity -> list of (other, type, description, direction)
-    rel_map: dict[str, list[dict]] = {}
+    rel_map: dict[Tuple[str, str], list[dict]] = {}
     for r in relations:
-        src, tgt = r.get("source", ""), r.get("target", "")
+        src = (r.get("source", ""), r.get("source_type", ""))
+        tgt = (r.get("target", ""), r.get("target_type", ""))
         rtype = r.get("type", "")
         desc = r.get("description", "")
         rel_map.setdefault(src, []).append(
@@ -77,38 +110,33 @@ def export_html(
             {"other": src, "type": rtype, "description": desc, "dir": "in"}
         )
 
-    # Build node elements for Cytoscape
     node_elements = [
         {
-            "data": {
-                "id": e.get("name", ""),
-                "label": e.get("name", ""),
-                "type": e.get("type", ""),
-                "description": e.get("description", ""),
-                "chunk_ids": e.get("chunk_ids", []),
-                "community_id": e.get("community_id"),
-            }
+            "id": e.get("name", ""),
+            "label": e.get("name", ""),
+            "type": e.get("type", ""),
+            "description": e.get("description", ""),
+            "chunk_ids": e.get("chunk_ids", []),
+            "community_id": e.get("community_id"),
         }
         for e in entities
     ]
-
-    # Build edge elements for Cytoscape
     edge_elements = [
         {
-            "data": {
-                "id": f"e{idx}",
-                "source": r.get("source", ""),
-                "target": r.get("target", ""),
-                "type": r.get("type", ""),
-                "description": r.get("description", ""),
-            }
+            "id": f"e{idx}",
+            "source": r.get("source", ""),
+            "source_type": r.get("source_type", ""),
+            "target": r.get("target", ""),
+            "target_type": r.get("target_type", ""),
+            "type": r.get("type", ""),
+            "description": r.get("description", ""),
         }
         for idx, r in enumerate(relations)
         if r.get("source", "") in entity_names and r.get("target", "") in entity_names
     ]
 
     # Prepare communities display data
-    communities_display = []
+    clusters = []
     for c in communities:
         topics = c.get("topics", [])
         members = c.get("members", [])
@@ -117,7 +145,7 @@ def export_html(
             f"{html_mod.escape(m)}</a>"
             for m in sorted(members)
         )
-        communities_display.append(
+        clusters.append(
             {
                 "topics": topics,
                 "description": c.get("description", ""),
@@ -128,48 +156,63 @@ def export_html(
     # Prepare chunks display data
     chunks_display = []
     for i, chunk in enumerate(chunks):
-        rephrase = chunk.get("rephrase", "")
-        original = chunk.get("text", "")
-        display = rephrase if rephrase else original
-        chunks_display.append(
-            {
-                "id": f"chunk-{i}",
-                "linkified": _linkify_entities(display, entity_names),
-                "original": original,
-            }
-        )
+        try:
+            rephrase = chunk.get("rephrase", "")
+            original = chunk.get("text", "")
+            display = rephrase if rephrase else original
+            display_html = _md_to_html(display)
+            original_html = _md_to_html(original)
+            chunks_display.append(
+                {
+                    "id": f"chunk-{chunk.get('id')}",
+                    "index": i + 1,
+                    "text": original,
+                    "linkified": _linkify_entities(
+                        display_html, chunk.get("entities", []), already_html=True
+                    ),
+                    "original": original_html,
+                }
+            )
+        except Exception as e:
+            console.print(f"[red]Error processing chunk {i}:[/red] {e}")
+            continue
 
     # Prepare entities display data
-    chunk_label = get_ui("chunk_label") or "Chunk"
+    chunk_label = get_ui("chunk_label") or "Part"
     entities_display = []
     for e in sorted(entities, key=lambda x: x.get("name", "").lower()):
         name = e.get("name", "")
+        entity_type = e.get("type", "")
         chunk_ids = e.get("chunk_ids", [])
-        rels = rel_map.get(name, [])
+        rels = rel_map.get((name, entity_type), [])
 
         rel_html = []
         for rel in rels:
             other = rel["other"]
-            other_anchor = f"entity-{other.lower().replace(' ', '-')}"
+            other_anchor = f"entity-{'::'.join(other).lower().replace(' ', '-')}"
             arrow = "\u2192" if rel["dir"] == "out" else "\u2190"
             label = (
                 f'{arrow} <a href="#{other_anchor}" class="entity-link">'
-                f"{html_mod.escape(other)}</a>"
+                f"{html_mod.escape(other[0])}</a>"
             )
-            if rel["description"]:
-                label += f": {html_mod.escape(rel['description'])}"
+            description = rel["description"]
+            if isinstance(description, list):
+                description = ", ".join(str(d) for d in description)
+            if description:
+                label += f": {html_mod.escape(description)}"
             rel_html.append(label)
 
         chunk_links = " \u2022 ".join(
-            f'<a href="#chunk-{cid}-rephrase">{chunk_label} {cid}</a>'
+            f'<a href="#chunk-{cid}-rephrase">{chunk_label} {chunk_mapping.get(cid)+1}</a>'  # index is 0-based, so add 1 for display
             for cid in chunk_ids
-            if cid >= 0
+            if cid is not None
         )
 
         entities_display.append(
             {
                 "name": name,
-                "anchor": f"entity-{name.lower().replace(' ', '-')}",
+                "type": e.get("type", ""),
+                "anchor": f"entity-{name.lower().replace(' ', '-')}::{entity_type.lower().replace(' ', '-')}",
                 "description": e.get("description", ""),
                 "relations": rel_html,
                 "chunk_links": chunk_links,
@@ -178,8 +221,8 @@ def export_html(
 
     # Get localized labels
     date_info = datetime.now().strftime("%b %d, %Y")
-    extracted_info = get_ui(
-        "extracted_info",
+    metadata = get_ui(
+        "metadata",
         entities=len(entities),
         relations=len(relations),
         communities=len(communities),
@@ -227,34 +270,30 @@ def export_html(
         "assumes no liability for any actions taken in reliance upon this information."
     )
 
-    community_desc = {str(c.get("id")): c.get("description", "") for c in communities}
-
     # Setup Jinja2 environment
     templates_dir = Path(__file__).parent / "templates"
     env = Environment(
         loader=FileSystemLoader(templates_dir),
         autoescape=select_autoescape(["html", "xml"]),
     )
-    template = env.get_template("report.html")
+    template = env.get_template(f"{template}.html")
 
     html_content = template.render(
-        html_lang=get_current_language() or "en",
+        lang=get_current_language() or "en",
         title=title,
         summary=summary,
         url=url,
-        extracted_info=extracted_info,
+        metadata=metadata,
         labels=labels,
-        communities=communities_display,
-        chunks_display=chunks_display,
+        clusters=clusters,
+        chunks=chunks_display,
         entities_display=entities_display,
         disclaimer=disclaimer,
         node_elements=node_elements,
         edge_elements=edge_elements,
-        community_desc=community_desc,
         js_labels=js_labels,
-        rawData=json.dumps(results_data, indent=2),
+        rawData=json.dumps(kg, indent=2),
+        minimumDegree=kwargs.get("minimum_degree", 3),
     )
 
-    html_path = output_path.with_suffix(".html")
-    html_path.write_text(html_content, encoding="utf-8")
-    return html_path
+    return html_content

@@ -29,3 +29,4 @@ tests/graph.json
 tests/data/consolidated.json
 tests/data/consolidated.json
 batchings/
+knwler/benchmark/output/

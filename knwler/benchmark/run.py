@@ -4,7 +4,7 @@ import asyncio
 from pathlib import Path
 import time
 from knwler.config import Config
-from benchmark.report import generate_report
+from knwler.benchmark.report import generate_report
 from dataclasses import asdict
 from knwler.api import (
     chunk,

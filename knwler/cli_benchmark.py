@@ -21,7 +21,7 @@ from knwler.config import (
     Config,
     console,
 )
-from benchmark.run import run as benchmark_run
+from knwler.benchmark.run import run as benchmark_run
 
 benchmark_app = typer.Typer(help="Run the Knwler benchmark suite.")
 
@@ -70,8 +70,12 @@ def run_benchmark(
 ) -> None:
     """Run the benchmark grid and generate an HTML report."""
     try:
-        from benchmark.run import crunch, get_path, output_path as default_output_path
-        from benchmark.report import generate_report
+        from knwler.benchmark.run import (
+            crunch,
+            get_path,
+            output_path as default_output_path,
+        )
+        from knwler.benchmark.report import generate_report
     except ImportError as exc:
         console.print(
             f"[red]\u2717[/red] Could not import benchmark module: [dim]{exc}[/dim]\n"
@@ -171,7 +175,7 @@ def report_from_file(
 ) -> None:
     """Re-generate an HTML report from a previously saved results JSON."""
     try:
-        from benchmark.report import generate_report
+        from knwler.benchmark.report import generate_report
     except ImportError as exc:
         console.print(
             f"[red]\u2717[/red] Could not import benchmark module: [dim]{exc}[/dim]"

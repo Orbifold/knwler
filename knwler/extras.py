@@ -11,7 +11,7 @@ from rich.progress import (
     TimeElapsedColumn,
 )
 
-from knwler.config import Config, console
+from knwler.config import Config, console, null_console
 from knwler.language import get_console_msg, get_prompt
 from knwler.llm import llm_generate, parse_json_response
 
@@ -19,8 +19,12 @@ from knwler.llm import llm_generate, parse_json_response
 # ---------------------------------------------------------------------------
 # Rephrase
 # ---------------------------------------------------------------------------
-async def rephrase_chunks(chunks: list[str], config: Config) -> list[str]:
+async def rephrase_chunks(
+    chunks: list[str], config: Config, _console=None
+) -> list[str]:
     """Rephrase each chunk in simple language for UI display."""
+    if _console is None:
+        _console = console
     rephrased: list[str] = []
     progress_msg = get_console_msg("rephrasing") or "Rephrasing..."
 
@@ -31,7 +35,7 @@ async def rephrase_chunks(chunks: list[str], config: Config) -> list[str]:
         TaskProgressColumn(),
         TextColumn("•"),
         TimeElapsedColumn(),
-        console=console,
+        console=_console,
         transient=False,
     ) as progress:
         task = progress.add_task(f"[cyan]{progress_msg}", total=len(chunks))

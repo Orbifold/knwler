@@ -14,7 +14,7 @@ from rich.progress import (
     TimeElapsedColumn,
 )
 import json
-from knwler.config import Config, console
+from knwler.config import Config, console, null_console
 from knwler.models import ExtractionResult, Schema, Graph
 
 from knwler.language import get_console_msg, get_prompt
@@ -117,6 +117,7 @@ async def consolidate_extracted_graphs(
     config: Config = Config(),
     summarize: bool = True,
     filter_low_importance: bool = False,
+    _console=None,
 ) -> tuple[dict, float]:
     """Consolidate chunk graphs with unique (name, type) and summarized descriptions.
 
@@ -214,7 +215,7 @@ async def consolidate_extracted_graphs(
     # Phase 2: Summarize descriptions that need merging
     if summarize:
         entity_map, relation_map = await _summarize_descriptions(
-            entity_map, relation_map, config
+            entity_map, relation_map, config, _console=_console
         )
     else:
         # if not summarizing, just merge multiple descriptions into one string to avoid losing information, but without hitting the LLM
@@ -330,6 +331,7 @@ async def _summarize_descriptions(
     entity_map: dict,
     relation_map: dict,
     config: Config,
+    _console=None,
 ) -> tuple[dict, dict]:
     """Batch summarize entities/relations with multiple descriptions."""
 
@@ -366,6 +368,8 @@ async def _summarize_descriptions(
         or f"Summarizing {len(to_summarize)} items..."
     )
 
+    if _console is None:
+        _console = console
     with Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
@@ -373,7 +377,7 @@ async def _summarize_descriptions(
         TaskProgressColumn(),
         TextColumn("•"),
         TimeElapsedColumn(),
-        console=console,
+        console=_console,
         transient=False,
     ) as progress:
         task = progress.add_task(f"[cyan]{progress_msg}", total=total_batches)

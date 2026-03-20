@@ -5,7 +5,7 @@ Community detection and labeling.
 import networkx as nx
 from networkx.algorithms.community import louvain_communities
 
-from knwler.config import Config, console
+from knwler.config import Config, console, null_console
 from knwler.language import get_console_msg, get_prompt
 from knwler.llm import llm_generate, parse_json_response
 from knwler.models import Graph, ClusteredGraph
@@ -67,9 +67,11 @@ def create_network(
 # Community analysis
 # ---------------------------------------------------------------------------
 async def cluster_graph(
-    graph: dict | Graph, config: Config = Config()
+    graph: dict | Graph, config: Config = Config(), _console=None
 ) -> ClusteredGraph:
     """Detect communities and label them with topics and descriptions."""
+    if _console is None:
+        _console = console
     if not graph:
         raise ValueError("No graph provided for clustering analysis.")
     analyzing_msg = (
@@ -77,7 +79,7 @@ async def cluster_graph(
     )
     if isinstance(graph, Graph):
         graph = asdict(graph)
-    with console.status(f"[cyan]{analyzing_msg}"):
+    with _console.status(f"[cyan]{analyzing_msg}"):
         g = nx.Graph()
         for e in graph.get("entities", []):
             node_id = f"{e['name']}::{e['type']}" if e.get("type") else e["name"]
@@ -149,7 +151,7 @@ async def cluster_graph(
             get_console_msg("detected_communities", count=len(clusters))
             or f"Detected {len(clusters)} communities"
         )
-        console.print(f"[white]{detected_msg}[/]")
+        _console.print(f"[white]{detected_msg}[/]")
     return ClusteredGraph(**graph)
 
 

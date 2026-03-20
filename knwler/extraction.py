@@ -17,7 +17,7 @@ from rich.progress import (
     TimeElapsedColumn,
 )
 
-from knwler.config import Config, console
+from knwler.config import Config, console, null_console
 from knwler.models import ExtractionResult, Schema, Graph
 
 from knwler.chunking import get_encoder
@@ -126,8 +126,11 @@ async def extract_all(
     schema: Schema,
     config: Config = Config(),
     output_path: Path | None = None,
+    _console=None,
 ) -> list[ExtractionResult]:
     """Extract from all chunks with concurrency control and incremental saving."""
+    if _console is None:
+        _console = console
     semaphore = asyncio.Semaphore(config.max_concurrent)
     total = len(chunks)
     results: list[ExtractionResult] = []
@@ -141,7 +144,7 @@ async def extract_all(
         TaskProgressColumn(),
         TextColumn("•"),
         TimeElapsedColumn(),
-        console=console,
+        console=_console,
         transient=False,
     ) as progress:
         task = progress.add_task(f"[cyan]{progress_msg}", total=total)
@@ -158,7 +161,7 @@ async def extract_all(
                             )
                         progress.update(task, advance=1)
                     except Exception as e:
-                        console.print(f"[red]Error saving partial results:[/red] {e}")
+                        _console.print(f"[red]Error saving partial results:[/red] {e}")
                 return result
 
         await asyncio.gather(*[bounded(c, i) for i, c in enumerate(chunks)])

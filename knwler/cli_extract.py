@@ -46,7 +46,7 @@ from knwler.config import (
     DEFAULT_GEMINI_DISCOVERY_MODEL,
     Config,
     console,
-    stderr_console,
+    null_console,
 )
 from knwler.models import ExtractionResult, Schema, Graph
 from knwler.cli_consolidate import cli_consolidate_graphs
@@ -227,7 +227,7 @@ async def _process_file(
     _console.rule("[bold cyan]Chunk Rephrase[/bold cyan]")
     _console.print(f"Rephrase model: [green]{config.extraction_model}[/green]")
     rephrase_t0 = time.perf_counter()
-    rephrased = await rephrase_chunks(chunks, config)
+    rephrased = await rephrase_chunks(chunks, config, _console=_console)
     rephrase_time = time.perf_counter() - rephrase_t0
     _console.print(f"Time: [cyan]{rephrase_time:.2f}s[/cyan]")
 
@@ -238,7 +238,7 @@ async def _process_file(
 
     t0 = time.perf_counter()
     extraction_results: list[ExtractionResult] = await extract_all(
-        chunks, schema, config, output_path=output
+        chunks, schema, config, output_path=output, _console=_console
     )
     wall_time = time.perf_counter() - t0
 
@@ -251,14 +251,14 @@ async def _process_file(
         else extraction_results
     )
     consolidated, consolidation_time = await consolidate_extracted_graphs(
-        all_results, config, summarize=True
+        all_results, config, summarize=True, _console=_console
     )
 
     # ── Community analysis ──
     _console.print()
     _console.rule("[bold cyan]Community Analysis[/bold cyan]")
     community_t0 = time.perf_counter()
-    consolidated = await cluster_graph(consolidated, config)
+    consolidated = await cluster_graph(consolidated, config, _console=_console)
     community_time = time.perf_counter() - community_t0
 
     # ── Stats ──
@@ -348,6 +348,7 @@ async def _process_file(
             asdict(consolidated) if isinstance(consolidated, Graph) else consolidated
         ),
         "chunks": final_chunks,
+        "path": str(results_dir),
     }
     graph_json_path.write_text(json.dumps(output_data, indent=2), encoding="utf-8")
     _console.print(
@@ -419,6 +420,7 @@ async def _process_file(
             f"[green]\u2713[/green] Results directory renamed to "
             f"[cyan]{new_dir_path}[/cyan]"
         )
+        output_data["path"] = str(new_dir_path)
 
     return output_data
 
@@ -584,10 +586,10 @@ def extract(
             help="HTML template to use for the consolidated graph report (defaults to 'columns').",
         ),
     ] = "default",
-    no_print: Annotated[
+    json_output: Annotated[
         bool,
         typer.Option(
-            "--no-print",
+            "--json-output",
             "-j",
             help="Do not use console prints. All progress output is redirected to stderr. Useful for piping into n8n or other tools.",
         ),
@@ -722,8 +724,8 @@ def extract(
         files_to_process = [file]
 
     # Process each file
-    _process_console = stderr_console if no_print else None
-    _json_results = []
+    _process_console = null_console if json_output else None
+    _json_print_output = []
     for fp in files_to_process:
         if directory is not None:
             fp_output = (output / fp.stem) if output is not None else None
@@ -746,16 +748,36 @@ def extract(
                 _console=_process_console,
             )
         )
-        if no_print:
-            _json_results.append(result)
+        if json_output:
+            _json_print_output.append(
+                {
+                    "file": str(fp) if fp is not None else None,
+                    "output": result.get("path"),
+                    "url": url,
+                    "language": result.get("language"),
+                    "entities": len(result["graph"]["entities"]),
+                    "relations": len(result["graph"]["relations"]),
+                    "chunks": len(result["chunks"]),
+                    "stats": (
+                        result["stats"][-1]
+                        if "stats" in result and isinstance(result["stats"], list)
+                        else result.get("stats", {})
+                    ),
+                }
+            )
 
         if directory is None:
             break  # single file mode, so stop after first file
         # Directory mode: log error and continue to next file
-    if no_print:
+    if json_output:
         import sys
 
-        output_json = _json_results[0] if len(_json_results) == 1 else _json_results
+        output_json = (
+            _json_print_output[0]
+            if len(_json_print_output) == 1
+            else _json_print_output
+        )
+        
         sys.stdout.write(json.dumps(output_json, indent=2) + "\n")
         sys.stdout.flush()
     if consolidate and len(files_to_process) > 1:
@@ -765,6 +787,6 @@ def extract(
     # Cleanup temp file if we fetched from a URL
     if _tmp_file_path is not None and _tmp_file_path.exists():
         _tmp_file_path.unlink()
-        console.print(
+        (_process_console or console).print(
             f"[green]\u2713[/green] Cleaned up temporary file: {_tmp_file_path}"
         )

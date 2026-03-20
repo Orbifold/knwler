@@ -11,7 +11,7 @@ from rich.console import Console
 # Shared console
 # ---------------------------------------------------------------------------
 console = Console(record=True)
-stderr_console = Console(stderr=True, record=False)
+null_console = Console(quiet=True)
 
 # ---------------------------------------------------------------------------
 # Project root (parent of the knwler package directory)

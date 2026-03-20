@@ -1,5 +1,16 @@
 # Changelog
 
+## vNext
+
+- fix: error dump on using pipx but not via uv
+- other: added Copilot instruction under .github
+- fix: `knwler --version` does not append an error anymore
+- feature: added `knwler cache open`, opens in OS specific the cache dir
+- feature: `knwler extract` allows a `-m` option which combines `-d` and `-e`
+- feature: `knwler extract -w quantum` will fetch the Wikipedia article and extract it
+- fix: skip-continue badly formatted extractions
+- feature: `--no-print` option, will only output json info. Useful for n8n integrations and similar tools.
+
 ## v1.0.4
 
 - fix: benchmark output dir check

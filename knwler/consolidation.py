@@ -130,6 +130,11 @@ async def consolidate_extracted_graphs(
 
     for r in little_graphs:
         for e in r.entities:
+            if isinstance(e, str):
+                console.print(
+                    f"[yellow]\u26a0 Skipping badly formatted entity string: {e}[/yellow]"
+                )
+                continue
             name = (e.get("name") or "").strip()
             etype = (e.get("type") or "").strip()
             desc = (e.get("description") or "").strip()

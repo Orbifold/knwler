@@ -87,9 +87,16 @@ def compute_community_stats(consolidated: dict | ClusteredGraph) -> dict:
 # ---------------------------------------------------------------------------
 # Display
 # ---------------------------------------------------------------------------
-def print_stats(stats: dict, schema: Schema, consolidated: dict | ClusteredGraph | None = None):
+def print_stats(
+    stats: dict,
+    schema: Schema,
+    consolidated: dict | ClusteredGraph | None = None,
+    _console=None,
+):
     """Print formatted statistics using rich tables."""
-    console.print()
+    if _console is None:
+        _console = console
+    _console.print()
 
     table = Table(
         title="Extraction Results", show_header=True, header_style="bold cyan"
@@ -155,4 +162,4 @@ def print_stats(stats: dict, schema: Schema, consolidated: dict | ClusteredGraph
         f"[bold cyan]{stats['total_time']:.2f}s[/bold cyan]",
     )
 
-    console.print(table)
+    _console.print(table)

@@ -67,21 +67,32 @@ So many new features added in v1.0.0 so here is a comprehensive checklist (for m
 
 ## Commands
 
+- [x] knwler --version
+- [x] knwler info version
 - [x] uv run main.py demo
-- [x] uv run main.py fetch url https://knwler.com/pdfs/HumanRights.pdf
-- [x] uv run main.py fetch wiki quantum
-- [x] uv run main.py cache clear wikipedia
-- [x] uv run main.py fetch url http://cnn.com --output ~/temp --open
-- [x] uv run main.py extract -f https://cnn.com --output ~/temp
-- [x] uv run main.py fetch wiki quantum --open
-- [x] uv run main.py fetch url https://knwler.com/pdfs/HumanRights.pdf --output ~/temp
-- [x] uv run main.py fetch wiki topology --output ~/temp/ --open
-- [x] uv run main.py fetch url https://knwler.com/pdfs/HumanRights.pdf --output ~/temp/things/ --parse
-- [x] uv run main.py extract -f https://knwler.com/pdfs/mbti.pdf --output ~/temp/things/ --backend openai
-- [x] uv run main.py -f https://knwler.com --backend gemini
+- [x] knwler demo --backend gemini
+- [x] knwler fetch url https://knwler.com/pdfs/HumanRights.pdf
+- [x] knwler fetch wiki quantum
+- [x] knwler cache clear wikipedia
+- [x] knwler fetch url http://cnn.com --output ~/temp --open
+- [x] knwler extract -f https://cnn.com --output ~/temp
+- [x] knwler fetch wiki quantum --open
+- [x] knwler fetch url https://knwler.com/pdfs/HumanRights.pdf --output ~/temp/knwler/ --parse
+- [x] knwler extract -f https://knwler.com/pdfs/mbti.pdf --output ~/temp/knwler/ -m qwen2.5:7b
+- [x] knwler -f https://knwler.com --backend gemini --output ~/temp/knwler
 - [x] uv run main.py batch run --input /Users/swa/temp/pdfs --output ~/temp/batching
 - [x] uv run main.py batch run --input /Users/swa/temp/pdfs --output ~/temp/batching --backend gemini
 - [x] uv run main.py graph analyze /Users/swa/Desktop/AI/knwler-website/examples/burgerlijk/BurgerlijkAll.json --output /Users/swa/Desktop/AI/knwler-website/examples/CivilAnalytics --open
 - [x] uv run main.py -f /Users/swa/Desktop/AI/knwler-website/pdfs/Deloitte.pdf --output /Users/swa/Desktop/AI/knwler-website/examples/Deloitte --url https://www.deloitte.com/de/de/legal/publikationen.html --backend gemini
 - [x] uv run main.py -f /Users/swa/Desktop/AI/knwler-website/pdfs/NIST.pdf --output /Users/swa/Desktop/AI/knwler-website/examples/NIST --url https://nvlpubs.nist.gov/nistpubs/ai/nist.ai.100-1.pdf --backend gemini --template columns
 - [x] uv run main.py graph analyze /Users/swa/Desktop/AI/knwler-website/examples/EUAI_anthropic/default/graph.json --output /Users/swa/Desktop/AI/knwler-website/examples/HumanRightsAnalytics --open
+
+## Ideas
+
+- SHACL
+- kuzu/ladybug
+- contradictions
+- n8n
+- FastAPI
+- no console prints option
+- https://github.com/Pro-GenAI/Index-RAG

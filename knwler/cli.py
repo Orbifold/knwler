@@ -255,7 +255,7 @@ def consolidate_graphs_command(
 def _version_callback(value: bool) -> None:
     if value:
         show_version()
-        return typer.Exit()
+        raise typer.Exit()
 
 
 @app.callback()
@@ -343,4 +343,10 @@ def main():
         sys.argv.insert(1, "extract")
         sys.argv.insert(2, "extract")
 
-    app()
+    try:
+        app()
+    except typer.Exit:
+        pass
+    except Exception as e:
+        console.print(Panel.fit(f"[red]Error:[/red] {str(e)}"))
+        sys.exit(1)

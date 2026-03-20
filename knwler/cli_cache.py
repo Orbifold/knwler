@@ -8,6 +8,23 @@ cache_app = typer.Typer(help="View info about Knwler installation.")
 
 
 @cache_app.command(
+    "open", help="Open the cache directory in OS specific file explorer."
+)
+def open_cache():
+    """Open the cache directory in the file explorer."""
+    cache_dir = CACHE_DIR.resolve()
+    console.print(f"Opening cache directory: [bold blue]{cache_dir}[/]")
+    import subprocess, platform
+
+    if platform.system() == "Windows":
+        subprocess.run(["explorer", str(cache_dir)])
+    elif platform.system() == "Darwin":
+        subprocess.run(["open", str(cache_dir)])
+    else:
+        subprocess.run(["xdg-open", str(cache_dir)])
+
+
+@cache_app.command(
     "clear",
     help="Clears the cache of Knwler. Optionally specify what to clear: documents, llm, wikipedia, webpages. Clears all if omitted.",
     epilog="Examples:\n  knwler cache clear\n  knwler cache clear llm\n  knwler cache clear wikipedia",

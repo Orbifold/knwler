@@ -152,7 +152,7 @@ async def run_demo(backend: str | None = None):
 def _app_callback(
     ctx: typer.Context,
     backend: str = typer.Option(
-        "ollama", help="LLM backend to use: ollama, openai, or anthropic."
+        "ollama", help="LLM backend to use: ollama, openai, gemini or anthropic."
     ),
 ):
     """

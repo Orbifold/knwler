@@ -1,7 +1,7 @@
 import pytest
 import json
 
-from knwler import consolidate_graphs, Graph, consolidate_extracted_graphs
+from knwler import consolidate_graphs, Graph, consolidate_extracted_graphs, Chunk
 
 
 @pytest.mark.asyncio

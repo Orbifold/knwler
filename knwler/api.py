@@ -7,8 +7,9 @@
 from pathlib import Path
 import time
 import json
-import fitz  # PyMuPDF
+from knwler.parse import parse_pdf
 from knwler.collect.webpage import WebpageCollector
+from knwler.collect.wikipedia import WikipediaCollector
 from knwler.config import Config
 from knwler.chunking import chunk_text
 from knwler.extraction import extract_all
@@ -23,6 +24,7 @@ from knwler.extras import (
     rephrase_chunks as _rephrase_chunks,
 )
 from knwler.export import export_html
+from knwler.parse import parse_pdf as _parse_pdf
 
 
 async def parse_file(file_path: Path) -> tuple[str, dict]:
@@ -47,8 +49,7 @@ async def parse_file(file_path: Path) -> tuple[str, dict]:
             "time": round(end_time - start_time, 2),
         }
     elif file_path.suffix.lower() in [".pdf"]:
-        doc = fitz.open(file_path)
-        text = "\n\n".join(page.get_text() for page in doc)
+        text = parse_pdf(file_path)
         end_time = time.perf_counter()
         return text, {
             "file_path": str(file_path),
@@ -71,6 +72,18 @@ async def fetch_url(url: str, no_cache: bool = False) -> tuple[dict, bytes] | No
     return await WebpageCollector.fetch_url(url, no_cache=no_cache)
 
 
+async def fetch_wikipedia_page(
+    title: str, no_cache: bool = False
+) -> tuple[dict, bytes] | None:
+    """
+    Fetches the content of a Wikipedia page by its title. The result is cached on disk keyed by title.
+    - If no_cache is True, the cache is bypassed and the content is fetched directly from Wikipedia.
+    - The metadata includes the page title, URL, and a description. The content is returned as text.
+    - If the page is not accessible or returns an error status code, a ValueError is raised with an appropriate message. If the title is not valid, a ValueError is raised.
+    """
+    return await WikipediaCollector.fetch_article(title, no_cache=no_cache)
+
+
 def is_document_url(url: str) -> bool:
     """
     Checks if the URL points to a supported document type based on its extension.
@@ -79,43 +92,64 @@ def is_document_url(url: str) -> bool:
     return WebpageCollector.is_document_url(url)
 
 
+async def extract(
+    source: Path | str | list[str],
+    schema: Schema | None = None,
+    config: Config | None = Config(),
+) -> ExtractionResult:
+    """
+    Unified extraction entry point.
+
+    - Path: reads the file (PDF, .txt, .md), chunks it, and extracts.
+    - str: chunks the text and extracts.
+    - list[str]: treats each item as a pre-chunked text and extracts directly.
+    """
+    if isinstance(source, Path):
+        if not source.exists():
+            raise FileNotFoundError(f"File not found: {source}")
+        if source.suffix.lower() not in [".txt", ".md"]:
+            text, _ = await parse_file(source)
+        else:
+            text = source.read_text(encoding="utf-8")
+        chunk_objs = chunk_text(text, config)
+        chunks = [c.text for c in chunk_objs]
+    elif isinstance(source, str):
+        chunk_objs = chunk_text(source, config)
+        chunks = [c.text for c in chunk_objs]
+    elif isinstance(source, list):
+        chunks = source
+    else:
+        raise TypeError(f"Unsupported source type: {type(source)}")
+
+    schema_text = " ".join(chunks)
+    if schema is None:
+        schema = await discover_schema(schema_text, config)
+
+    extraction_results = await extract_all(chunks, schema, config, output_path=None)
+    g = await consolidate(extraction_results, config=config)
+    return ExtractResult(
+        graph=g, chunks=[u.chunk for u in extraction_results], schema=schema
+    )
+
+
+# Backward-compatible aliases
 async def extract_file(
     file_path: Path, output: Path | None = None, config: Config | None = Config()
 ) -> list[ExtractionResult]:
-    if not file_path:
-        raise ValueError("No file path provided.")
-    if not file_path.exists():
-        raise FileNotFoundError(f"File not found: {file_path}")
-    # if not md or txt, parse  first
-    if file_path.suffix.lower() not in [".txt", ".md"]:
-        text, metadata = await parse_file(file_path)
-    else:
-        text = file_path.read_text(encoding="utf-8")
-    if output is None:
-        output_path = Path.cwd() / "knwler_output"
-    else:
-        output_path = output
-    output_path.mkdir(parents=True, exist_ok=True)
-    chunks = chunk_text(text, config)
-    schema = await discover_schema(text, config)
-    extraction_results = await extract_all(chunks, schema, config, output_path)
-    return extraction_results
+    return await extract(file_path, output=output, config=config)
 
 
 async def extract_chunks(
     chunks: list[str], schema: Schema | None = None, config: Config | None = Config()
 ) -> list[ExtractionResult]:
-    if schema is None:
-        schema = await discover_schema(" ".join(chunks), config)
-    extraction_results = await extract_all(chunks, schema, config)
-    return extraction_results
+    return await extract(chunks, schema=schema, config=config)
 
 
 async def infer_schema(text: str, config: Config | None = Config()) -> Schema:
     return await discover_schema(text, config)
 
 
-async def chunk(text: str, config: Config | None = Config()) -> list[str]:
+async def chunk(text: str, config: Config | None = Config()) -> list[Chunk]:
     return chunk_text(text, config)
 
 
@@ -147,7 +181,7 @@ async def cluster_graph(
 
 async def set_language(lang_code: str):
     """Set the language for prompts and UI messages. This will affect all subsequent operations that involve language generation or UI output."""
-    return  _set_language(lang_code)
+    return _set_language(lang_code)
 
 
 async def discover_language(text: str, config: Config | None = Config()) -> str:
@@ -185,3 +219,10 @@ async def rephrase_chunks(
 ) -> list[str]:
     """Rephrase each chunk in simple language for UI display. This can be used to make the content more accessible and easier to understand for a wider audience."""
     return await _rephrase_chunks(chunks, config)
+
+
+async def parse_pdf(file_path: Path | str) -> str:
+    """Extract text from a PDF file using PyMuPDF."""
+    if isinstance(file_path, str):
+        file_path = Path(file_path)
+    return _parse_pdf(file_path)

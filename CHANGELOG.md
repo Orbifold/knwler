@@ -10,6 +10,8 @@
 - feature: `knwler extract -w quantum` will fetch the Wikipedia article and extract it
 - fix: skip-continue badly formatted extractions
 - feature: `--no-print` option, will only output json info. Useful for n8n integrations and similar tools.
+- feature: `knwler parse` command added
+- breaking: `chunk_text` returns a `Chunk` and not a string anymore
 
 ## v1.0.4
 

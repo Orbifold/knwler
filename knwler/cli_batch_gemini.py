@@ -460,14 +460,9 @@ def _prompt_community(communities: list[dict]) -> str:
 
 def _load_text(file_path: Path) -> str:
     """Extract text from a PDF or read a text file."""
-    if file_path.suffix.lower() == ".pdf":
-        import fitz
+    from knwler.parse import load_text
 
-        doc = fitz.open(str(file_path))
-        text = "\n\n".join(page.get_text() for page in doc)
-        doc.close()
-        return text
-    return file_path.read_text(encoding="utf-8", errors="ignore")
+    return load_text(file_path)
 
 
 def _file_id(file_path: Path) -> str:
@@ -834,12 +829,16 @@ class GeminiBatchProcessor:
 
             console.print(f"  Loading [cyan]{fp.name}[/cyan] … ", end="")
             text = _load_text(fp)
-            chunks = chunk_text(text, self.config)
-            console.print(f"[green]{len(chunks)}[/green] chunks")
+            chunk_objs = chunk_text(text, self.config)
+            console.print(f"[green]{len(chunk_objs)}[/green] chunks")
 
             (self.files_dir / fp.stem).mkdir(exist_ok=True)
 
-            self.db.update_file(fid, text_content=text, chunks_json=json.dumps(chunks))
+            self.db.update_file(
+                fid,
+                text_content=text,
+                chunks_json=json.dumps([c.text for c in chunk_objs]),
+            )
 
     # ── Round status helpers ─────────────────────────────────────────────
 

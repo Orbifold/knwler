@@ -7,7 +7,7 @@ from knwler.extras import rephrase_chunks, extract_title, extract_summary
 from knwler.cache import find_items_by_model
 from knwler.extraction import extract_chunk, extract_all
 from knwler.consolidation import consolidate_extracted_graphs
-from knwler.models import ExtractionResult
+from knwler.models import ExtractionResult, Chunk
 import asyncio
 
 
@@ -26,11 +26,11 @@ async def test_ada():
     config = Config(max_tokens=200, overlap_tokens=20)  # gives four chunks
     chunks = chunk_text(text, config)
     assert len(chunks) > 1
-    assert all(isinstance(c, str) for c in chunks)
+    assert all(isinstance(c, Chunk) for c in chunks)
 
     # these are the chunks
     for i, c in enumerate(chunks):
-        assert len(c) > 0
+        assert len(c.text) > 0
         print(f"\n-------Chunk {i + 1}-------\n")
         print(c)
 
@@ -73,17 +73,17 @@ async def test_ada():
     fourteen_items = find_items_by_model(model="qwen2.5:14b")
     assert len(fourteen_items) > 0
 
-    chunk1 = chunks[0]
+    chunk1 = chunks[1]
     config = Config()  # back to the smaller model
-    many_little_graphs = await extract_chunk(chunk1, 142, schema, config)
+    many_little_graphs = await extract_chunk(chunk1,  schema, config)
     assert isinstance(many_little_graphs, ExtractionResult)
     print("\n-----Graph of chunk 1-------\n")
     assert (
-        many_little_graphs.chunk_idx == 142
+        many_little_graphs.chunk.chunk_idx == 1
     )  # kept the index free in order to make the `extract_chunk` method as reusable as possible
     assert many_little_graphs.id is not None and isinstance(many_little_graphs.id, str)
     print(
-        f"Chunk index {many_little_graphs.chunk_idx} received id {many_little_graphs.id}"
+        f"Chunk index {many_little_graphs.chunk.chunk_idx} received id {many_little_graphs.id}"
     )
     print(f"\nEntities ({len(many_little_graphs.entities)}):\n")
     for e in many_little_graphs.entities:

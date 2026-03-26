@@ -2,7 +2,7 @@
 name = "knwler"
 license = "MIT"
 
-version = "1.0.5"
+version = "1.0.6"
 description = "Fast and accurate graph extraction from text using LLMs"
 authors = [
     { name = "Francois Vanderseypen (Orbifold Consulting)", email = "swa@orbifold.net" }

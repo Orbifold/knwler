@@ -15,14 +15,20 @@ class Graph:
 
 
 @dataclass
-class AugmentedChunk:
-    """Chunk with associated entities and relations."""
+class Chunk:
+    """Text chunk with associated metadata."""
 
     chunk_idx: int
     text: str
-    entities: list[dict]
-    relations: list[dict]
     id: str = field(default_factory=lambda: str(uuid4()))
+
+
+@dataclass
+class AugmentedChunk(Chunk):
+    """Chunk with associated entities and relations."""
+
+    entities: list[dict] = field(default_factory=list)
+    relations: list[dict] = field(default_factory=list)
 
 
 @dataclass
@@ -36,7 +42,7 @@ class ClusteredGraph(Graph):
 class ExtractionResult(Graph):
     """Result from extracting a single chunk."""
 
-    chunk_idx: int
+    chunk: Chunk
     chunk_time: float
     chunk_tokens: int
     id: str = field(default_factory=lambda: str(uuid4()))
@@ -98,3 +104,11 @@ class KnowledgeGraph:
     url: str | None = None
     chunks: list[AugmentedChunk] = field(default_factory=list)
     language: str | None = None
+
+
+@dataclass
+class ExtractResult:
+
+    graph: Graph
+    chunks: list[Chunk]
+    schema: Schema

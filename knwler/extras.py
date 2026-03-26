@@ -14,6 +14,7 @@ from rich.progress import (
 from knwler.config import Config, console, null_console
 from knwler.language import get_console_msg, get_prompt
 from knwler.llm import llm_generate, parse_json_response
+from knwler.models import Chunk
 
 
 # ---------------------------------------------------------------------------
@@ -62,9 +63,13 @@ async def rephrase_chunks(
 # ---------------------------------------------------------------------------
 # Title
 # ---------------------------------------------------------------------------
-async def extract_title(chunks: list[str], config: Config, max_chunks: int = 3) -> str:
+async def extract_title(
+    chunks: list[str] | list[Chunk], config: Config, max_chunks: int = 3
+) -> str:
     """Extract a short document title from the first few chunks."""
-    sample = "\n\n".join(chunks[:max_chunks])
+    sample = "\n\n".join(
+        c.text if isinstance(c, Chunk) else c for c in chunks[:max_chunks]
+    )
 
     prompt = get_prompt("extract_title", sample=sample)
     if not prompt:
@@ -83,10 +88,12 @@ async def extract_title(chunks: list[str], config: Config, max_chunks: int = 3) 
 # Summary
 # ---------------------------------------------------------------------------
 async def extract_summary(
-    chunks: list[str], config: Config, max_chunks: int = 3
+    chunks: list[str] | list[Chunk], config: Config, max_chunks: int = 3
 ) -> str:
     """Summarize the document based on the first few chunks."""
-    sample = "\n\n".join(chunks[:max_chunks])
+    sample = "\n\n".join(
+        c.text if isinstance(c, Chunk) else c for c in chunks[:max_chunks]
+    )
 
     prompt = get_prompt("extract_summary", sample=sample)
 

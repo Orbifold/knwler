@@ -11,7 +11,7 @@ from pathlib import Path
 import json
 from uuid import uuid4
 from typing import Annotated, Optional
-import fitz  # pymupdf4llm
+from knwler.parse import parse_pdf
 from knwler.collect.webpage import WebpageCollector
 
 _URL_RE = re.compile(r"^https?://", re.IGNORECASE)
@@ -106,8 +106,7 @@ async def _process_file(
             text = extracted_text_path.read_text(encoding="utf-8", errors="ignore")
         else:
             _console.print(f"[yellow]Extracting text from PDF: {file_path}[/yellow]")
-            doc = fitz.open(file_path)
-            text = "\n\n".join(page.get_text() for page in doc)
+            text = parse_pdf(file_path)
             extracted_text_path.write_text(text, encoding="utf-8", errors="ignore")
     else:
         text = file_path.read_text(encoding="utf-8", errors="ignore")
@@ -202,7 +201,8 @@ async def _process_file(
     # ── Chunking ──
     _console.print()
     _console.rule("[bold cyan]Text Chunking[/bold cyan]")
-    chunks = chunk_text(text, config)
+    chunk_objs = chunk_text(text, config)
+    chunks = [c.text for c in chunk_objs]
     _console.print(
         f"\nChunks: [cyan]{len(chunks)}[/cyan] (~{config.max_tokens} tokens each)"
     )
@@ -777,7 +777,7 @@ def extract(
             if len(_json_print_output) == 1
             else _json_print_output
         )
-        
+
         sys.stdout.write(json.dumps(output_json, indent=2) + "\n")
         sys.stdout.flush()
     if consolidate and len(files_to_process) > 1:

@@ -1,6 +1,7 @@
 import pytest
 from knwler.chunking import get_encoder, chunk_text
 from knwler.config import Config
+from knwler.models import Chunk
 
 """
 Tests for text chunking utilities.
@@ -31,7 +32,9 @@ class TestChunkText:
         text = "This is a short text."
         chunks = chunk_text(text, config)
         assert len(chunks) == 1
-        assert chunks[0] == text
+        assert isinstance(chunks[0], Chunk)
+        assert chunks[0].text == text
+        assert chunks[0].chunk_idx == 0
 
     def test_chunk_text_long_text(self):
         """Test that long text is split into multiple chunks."""
@@ -47,7 +50,7 @@ class TestChunkText:
         chunks = chunk_text(text, config)
         encoder = get_encoder()
         for chunk in chunks:
-            tokens = encoder.encode(chunk)
+            tokens = encoder.encode(chunk.text)
             assert len(tokens) <= config.max_tokens + 1  # Allow small margin
 
     def test_chunk_text_sentence_boundary(self):
@@ -56,7 +59,7 @@ class TestChunkText:
         text = "First sentence. Second sentence. Third sentence. Fourth sentence."
         chunks = chunk_text(text, config)
         for chunk in chunks:
-            assert chunk.rstrip().endswith((".", "!", "?")) or len(chunks) == 1
+            assert chunk.text.rstrip().endswith((".", "!", "?")) or len(chunks) == 1
 
     def test_chunk_text_with_overlap(self):
         """Test that chunks have overlap when specified."""
@@ -65,8 +68,8 @@ class TestChunkText:
         chunks = chunk_text(text, config)
         if len(chunks) > 1:
             encoder = get_encoder()
-            first_chunk_tokens = encoder.encode(chunks[0])
-            second_chunk_tokens = encoder.encode(chunks[1])
+            first_chunk_tokens = encoder.encode(chunks[0].text)
+            second_chunk_tokens = encoder.encode(chunks[1].text)
             # Second chunk should start before the end of the first chunk
             assert len(first_chunk_tokens) + len(second_chunk_tokens) < len(
                 encoder.encode(text)
@@ -78,7 +81,7 @@ class TestChunkText:
         text = ""
         chunks = chunk_text(text, config)
         assert len(chunks) == 1
-        assert chunks[0] == ""
+        assert chunks[0].text == ""
 
     def test_chunk_text_preserves_content(self):
         """Test that chunking preserves the original text."""
@@ -87,10 +90,10 @@ class TestChunkText:
         chunks = chunk_text(text, config)
         # Verify all chunks are substrings of the original text
         for chunk in chunks:
-            assert chunk in text or chunk == ""
+            assert chunk.text in text or chunk.text == ""
         # Verify the first and last chunks match the text boundaries
-        assert text.startswith(chunks[0])
-        assert text.endswith(chunks[-1])
+        assert text.startswith(chunks[0].text)
+        assert text.endswith(chunks[-1].text)
 
         def test_chunk_text_no_sentence_breaks(self):
             """Test chunking text without sentence boundaries."""
@@ -100,7 +103,7 @@ class TestChunkText:
             assert len(chunks) > 1
             encoder = get_encoder()
             for chunk in chunks:
-                assert len(encoder.encode(chunk)) <= config.max_tokens + 1
+                assert len(encoder.encode(chunk.text)) <= config.max_tokens + 1
 
         def test_chunk_text_multiple_punctuation_marks(self):
             """Test chunking with various punctuation marks."""
@@ -108,8 +111,11 @@ class TestChunkText:
             text = "Question? Answer! Statement. " * 30
             chunks = chunk_text(text, config)
             for chunk in chunks:
-                if chunk.rstrip():
-                    assert chunk.rstrip().endswith((".", "!", "?")) or len(chunks) == 1
+                if chunk.text.rstrip():
+                    assert (
+                        chunk.text.rstrip().endswith((".", "!", "?"))
+                        or len(chunks) == 1
+                    )
 
         def test_chunk_text_config_zero_overlap(self):
             """Test chunking with zero overlap tokens."""
@@ -118,7 +124,7 @@ class TestChunkText:
             chunks = chunk_text(text, config)
             assert len(chunks) > 1
             encoder = get_encoder()
-            total_tokens = sum(len(encoder.encode(chunk)) for chunk in chunks)
+            total_tokens = sum(len(encoder.encode(chunk.text)) for chunk in chunks)
             assert (
                 total_tokens <= len(encoder.encode(text)) + 10
             )  # Small margin for rounding
@@ -138,4 +144,4 @@ class TestChunkText:
             assert len(chunks) > 1
             encoder = get_encoder()
             for chunk in chunks:
-                assert len(encoder.encode(chunk)) <= config.max_tokens + 1
+                assert len(encoder.encode(chunk.text)) <= config.max_tokens + 1

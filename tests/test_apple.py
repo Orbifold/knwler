@@ -87,9 +87,9 @@ async def test_disambiguation():
     extracted_chunks = [
         {
             "id": r.id,
-            "chunk_idx": r.chunk_idx,
-            "text": chunks[r.chunk_idx],
-            "rephrase": chunks[r.chunk_idx],
+            "chunk_idx": r.chunk.chunk_idx,
+            "text": chunks[r.chunk.chunk_idx],
+            "rephrase": chunks[r.chunk.chunk_idx],
             "entities": r.entities,
             "relations": r.relations,
             "chunk_time": r.chunk_time,

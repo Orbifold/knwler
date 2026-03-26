@@ -58,6 +58,7 @@ from knwler.cli_demo import demo_app
 from knwler.cli_benchmark import benchmark_app
 from knwler.cli_graph import graph_app
 from knwler.cli_batch import batch_app
+from knwler.cli_parse import parse_app
 
 app = typer.Typer(
     help="Turn documents into structured knowledge.",
@@ -307,6 +308,9 @@ app.add_typer(
 )
 
 app.add_typer(batch_app, name="batch", help="Run batch API pipeline (OpenAI / Gemini).")
+app.add_typer(
+    parse_app, name="parse", help="Parse documents and extract their text content."
+)
 
 
 def main():

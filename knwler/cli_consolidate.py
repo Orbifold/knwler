@@ -1,4 +1,4 @@
-from knwler.consolidation import consolidate_graphs
+from knwler.consolidation import consolidate_document_graphs
 from knwler.config import Config, console
 import json
 from typing import Optional
@@ -56,7 +56,7 @@ async def cli_consolidate_graphs(
     )
     if all_graphs:
         # note that clustering is also applied at the consolidation level to group similar entities together across documents, which is useful when merging a large amount of graphs towards a database ingestion
-        consolidated = await consolidate_graphs(
+        consolidated = await consolidate_document_graphs(
             all_graphs, cluster=True, include_chunks=include_chunks, config=config
         )
         if output and output.suffix:

@@ -15,7 +15,7 @@ from rich.progress import (
 )
 import json
 from knwler.config import Config, console, null_console
-from knwler.models import ExtractionResult, Schema, Graph
+from knwler.models import *
 
 from knwler.language import get_console_msg, get_prompt
 from knwler.llm import llm_generate, parse_json_response
@@ -26,13 +26,13 @@ from dataclasses import dataclass, asdict, fields, field
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
-async def consolidate_graphs(
-    graphs: list[dict],
+async def consolidate_document_graphs(
+    graphs: list[dict] | list[DocumentGraph] | list[Graph],
     cluster: bool = False,
     include_chunks: bool = False,
     filter_low_importance: bool = True,
     config: Config = Config(),
-) -> dict:
+) -> ConsolidatedGraph:
     """
     Consolidate multiple graphs into one, with summarization and filtering.
     Use this if you have multiple `graph.json` files from different documents that you want to merge into a single consolidated graph.
@@ -49,11 +49,12 @@ async def consolidate_graphs(
         return graphs[0]
     # ensure we have dicts
     for i in range(len(graphs)):
-        if isinstance(graphs[i], Graph):
+        if not isinstance(graphs[i], dict):
             graphs[i] = asdict(graphs[i])
     # concatenate the chunks
     all_chunks = []
     for g in graphs:
+
         chunks = g.get("chunks", [])
         console.print(
             f"[green]\u2713[/green] Graph [cyan]{g.get('id', 'unknown')}[/cyan]: "
@@ -63,6 +64,7 @@ async def consolidate_graphs(
         all_chunks.extend(chunks)
     all_documents = []
     for g in graphs:
+
         all_documents.append(
             {
                 "id": g.get("id"),
@@ -77,6 +79,7 @@ async def consolidate_graphs(
         "relation_types": set(),
     }
     for g in graphs:
+
         schema = g.get("schema", {})
         all_schema["entity_types"].update(schema.get("entity_types", []))
         all_schema["relation_types"].update(schema.get("relation_types", []))
@@ -86,7 +89,7 @@ async def consolidate_graphs(
         f"[green]\u2713[/green] Aggregated [cyan]{len(all_chunks)}[/cyan] chunks, [cyan]{len(all_documents)}[/cyan] documents, "
         f"[cyan]{len(all_schema['entity_types'])}[/cyan] entity types, [cyan]{len(all_schema['relation_types'])}[/cyan] relation types from all graphs."
     )
-    consolidated, consolidation_time = await consolidate_extracted_graphs(
+    consolidated, consolidation_time = await consolidate_chunk_graphs(
         [
             Graph(
                 entities=g.get("graph", {}).get("entities", []),
@@ -103,22 +106,22 @@ async def consolidate_graphs(
 
         consolidated = await cluster_graph(consolidated, config)
 
-    return {
-        "id": str(uuid4()),
-        "documents": all_documents,
-        "schema": all_schema,
-        "graph": asdict(consolidated),
-        "chunks": all_chunks if include_chunks else [],
-    }
+    return ConsolidatedGraph(
+        id=str(uuid4()),
+        documents=all_documents,
+        schema=all_schema,
+        graph=consolidated,
+        chunks=all_chunks if include_chunks else [],
+    )
 
 
-async def consolidate_extracted_graphs(
-    little_graphs: list[Graph],
+async def consolidate_chunk_graphs(
+    chunk_graphs: list[Graph],
     config: Config = Config(),
     summarize: bool = True,
     filter_low_importance: bool = False,
     _console=None,
-) -> tuple[dict, float]:
+) -> tuple[Graph, float]:
     """Consolidate chunk graphs with unique (name, type) and summarized descriptions.
 
     Returns ``(consolidated_graph, consolidation_time)``.
@@ -129,7 +132,7 @@ async def consolidate_extracted_graphs(
     entity_map: dict[tuple[str, str], dict] = {}
     relation_map: dict[tuple[str, str, str], dict] = {}
 
-    for r in little_graphs:
+    for r in chunk_graphs:
         for e in r.entities:
             if isinstance(e, str):
                 console.print(
@@ -162,7 +165,7 @@ async def consolidate_extracted_graphs(
             if e.get("chunk_ids"):
                 entity_map[key]["chunk_ids"].update(e.get("chunk_ids", set()))
             else:
-                if isinstance(r, ExtractionResult):
+                if isinstance(r, ChunkGraph):
                     entity_map[key]["chunk_ids"].add(r.chunk.id)
             if desc and desc not in entity_map[key]["descriptions"]:
                 entity_map[key]["descriptions"].append(desc)
@@ -206,7 +209,7 @@ async def consolidate_extracted_graphs(
             if rel.get("chunk_ids"):
                 relation_map[key]["chunk_ids"].update(rel.get("chunk_ids", set()))
             else:
-                if isinstance(r, ExtractionResult):
+                if isinstance(r, ChunkGraph):
                     relation_map[key]["chunk_ids"].add(r.chunk.id)
             relation_map[key]["strengths"].append(strength)
             if desc and desc not in relation_map[key]["descriptions"]:
@@ -261,7 +264,7 @@ async def consolidate_extracted_graphs(
         entities, relations = _filter_low_importance_nodes(entities, relations)
 
     elapsed = time.perf_counter() - t0
-    return {"entities": entities, "relations": relations}, elapsed
+    return Graph(entities=entities, relations=relations), elapsed
 
 
 # ---------------------------------------------------------------------------

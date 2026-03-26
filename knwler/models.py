@@ -18,8 +18,8 @@ class Graph:
 class Chunk:
     """Text chunk with associated metadata."""
 
-    chunk_idx: int
     text: str
+    chunk_idx: int = 0
     id: str = field(default_factory=lambda: str(uuid4()))
 
 
@@ -35,12 +35,14 @@ class AugmentedChunk(Chunk):
 class ClusteredGraph(Graph):
     """Graph with community/cluster information added."""
 
-    communities: dict = field(default_factory=dict)
+    clusters: dict = field(default_factory=dict)
 
 
 @dataclass
-class ExtractionResult(Graph):
-    """Result from extracting a single chunk."""
+class ChunkGraph(Graph):
+    """
+    Result from extracting a single chunk.
+    """
 
     chunk: Chunk
     chunk_time: float
@@ -107,8 +109,26 @@ class KnowledgeGraph:
 
 
 @dataclass
-class ExtractResult:
+class DocumentGraph:
+    """Result from extracting a document, including the consolidated graph and metadata."""
 
-    graph: Graph
-    chunks: list[Chunk]
-    schema: Schema
+    graph: ChunkGraph = field(default_factory=ChunkGraph)
+    chunks: list[Chunk] = field(default_factory=list)
+    schema: Schema = field(default_factory=Schema.default)
+    id: str = field(default_factory=lambda: str(uuid4()))
+    title: str = ""
+    url: str | None = None
+    content: str | None = None
+    language: str | None = None
+    summary: str | None = None
+
+
+@dataclass
+class ConsolidatedGraph:
+    """Result from consolidating multiple document graphs."""
+
+    graph: ClusteredGraph = field(default_factory=ClusteredGraph)
+    id: str = field(default_factory=lambda: str(uuid4()))
+    documents: list[dict] = field(default_factory=list)
+    schema: dict = field(default_factory=dict)
+    chunks: list[Chunk] = field(default_factory=list)

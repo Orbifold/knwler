@@ -131,10 +131,10 @@ async def cluster_graph(
         if not labels:
             labels = _fallback_community_labels(community_payload)
 
-        communities_out: list[dict] = []
+        clusters_out: list[dict] = []
         for cid, members in enumerate(clusters):
             label = labels.get(str(cid), {"topics": ["misc"], "description": ""})
-            communities_out.append(
+            clusters_out.append(
                 {
                     "id": cid,
                     "topics": label.get("topics", ["misc"]),
@@ -144,12 +144,12 @@ async def cluster_graph(
             )
             for node_id in members:
                 if node_id in entity_map:
-                    entity_map[node_id]["community_id"] = cid
+                    entity_map[node_id]["cluster_id"] = cid
 
-        graph["communities"] = communities_out
+        graph["clusters"] = clusters_out
         detected_msg = (
-            get_console_msg("detected_communities", count=len(clusters))
-            or f"Detected {len(clusters)} communities"
+            get_console_msg("detected_clusters", count=len(clusters))
+            or f"Identified {len(clusters)} clusters"
         )
         _console.print(f"[white]{detected_msg}[/]")
     return ClusteredGraph(**graph)

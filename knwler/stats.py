@@ -7,7 +7,7 @@ from statistics import mean, median
 from rich.table import Table
 
 from knwler.config import console
-from knwler.models import ExtractionResult, Schema, Graph, ClusteredGraph
+from knwler.models import ChunkGraph, Schema, Graph, ClusteredGraph
 
 from dataclasses import asdict
 
@@ -16,7 +16,7 @@ from dataclasses import asdict
 # Computation
 # ---------------------------------------------------------------------------
 def compute_stats(
-    results: list[ExtractionResult],
+    results: list[ChunkGraph],
     schema_time: float,
     wall_time: float,
     consolidation_time: float = 0.0,

@@ -18,7 +18,7 @@ from rich.progress import (
 )
 
 from knwler.config import Config, console, null_console
-from knwler.models import ExtractionResult, Schema, Graph, Chunk
+from knwler.models import ChunkGraph, Schema, Graph, Chunk
 
 from knwler.chunking import get_encoder
 from knwler.language import get_console_msg, get_prompt
@@ -68,7 +68,7 @@ async def extract_graph(text: str, schema: Schema, config: Config) -> dict[str, 
 
 async def extract_chunk(
     chunk: Chunk | str, schema: Schema, config: Config
-) -> ExtractionResult:
+) -> ChunkGraph:
     """Extract from a single chunk with timing."""
     t0 = time.perf_counter()
     if isinstance(chunk, str):
@@ -76,7 +76,7 @@ async def extract_chunk(
     result = await extract_graph(chunk.text, schema, config)
     elapsed = time.perf_counter() - t0
     # an ExtractionResult couples a chunk with a graph
-    return ExtractionResult(
+    return ChunkGraph(
         entities=result["entities"],
         relations=result["relations"],
         chunk=chunk,
@@ -91,7 +91,7 @@ async def extract_chunk(
 def _save_partial_results(
     output_path: Path,
     schema: Schema,
-    results: list[ExtractionResult],
+    results: list[ChunkGraph],
     completed: int,
     total: int,
 ):
@@ -123,19 +123,19 @@ def _save_partial_results(
 # ---------------------------------------------------------------------------
 # Parallel extraction
 # ---------------------------------------------------------------------------
-async def extract_all(
+async def extract_chunks(
     chunks: list[Chunk],
     schema: Schema,
     config: Config = Config(),
     output_path: Path | None = None,
     _console=None,
-) -> list[ExtractionResult]:
+) -> list[ChunkGraph]:
     """Extract from all chunks with concurrency control and incremental saving."""
     if _console is None:
         _console = console
     semaphore = asyncio.Semaphore(config.max_concurrent)
     total = len(chunks)
-    results: list[ExtractionResult] = []
+    results: list[ChunkGraph] = []
     lock = asyncio.Lock()
     progress_msg = get_console_msg("extracting") or "Extracting..."
 
@@ -151,7 +151,7 @@ async def extract_all(
     ) as progress:
         task = progress.add_task(f"[cyan]{progress_msg}", total=total)
 
-        async def bounded(chunk: Chunk, idx: int) -> ExtractionResult:
+        async def bounded(chunk: Chunk, idx: int) -> ChunkGraph:
             async with semaphore:
                 result = await extract_chunk(chunk, schema, config)
                 async with lock:

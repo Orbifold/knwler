@@ -1,7 +1,7 @@
 import pytest
 import networkx as nx
 from knwler.clustering import create_network
-
+from knwler.models import *
 """
 Tests for clustering.py
 """

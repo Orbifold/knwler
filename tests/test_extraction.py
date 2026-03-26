@@ -4,7 +4,7 @@ import pytest
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 from knwler.config import Config
-from knwler.models import ExtractionResult, Schema, Graph, Chunk
+from knwler.models import ChunkGraph, Schema, Graph, Chunk
 
 
 """
@@ -16,7 +16,7 @@ from knwler.extraction import (
     extract_graph,
     extract_chunk,
     _save_partial_results,
-    extract_all,
+    extract_chunks,
 )
 
 
@@ -103,7 +103,7 @@ class TestExtractChunk:
 
         result = await extract_chunk("test chunk", mock_schema, mock_config)
 
-        assert isinstance(result, ExtractionResult)
+        assert isinstance(result, ChunkGraph)
         assert result.id is not None and isinstance(result.id, str)
         assert result.chunk.chunk_idx == 0
         assert result.chunk_tokens == 3
@@ -132,7 +132,7 @@ class TestSavePartialResults:
     def test_save_partial_results(self, tmp_path, mock_schema):
         output_path = tmp_path / "output.json"
         results = [
-            ExtractionResult(
+            ChunkGraph(
                 entities=[{"name": "Entity1", "type": "Person"}],
                 relations=[],
                 chunk=Chunk(chunk_idx=0, text="test chunk"),
@@ -160,15 +160,19 @@ class TestExtractAll:
         self, mock_msg, mock_chunk, mock_schema, mock_config
     ):
         mock_msg.return_value = "Extracting..."
-        mock_chunk.return_value = ExtractionResult(
-            entities=[], relations=[], chunk=Chunk(chunk_idx=0, text="test chunk"), chunk_time=0.1, chunk_tokens=10
+        mock_chunk.return_value = ChunkGraph(
+            entities=[],
+            relations=[],
+            chunk=Chunk(chunk_idx=0, text="test chunk"),
+            chunk_time=0.1,
+            chunk_tokens=10,
         )
         chunks = ["chunk1", "chunk2"]
 
-        results = await extract_all(chunks, mock_schema, mock_config)
+        results = await extract_chunks(chunks, mock_schema, mock_config)
 
         assert len(results) == 2
-        assert all(isinstance(r, ExtractionResult) for r in results)
+        assert all(isinstance(r, ChunkGraph) for r in results)
 
     @pytest.mark.asyncio
     @patch("knwler.extraction.extract_chunk", new_callable=AsyncMock)
@@ -177,13 +181,17 @@ class TestExtractAll:
         self, mock_msg, mock_chunk, tmp_path, mock_schema, mock_config
     ):
         mock_msg.return_value = "Extracting..."
-        mock_chunk.return_value = ExtractionResult(
-            entities=[], relations=[], chunk=Chunk(chunk_idx=0, text="test chunk"), chunk_time=0.1, chunk_tokens=10
+        mock_chunk.return_value = ChunkGraph(
+            entities=[],
+            relations=[],
+            chunk=Chunk(chunk_idx=0, text="test chunk"),
+            chunk_time=0.1,
+            chunk_tokens=10,
         )
         output_path = tmp_path / "output.json"
         chunks = ["chunk1"]
 
-        results = await extract_all(chunks, mock_schema, mock_config, output_path)
+        results = await extract_chunks(chunks, mock_schema, mock_config, output_path)
 
         assert len(results) == 1
         partial_path = output_path.with_suffix(".partial.json")

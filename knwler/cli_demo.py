@@ -12,7 +12,7 @@ from rich.markdown import Markdown
 from knwler.api import (
     chunk,
     cluster_graph,
-    consolidate,
+    consolidate_chunk_graphs,
     discover_language,
     extract_chunks,
     extract_summary,
@@ -81,7 +81,7 @@ async def run_demo(backend: str | None = None):
     extraction_results = await extract_chunks(chunks, schema, config)
 
     # Step 8: consolidate the extracted graphs
-    consolidated_graph = await consolidate(
+    consolidated_graph = await consolidate_chunk_graphs(
         extraction_results, summarize=True, filter_low_importance=False, config=config
     )
     console.print(f"[green]✔ Consolidated graph created[/green]")

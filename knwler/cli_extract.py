@@ -18,7 +18,10 @@ _URL_RE = re.compile(r"^https?://", re.IGNORECASE)
 from knwler.cache import CACHE_DIR, hash_args
 from knwler.chunking import chunk_text
 from knwler.clustering import cluster_graph, create_network
-from knwler.consolidation import consolidate_extracted_graphs, consolidate_graphs
+from knwler.consolidation import (
+    consolidate_chunk_graphs,
+    consolidate_document_graphs,
+)
 from knwler.discovery import detect_language, discover_schema
 from knwler.language import (
     DEFAULT_LANGUAGE,
@@ -28,7 +31,7 @@ from knwler.language import (
     get_current_language,
 )
 from knwler.export import export_html
-from knwler.extraction import extract_all
+from knwler.extraction import extract_chunks
 from knwler.extras import extract_summary, extract_title, rephrase_chunks
 from knwler.stats import compute_community_stats, compute_stats, print_stats
 from knwler.config import (
@@ -48,7 +51,7 @@ from knwler.config import (
     console,
     null_console,
 )
-from knwler.models import ExtractionResult, Schema, Graph
+from knwler.models import ChunkGraph, Schema, Graph
 from knwler.cli_consolidate import cli_consolidate_graphs
 from dataclasses import asdict
 
@@ -119,7 +122,7 @@ async def _process_file(
         existing_data = json.loads(graph_json_path.read_text())
         consolidated_ents = existing_data.get("graph", {}).get("entities", [])
         consolidated_rels = existing_data.get("graph", {}).get("relations", [])
-        existing_result = ExtractionResult(
+        existing_result = ChunkGraph(
             entities=consolidated_ents,
             relations=consolidated_rels,
             id=existing_data.get("id", str(uuid4())),
@@ -201,8 +204,7 @@ async def _process_file(
     # ── Chunking ──
     _console.print()
     _console.rule("[bold cyan]Text Chunking[/bold cyan]")
-    chunk_objs = chunk_text(text, config)
-    chunks = [c.text for c in chunk_objs]
+    chunks = chunk_text(text, config)
     _console.print(
         f"\nChunks: [cyan]{len(chunks)}[/cyan] (~{config.max_tokens} tokens each)"
     )
@@ -237,7 +239,7 @@ async def _process_file(
     _console.print(f"Extraction model: [green]{config.extraction_model}[/green]")
 
     t0 = time.perf_counter()
-    extraction_results: list[ExtractionResult] = await extract_all(
+    extraction_results: list[ChunkGraph] = await extract_chunks(
         chunks, schema, config, output_path=output, _console=_console
     )
     wall_time = time.perf_counter() - t0
@@ -250,7 +252,7 @@ async def _process_file(
         if existing_result
         else extraction_results
     )
-    consolidated, consolidation_time = await consolidate_extracted_graphs(
+    consolidated, consolidation_time = await consolidate_chunk_graphs(
         all_results, config, summarize=True, _console=_console
     )
 

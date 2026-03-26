@@ -9,7 +9,7 @@ from dataclasses import asdict
 from knwler.api import (
     chunk,
     cluster_graph,
-    consolidate,
+    consolidate_chunk_graphs,
     discover_language,
     extract_chunks,
     extract_summary,
@@ -118,7 +118,7 @@ async def crunch(config: Config):
 
         # Consolidation
         start_time = time.perf_counter()
-        consolidated_graph = await consolidate(
+        consolidated_graph = await consolidate_chunk_graphs(
             extraction_results,
             summarize=True,
             filter_low_importance=False,

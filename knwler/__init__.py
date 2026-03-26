@@ -3,15 +3,25 @@ knwler — Fast and accurate graph extraction from text using LLMs.
 """
 
 from knwler.config import Config, console
-from knwler.models import ExtractionResult, Schema, Graph, Chunk
+from knwler.models import (
+    ChunkGraph,
+    Schema,
+    Graph,
+    Chunk,
+    DocumentGraph,
+    ConsolidatedGraph,
+)
 from knwler.language import set_language, get_lang, get_prompt, get_ui, get_console_msg
 from knwler.cache import CACHE_DIR
 from knwler.llm import llm_generate, parse_json_response
 from knwler.chunking import chunk_text, get_encoder
 from knwler.discovery import discover_schema, detect_language
-from knwler.extraction import extract_graph, extract_chunk, extract_all
+from knwler.extraction import extract_graph, extract_chunk, extract_chunks
 from knwler.api import extract
-from knwler.consolidation import consolidate_extracted_graphs, consolidate_graphs
+from knwler.consolidation import (
+    consolidate_chunk_graphs,
+    consolidate_document_graphs,
+)
 from knwler.clustering import cluster_graph, create_network
 from knwler.export import export_html
 from knwler.stats import compute_stats, compute_community_stats, print_stats
@@ -65,6 +75,8 @@ __all__ = [
     # models
     "Graph",
     "Chunk",
+    "DocumentGraph",
+    "ConsolidatedGraph",
     # CLI
     "app",
 ]

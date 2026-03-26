@@ -12,10 +12,13 @@ from knwler.collect.webpage import WebpageCollector
 from knwler.collect.wikipedia import WikipediaCollector
 from knwler.config import Config
 from knwler.chunking import chunk_text
-from knwler.extraction import extract_all
+from knwler.extraction import extract_chunks as _extract_chunks
 from knwler.discovery import discover_schema, detect_language
 from knwler.models import *
-from knwler.consolidation import consolidate_extracted_graphs
+from knwler.consolidation import (
+    consolidate_chunk_graphs as _consolidate_chunk_graphs,
+    consolidate_document_graphs as _consolidate_document_graphs,
+)
 from knwler.clustering import cluster_graph as clustering
 from knwler.language import set_language as _set_language
 from knwler.extras import (
@@ -25,6 +28,8 @@ from knwler.extras import (
 )
 from knwler.export import export_html
 from knwler.parse import parse_pdf as _parse_pdf
+from knwler.clustering import create_network as _create_network
+import networkx as nx
 
 
 async def parse_file(file_path: Path) -> tuple[str, dict]:
@@ -49,7 +54,7 @@ async def parse_file(file_path: Path) -> tuple[str, dict]:
             "time": round(end_time - start_time, 2),
         }
     elif file_path.suffix.lower() in [".pdf"]:
-        text = parse_pdf(file_path)
+        text = await parse_pdf(file_path)
         end_time = time.perf_counter()
         return text, {
             "file_path": str(file_path),
@@ -93,10 +98,10 @@ def is_document_url(url: str) -> bool:
 
 
 async def extract(
-    source: Path | str | list[str] | list[Chunk],
+    source: Path | str | list[str] | list[Chunk] | Chunk,
     schema: Schema | None = None,
     config: Config | None = Config(),
-) -> ExtractionResult:
+) -> ChunkGraph:
     """
     Unified extraction entry point.
 
@@ -119,6 +124,8 @@ async def extract(
             chunks = [Chunk(chunk_idx=i, text=item) for i, item in enumerate(source)]
         elif all(isinstance(item, Chunk) for item in source):
             chunks = source
+    elif isinstance(source, Chunk):
+        chunks = [source]
     else:
         raise TypeError(f"Unsupported source type: {type(source)}")
 
@@ -126,9 +133,9 @@ async def extract(
     if schema is None:
         schema = await discover_schema(schema_text, config)
 
-    extraction_results = await extract_all(chunks, schema, config, output_path=None)
-    g = await consolidate(extraction_results, config=config)
-    return ExtractResult(
+    extraction_results = await _extract_chunks(chunks, schema, config)
+    g = await consolidate_chunk_graphs(extraction_results, config=config)
+    return DocumentGraph(
         graph=g, chunks=[u.chunk for u in extraction_results], schema=schema
     )
 
@@ -136,13 +143,13 @@ async def extract(
 # Backward-compatible aliases
 async def extract_file(
     file_path: Path, output: Path | None = None, config: Config | None = Config()
-) -> list[ExtractionResult]:
+) -> list[ChunkGraph]:
     return await extract(file_path, output=output, config=config)
 
 
 async def extract_chunks(
     chunks: list[str], schema: Schema | None = None, config: Config | None = Config()
-) -> list[ExtractionResult]:
+) -> list[ChunkGraph]:
     return await extract(chunks, schema=schema, config=config)
 
 
@@ -154,19 +161,36 @@ async def chunk(text: str, config: Config | None = Config()) -> list[Chunk]:
     return chunk_text(text, config)
 
 
-async def consolidate(
-    extraction_results: list[ExtractionResult],
+async def consolidate_chunk_graphs(
+    graphs: list[ChunkGraph],
     summarize: bool = True,
     filter_low_importance: bool = True,
     config: Config | None = Config(),
 ) -> Graph:
-    consolidation, timing = await consolidate_extracted_graphs(
-        extraction_results,
+    consolidation, timing = await _consolidate_chunk_graphs(
+        graphs,
         config=config,
         summarize=summarize,
         filter_low_importance=filter_low_importance,
     )
-    return Graph(**consolidation)
+    return consolidation
+
+
+async def consolidate_document_graphs(
+    graphs: list[DocumentGraph],
+    cluster: bool = False,
+    filter_low_importance: bool = True,
+    include_chunks: bool = False,
+    config: Config | None = Config(),
+) -> ConsolidatedGraph:
+    consolidated = await _consolidate_document_graphs(
+        graphs,
+        config=config,
+        cluster=cluster,
+        filter_low_importance=filter_low_importance,
+        include_chunks=include_chunks,
+    )
+    return consolidated
 
 
 async def cluster_graph(
@@ -185,10 +209,13 @@ async def set_language(lang_code: str):
     return _set_language(lang_code)
 
 
-async def discover_language(text: str, config: Config | None = Config()) -> str:
+async def discover_language(
+    text: str, assign_language: bool = False, config: Config | None = Config()
+) -> str:
     """Detect the language of the given text. This can be used to automatically set the language for prompts and UI messages."""
     found = await detect_language(text, config)
-    await set_language(found)
+    if assign_language:
+        await set_language(found)
     return found
 
 
@@ -197,13 +224,17 @@ async def extract_summary(text: str, config: Config | None = Config()) -> str:
     return await _extract_summary(text, config)
 
 
-async def extract_title(chunks: list[str], config: Config | None = Config()) -> str:
+async def extract_title(
+    chunks: list[Chunk] | str, config: Config | None = Config()
+) -> str:
     """
-    Extract a title for the given chunks.
+    Extract a title for the given chunks or text.
     This can be used to generate a title for a document or to assign a name to a graph.
     The extraction is not based on the whole text since the title is usually mentioned in the beginning, so we can save tokens by only looking at the first few chunks.
     If you really want to use the whole text simply use `[text]`.
     """
+    if isinstance(chunks, str):
+        chunks = chunk_text(chunks, config)
     return await _extract_title(chunks, config, max_chunks=3)
 
 
@@ -216,7 +247,7 @@ async def render_html(graph: KnowledgeGraph, template: str = "default") -> str:
 
 
 async def rephrase_chunks(
-    chunks: list[str], config: Config | None = Config()
+    chunks: list[Chunk], config: Config | None = Config()
 ) -> list[str]:
     """Rephrase each chunk in simple language for UI display. This can be used to make the content more accessible and easier to understand for a wider audience."""
     return await _rephrase_chunks(chunks, config)
@@ -227,3 +258,13 @@ async def parse_pdf(file_path: Path | str) -> str:
     if isinstance(file_path, str):
         file_path = Path(file_path)
     return _parse_pdf(file_path)
+
+
+async def create_network(doc: DocumentGraph) -> nx.MultiDiGraph:
+    return _create_network(
+        doc.graph,
+        title=doc.title,
+        url=doc.url,
+        language=doc.language,
+        summary=doc.summary,
+    )

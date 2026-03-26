@@ -5,9 +5,9 @@ from knwler.config import Config
 from knwler.discovery import detect_language, discover_schema
 from knwler.extras import rephrase_chunks, extract_title, extract_summary
 from knwler.cache import find_items_by_model
-from knwler.extraction import extract_chunk, extract_all
-from knwler.consolidation import consolidate_extracted_graphs
-from knwler.models import ExtractionResult, Chunk
+from knwler.extraction import extract_chunk, extract_chunks
+from knwler.consolidation import consolidate_chunk_graphs
+from knwler.models import *
 import asyncio
 
 
@@ -75,8 +75,8 @@ async def test_ada():
 
     chunk1 = chunks[1]
     config = Config()  # back to the smaller model
-    many_little_graphs = await extract_chunk(chunk1,  schema, config)
-    assert isinstance(many_little_graphs, ExtractionResult)
+    many_little_graphs = await extract_chunk(chunk1, schema, config)
+    assert isinstance(many_little_graphs, ChunkGraph)
     print("\n-----Graph of chunk 1-------\n")
     assert (
         many_little_graphs.chunk.chunk_idx == 1
@@ -95,44 +95,44 @@ async def test_ada():
         )
 
     # the whole lot, this is async
-    many_little_graphs = await extract_all(chunks, schema, config)
+    many_little_graphs = await extract_chunks(chunks, schema, config)
     assert isinstance(many_little_graphs, list) and len(many_little_graphs) == len(
         chunks
     )
-    assert isinstance(many_little_graphs[0], ExtractionResult)
+    assert isinstance(many_little_graphs[0], ChunkGraph)
 
     # now you can consolidate the list of little graphs into one big graph
-    consolidated, consolidation_time = await consolidate_extracted_graphs(
+    consolidated, consolidation_time = await consolidate_chunk_graphs(
         many_little_graphs,
         config,
         summarize=False,
     )
     assert (
-        isinstance(consolidated, dict)
-        and "entities" in consolidated
-        and "relations" in consolidated
+        isinstance(consolidated, Graph)
+        and hasattr(consolidated, "entities")
+        and hasattr(consolidated, "relations")
     )
 
     print("\n-----Consolidated graph-------\n")
-    print(f"\nEntities ({len(consolidated['entities'])}):\n")
-    for e in consolidated["entities"]:
+    print(f"\nEntities ({len(consolidated.entities)}):\n")
+    for e in consolidated.entities:
         print(f"\t- {e['name']} ({e['type']}): {e['description']}")
-    print(f"\nRelations ({len(consolidated['relations'])}):\n")
-    for r in consolidated["relations"]:
+    print(f"\nRelations ({len(consolidated.relations)}):\n")
+    for r in consolidated.relations:
         print(
             f"\t- {r['source']} - [{r['type']} (strength {r['strength']})] -> {r['target']} ℹ️  {r['description']}"
         )
 
     # you can also keep the singletons and low-value entities
-    consolidated, consolidation_time = await consolidate_extracted_graphs(
+    consolidated, consolidation_time = await consolidate_chunk_graphs(
         many_little_graphs, config, summarize=False, filter_low_importance=False
     )
     print("\n-----Consolidated graph with low-value entities-------\n")
-    print(f"\nEntities ({len(consolidated['entities'])}):\n")
-    for e in consolidated["entities"]:
+    print(f"\nEntities ({len(consolidated.entities)}):\n")
+    for e in consolidated.entities:
         print(f"\t- {e['name']} ({e['type']}): {e['description']}")
-    print(f"\nRelations ({len(consolidated['relations'])}):\n")
-    for r in consolidated["relations"]:
+    print(f"\nRelations ({len(consolidated.relations)}):\n")
+    for r in consolidated.relations:
         print(
             f"\t- {r['source']} - [{r['type']} (strength {r['strength']})] -> {r['target']} ℹ️  {r['description']}"
         )

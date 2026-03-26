@@ -1,5 +1,115 @@
 {
-  "id": "54be7bf3-6ac2-4333-8483-95e9c468fad0",
+  "graph": {
+    "entities": [
+      {
+        "name": "Charles Darwin",
+        "type": "Person",
+        "description": "Charles Robert Darwin, an English naturalist and biologist, spent part of his youth as an apprentice doctor before attending the University of Edinburgh Medical School with his brother Erasmus. He is renowned for proposing that all species have evolved from common ancestors. ",
+        "chunk_ids": [
+          "doc1-chunk1",
+          "doc2-chunk1"
+        ],
+        "id": "a8435c67-580b-436c-8cdd-063b4b6bac1a",
+        "community_id": 0
+      },
+      {
+        "name": "theory of evolution",
+        "type": "Concept",
+        "description": "A scientific theory explaining the process of natural selection.",
+        "chunk_ids": [
+          "doc1-chunk2"
+        ],
+        "id": "cde8aefc-91fe-4bb9-aa91-51f1f91cd58a",
+        "community_id": 1
+      },
+      {
+        "name": "barnacles",
+        "type": "Concept",
+        "description": "A group of marine crustaceans that Darwin studied obsessively.",
+        "chunk_ids": [
+          "doc2-chunk2"
+        ],
+        "id": "42361804-10be-4523-8f9c-5f35454e1000",
+        "community_id": 2
+      }
+    ],
+    "relations": [
+      {
+        "source": "Charles Darwin",
+        "source_type": "",
+        "target": "theory of evolution",
+        "target_type": "",
+        "type": "related_to",
+        "description": "Charles Darwin is related to the theory of evolution.",
+        "strength": 0.8,
+        "chunk_ids": [
+          "doc1-chunk2"
+        ],
+        "id": "bdd53563-d69f-4094-8b69-311db2ca1b02"
+      },
+      {
+        "source": "Charles Darwin",
+        "source_type": "",
+        "target": "barnacles",
+        "target_type": "",
+        "type": "obsessed_with",
+        "description": "Charles Darwin was obsessed with the study of barnacles.",
+        "strength": 0.1,
+        "chunk_ids": [
+          "doc2-chunk2"
+        ],
+        "id": "6bfc2c89-2a40-40b6-9772-c5cee65d7469"
+      }
+    ],
+    "communities": [
+      {
+        "id": 0,
+        "topics": [
+          "Charles Darwin",
+          "Biologist"
+        ],
+        "description": "A renowned naturalist and biologist who proposed the theory of evolution.",
+        "members": [
+          "Charles Darwin::Person"
+        ]
+      },
+      {
+        "id": 1,
+        "topics": [
+          "Theory of Evolution"
+        ],
+        "description": "A scientific explanation for the process of natural selection.",
+        "members": [
+          "theory of evolution::Concept"
+        ]
+      },
+      {
+        "id": 2,
+        "topics": [
+          "Barnacles"
+        ],
+        "description": "Darwin's area of study in marine crustaceans.",
+        "members": [
+          "barnacles::Concept"
+        ]
+      },
+      {
+        "id": 3,
+        "topics": [
+          "Charles Darwin",
+          "Barnacles",
+          "Theory of Evolution"
+        ],
+        "description": "Interconnected topics related to Charles Darwin, his studies on barnacles, and the theory of evolution.",
+        "members": [
+          "Charles Darwin",
+          "barnacles",
+          "theory of evolution"
+        ]
+      }
+    ]
+  },
+  "id": "d0fe2928-f0ca-459b-92af-06f743f9b29f",
   "documents": [
     {
       "id": "doc1",
@@ -27,116 +137,6 @@
       "lived_in",
       "obsessed_with",
       "related_to"
-    ]
-  },
-  "graph": {
-    "entities": [
-      {
-        "name": "Charles Darwin",
-        "type": "Person",
-        "description": "Darwin spent the summer of 1825 as an apprentice doctor, helping his father treat impoverished people in Shropshire, before going to the well-regarded University of Edinburgh Medical School with his brother Erasmus in October 1825. Darwin found lectures dull and surgery distressing, so he neglected his studies.[24] He learned taxidermy in around 40 daily hour-long sessions from John Edmonstone, a Black Briton from Demerara in the South American rainforest, who had been taught there by Charles Waterton, and when brought to Scotland was freed from slavery Charles Robert Darwin was an English naturalist, geologist, and biologist, widely known for his contributions to evolutionary biology. His proposition that all species of life have descended from a common ancestor is now generally accepted and considered a fundamental scientific concept.",
-        "chunk_ids": [
-          "doc1-chunk1",
-          "doc2-chunk1"
-        ],
-        "id": "282de4a7-4e4a-4833-9a79-d10fa28baf90",
-        "community_id": 0
-      },
-      {
-        "name": "theory of evolution",
-        "type": "Concept",
-        "description": "A scientific theory explaining the process of natural selection.",
-        "chunk_ids": [
-          "doc1-chunk2"
-        ],
-        "id": "be2f042e-5351-45ae-bb58-539c424ab4d8",
-        "community_id": 1
-      },
-      {
-        "name": "barnacles",
-        "type": "Concept",
-        "description": "A group of marine crustaceans that Darwin studied obsessively.",
-        "chunk_ids": [
-          "doc2-chunk2"
-        ],
-        "id": "384825c1-d4dd-4eb9-b36f-ed3f1d8e7baa",
-        "community_id": 2
-      }
-    ],
-    "relations": [
-      {
-        "source": "Charles Darwin",
-        "source_type": "",
-        "target": "theory of evolution",
-        "target_type": "",
-        "type": "related_to",
-        "description": "Charles Darwin is related to the theory of evolution.",
-        "strength": 0.8,
-        "chunk_ids": [
-          "doc1-chunk2"
-        ],
-        "id": "887ed635-31dc-4f59-a5ca-a3e4b67d89f8"
-      },
-      {
-        "source": "Charles Darwin",
-        "source_type": "",
-        "target": "barnacles",
-        "target_type": "",
-        "type": "obsessed_with",
-        "description": "Charles Darwin was obsessed with the study of barnacles.",
-        "strength": 0.1,
-        "chunk_ids": [
-          "doc2-chunk2"
-        ],
-        "id": "4013a57c-a1d0-47b0-9aee-d9b52b98ff11"
-      }
-    ],
-    "communities": [
-      {
-        "id": 0,
-        "topics": [
-          "Charles Darwin's Early Life",
-          "Darwin's Education and Interests"
-        ],
-        "description": "This community focuses on Charles Darwin's early life, education, and interests that shaped his future work.",
-        "members": [
-          "Charles Darwin::Person"
-        ]
-      },
-      {
-        "id": 1,
-        "topics": [
-          "Theory of Evolution",
-          "Key Concepts in Evolutionary Biology"
-        ],
-        "description": "This community explores the theory of evolution and its significance in evolutionary biology.",
-        "members": [
-          "theory of evolution::Concept"
-        ]
-      },
-      {
-        "id": 2,
-        "topics": [
-          "Barnacles: Darwin's Obsession",
-          "Marine Life and Research"
-        ],
-        "description": "This community delves into Charles Darwin's fascination with barnacles and his research on marine life.",
-        "members": [
-          "barnacles::Concept"
-        ]
-      },
-      {
-        "id": 3,
-        "topics": [
-          "misc"
-        ],
-        "description": "",
-        "members": [
-          "Charles Darwin",
-          "barnacles",
-          "theory of evolution"
-        ]
-      }
     ]
   },
   "chunks": []

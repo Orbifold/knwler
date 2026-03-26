@@ -31,7 +31,7 @@ from knwler.config import (
     Config,
     console,
 )
-from knwler.models import ExtractionResult, Schema, Graph
+from knwler.models import ChunkGraph, Schema, Graph
 
 from knwler.language import (
     DEFAULT_LANGUAGE,
@@ -43,10 +43,10 @@ from knwler.language import (
 from knwler.cache import CACHE_DIR
 from knwler.chunking import chunk_text
 from knwler.clustering import cluster_graph, create_network
-from knwler.consolidation import consolidate_extracted_graphs
+from knwler.consolidation import consolidate_chunk_graphs
 from knwler.discovery import detect_language, discover_schema
 from knwler.export import export_html
-from knwler.extraction import extract_all
+from knwler.extraction import extract_chunks
 from knwler.extras import extract_summary, extract_title, rephrase_chunks
 from knwler.stats import compute_community_stats, compute_stats, print_stats
 from knwler.cli_extract import extract_app

@@ -14,6 +14,7 @@
 - breaking: `chunk_text` returns a `Chunk` and not a string anymore
 - fix: potential infinite loop in chunking
 - fix: chunk references in `extract` api
+- refactoring: various data classes make method more strict
 
 ## v1.0.4
 

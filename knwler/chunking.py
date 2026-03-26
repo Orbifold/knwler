@@ -28,6 +28,9 @@ def get_encoder() -> tiktoken.Encoding:
 # ---------------------------------------------------------------------------
 def chunk_text(text: str, config: Config) -> list[Chunk]:
     """Split text into overlapping chunks by token count."""
+    if not text or text.isspace():
+        return []
+
     enc = get_encoder()
     tokens = enc.encode(text)
 
@@ -54,6 +57,7 @@ def chunk_text(text: str, config: Config) -> list[Chunk]:
         )
         if end >= len(tokens):
             break
-        start = end - config.overlap_tokens
+        new_start = end - config.overlap_tokens
+        start = max(new_start, start + 1)
 
     return chunks

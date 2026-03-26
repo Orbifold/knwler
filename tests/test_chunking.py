@@ -80,8 +80,11 @@ class TestChunkText:
         config = Config(max_tokens=100, overlap_tokens=10)
         text = ""
         chunks = chunk_text(text, config)
-        assert len(chunks) == 1
-        assert chunks[0].text == ""
+        assert chunks == []
+        assert chunk_text("   ", config) == []
+        assert chunk_text("\n\n", config) == []
+        assert chunk_text("\t\t", config) == []
+        assert chunk_text(None, config) == []
 
     def test_chunk_text_preserves_content(self):
         """Test that chunking preserves the original text."""

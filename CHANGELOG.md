@@ -12,6 +12,7 @@
 - feature: `--no-print` option, will only output json info. Useful for n8n integrations and similar tools.
 - feature: `knwler parse` command added
 - breaking: `chunk_text` returns a `Chunk` and not a string anymore
+- fix: potential infinite loop in chunking
 
 ## v1.0.4
 

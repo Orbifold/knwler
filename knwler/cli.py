@@ -346,11 +346,11 @@ def main():
         # 'knwler -f ...' → 'knwler extract extract -f ...'
         sys.argv.insert(1, "extract")
         sys.argv.insert(2, "extract")
-
-    try:
-        app()
-    except typer.Exit:
-        pass
-    except Exception as e:
-        console.print(Panel.fit(f"[red]Error:[/red] {str(e)}"))
-        sys.exit(1)
+    app()
+    # try:
+    #     app()
+    # except typer.Exit:
+    #     pass
+    # except Exception as e:
+    #     console.print(Panel.fit(f"[red]Error:[/red] {str(e)}"))
+    #     sys.exit(1)

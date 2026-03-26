@@ -43,14 +43,14 @@ if __name__ == "__main__":
         sys.argv.insert(2, "extract")
 
     # replace the try-except below with a direct call to app() to get the default typer error handling behavior, which includes printing the help message when no subcommand is given.
-    # app()
+    app()
 
-    try:
-        app()
-    except typer.Exit:
-        # Prevent typer from printing "Error: No command specified." when no subcommand is given,
-        # since we route that case to the default demo.
-        pass
-    except Exception as e:
-        console.print(Panel.fit(f"[red]Error:[/red] {str(e)}"))
-        sys.exit(1)
+    # try:
+    #     app()
+    # except typer.Exit:
+    #     # Prevent typer from printing "Error: No command specified." when no subcommand is given,
+    #     # since we route that case to the default demo.
+    #     pass
+    # except Exception as e:
+    #     console.print(Panel.fit(f"[red]Error:[/red] {str(e)}"))
+    #     sys.exit(1)

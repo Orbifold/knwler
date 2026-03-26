@@ -77,7 +77,7 @@ async def cluster_graph(
     analyzing_msg = (
         get_console_msg("analyzing_communities") or "Analyzing communities..."
     )
-    if isinstance(graph, Graph):
+    if not isinstance(graph, dict):
         graph = asdict(graph)
     with _console.status(f"[cyan]{analyzing_msg}"):
         g = nx.Graph()

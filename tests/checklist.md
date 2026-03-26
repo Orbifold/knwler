@@ -62,14 +62,14 @@ So many new features added in v1.0.0 so here is a comprehensive checklist (for m
 - [x] OpenRouter
 - [ ] rename community to cluster
 - [x] check localization file again
-- [ ] Jupyter notebooks
-- [ ] Spanish, Italian, Chinese examples
+- [x] Jupyter notebooks
+- [x] Spanish, Italian, Chinese examples
 
 ## Commands
 
 - [x] knwler --version
 - [x] knwler info version
-- [x] uv run main.py demo
+- [x] knwler demo
 - [x] knwler demo --backend gemini
 - [x] knwler fetch url https://knwler.com/pdfs/HumanRights.pdf
 - [x] knwler fetch wiki quantum
@@ -85,8 +85,8 @@ So many new features added in v1.0.0 so here is a comprehensive checklist (for m
 - [x] uv run main.py graph analyze /Users/swa/Desktop/AI/knwler-website/examples/burgerlijk/BurgerlijkAll.json --output /Users/swa/Desktop/AI/knwler-website/examples/CivilAnalytics --open
 - [x] uv run main.py -f /Users/swa/Desktop/AI/knwler-website/pdfs/Deloitte.pdf --output /Users/swa/Desktop/AI/knwler-website/examples/Deloitte --url https://www.deloitte.com/de/de/legal/publikationen.html --backend gemini
 - [x] uv run main.py -f /Users/swa/Desktop/AI/knwler-website/pdfs/NIST.pdf --output /Users/swa/Desktop/AI/knwler-website/examples/NIST --url https://nvlpubs.nist.gov/nistpubs/ai/nist.ai.100-1.pdf --backend gemini --template columns
-- [x] uv run main.py graph analyze /Users/swa/Desktop/AI/knwler-website/examples/EUAI_anthropic/default/graph.json --output /Users/swa/Desktop/AI/knwler-website/examples/HumanRightsAnalytics --open
-- [x] parse file /Users/swa/Desktop/AI/PdfKnowledgeBase/metagpt.pdf --output ~/temp/test.md
+- [x] knwler graph analyze /Users/swa/Desktop/AI/knwler-website/examples/EUAI_anthropic/default/graph.json --output /Users/swa/Desktop/AI/knwler-website/examples/HumanRightsAnalytics --open
+- [x] knwler parse file /Users/swa/Desktop/AI/PdfKnowledgeBase/metagpt.pdf --output ~/temp/test.md
 
 ## Ideas
 

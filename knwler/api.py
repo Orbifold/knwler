@@ -101,7 +101,7 @@ async def extract(
     source: Path | str | list[str] | list[Chunk] | Chunk,
     schema: Schema | None = None,
     config: Config | None = Config(),
-) -> ChunkGraph:
+) -> DocumentGraph:
     """
     Unified extraction entry point.
 

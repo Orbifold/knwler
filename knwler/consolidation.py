@@ -163,7 +163,7 @@ async def consolidate_extracted_graphs(
                 entity_map[key]["chunk_ids"].update(e.get("chunk_ids", set()))
             else:
                 if isinstance(r, ExtractionResult):
-                    entity_map[key]["chunk_ids"].add(r.id)
+                    entity_map[key]["chunk_ids"].add(r.chunk.id)
             if desc and desc not in entity_map[key]["descriptions"]:
                 entity_map[key]["descriptions"].append(desc)
 
@@ -207,7 +207,7 @@ async def consolidate_extracted_graphs(
                 relation_map[key]["chunk_ids"].update(rel.get("chunk_ids", set()))
             else:
                 if isinstance(r, ExtractionResult):
-                    relation_map[key]["chunk_ids"].add(r.id)
+                    relation_map[key]["chunk_ids"].add(r.chunk.id)
             relation_map[key]["strengths"].append(strength)
             if desc and desc not in relation_map[key]["descriptions"]:
                 relation_map[key]["descriptions"].append(desc)

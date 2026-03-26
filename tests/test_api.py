@@ -61,3 +61,4 @@ async def test_cat():
     assert (
         r.graph.relations[0]["strength"] > 0.5
     )  # strength should be reasonably high for such a simple sentence
+    print(json.dumps(asdict(r), indent=2))

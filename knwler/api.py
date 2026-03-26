@@ -93,7 +93,7 @@ def is_document_url(url: str) -> bool:
 
 
 async def extract(
-    source: Path | str | list[str],
+    source: Path | str | list[str] | list[Chunk],
     schema: Schema | None = None,
     config: Config | None = Config(),
 ) -> ExtractionResult:
@@ -111,17 +111,18 @@ async def extract(
             text, _ = await parse_file(source)
         else:
             text = source.read_text(encoding="utf-8")
-        chunk_objs = chunk_text(text, config)
-        chunks = [c.text for c in chunk_objs]
+        chunks = chunk_text(text, config)
     elif isinstance(source, str):
-        chunk_objs = chunk_text(source, config)
-        chunks = [c.text for c in chunk_objs]
+        chunks = chunk_text(source, config)
     elif isinstance(source, list):
-        chunks = source
+        if all(isinstance(item, str) for item in source):
+            chunks = [Chunk(chunk_idx=i, text=item) for i, item in enumerate(source)]
+        elif all(isinstance(item, Chunk) for item in source):
+            chunks = source
     else:
         raise TypeError(f"Unsupported source type: {type(source)}")
 
-    schema_text = " ".join(chunks)
+    schema_text = " ".join([chunk.text for chunk in chunks])
     if schema is None:
         schema = await discover_schema(schema_text, config)
 

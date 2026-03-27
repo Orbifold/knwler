@@ -1,5 +1,5 @@
 """
-Community detection and labeling.
+Cluster detection and labeling.
 """
 
 import networkx as nx
@@ -40,12 +40,15 @@ def create_network(
     )
     for e in consolidated["entities"]:
         node_id = f"{e['name']}::{e['type']}" if e.get("type") else e["name"]
+        if not node_id:
+            console.print(f"[red]Skipping entity with missing name: {e}[/]")
+            continue
         g.add_node(
             node_id,
             name=e["name"],
             type=e["type"],
             description=e["description"],
-            community_id=e.get("community_id"),
+            cluster_id=e.get("cluster_id"),
             document=doc_hash,
         )
     for r in consolidated["relations"]:
@@ -59,23 +62,29 @@ def create_network(
             if r.get("target_type")
             else r["target"]
         )
+        if not src_id or not tgt_id:
+            console.print(
+                f"[red]Skipping relation with missing source or target: {r}[/]"
+            )
+            continue
+
         g.add_edge(src_id, tgt_id, type=r["type"], description=r["description"])
     return g
 
 
 # ---------------------------------------------------------------------------
-# Community analysis
+# Cluster analysis
 # ---------------------------------------------------------------------------
 async def cluster_graph(
     graph: dict | Graph, config: Config = Config(), _console=None
 ) -> ClusteredGraph:
-    """Detect communities and label them with topics and descriptions."""
+    """Detect clusters and label them with topics and descriptions."""
     if _console is None:
         _console = console
     if not graph:
         raise ValueError("No graph provided for clustering analysis.")
     analyzing_msg = (
-        get_console_msg("analyzing_communities") or "Analyzing communities..."
+        get_console_msg("analyzing_clusters") or "Analyzing clusters..."
     )
     if not isinstance(graph, dict):
         graph = asdict(graph)
@@ -99,7 +108,7 @@ async def cluster_graph(
             g.add_edge(src_id, tgt_id, weight=weight)
 
         if g.number_of_nodes() == 0:
-            graph["communities"] = []
+            graph["clusters"] = []
             return ClusteredGraph(**graph)
 
         clusters = louvain_communities(g, weight="weight", seed=0)
@@ -109,7 +118,7 @@ async def cluster_graph(
             node_id = f"{e['name']}::{e['type']}" if e.get("type") else e["name"]
             entity_map[node_id] = e
 
-        community_payload: list[dict] = []
+        cluster_payload: list[dict] = []
         for cid, members in enumerate(clusters):
             member_objs = [
                 {
@@ -119,17 +128,17 @@ async def cluster_graph(
                 }
                 for node_id in sorted(members)
             ]
-            community_payload.append({"id": str(cid), "members": member_objs})
+            cluster_payload.append({"id": str(cid), "members": member_objs})
 
         labels: dict = {}
-        if community_payload:
-            prompt = _build_community_prompt(community_payload)
+        if cluster_payload:
+            prompt = _build_cluster_prompt(cluster_payload)
             response = await llm_generate(prompt, config, model=config.extraction_model)
             parsed = parse_json_response(response)
-            labels = parsed.get("communities", {})
+            labels = parsed.get("clusters", {})
 
         if not labels:
-            labels = _fallback_community_labels(community_payload)
+            labels = _fallback_cluster_labels(cluster_payload)
 
         clusters_out: list[dict] = []
         for cid, members in enumerate(clusters):
@@ -158,27 +167,27 @@ async def cluster_graph(
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
-def _build_community_prompt(communities: list[dict]) -> str:
-    """Build prompt for community labeling."""
+def _build_cluster_prompt(clusters: list[dict]) -> str:
+    """Build prompt for cluster labeling."""
     lines = []
-    for c in communities:
+    for c in clusters:
         members = ", ".join(
             f'{{"name": "{m["name"]}", "type": "{m["type"]}", "description": "{m["description"]}"}}'
             for m in c["members"]
         )
         lines.append(f'- "{c["id"]}": [{members}]')
-    communities_text = chr(10).join(lines)
+    clusters_text = chr(10).join(lines)
 
-    prompt = get_prompt("community_labeling", communities_text=communities_text)
+    prompt = get_prompt("cluster_labeling", clusters_text=clusters_text)
 
     if not prompt:
         prompt = (
-            "You are labeling graph communities. For each community, return "
+            "You are labeling graph clusters. For each cluster, return "
             "1-3 short topics and a 1-2 sentence description.\n\n"
-            f"COMMUNITIES:\n{communities_text}\n\n"
+            f"CLUSTERS:\n{clusters_text}\n\n"
             "Return JSON:\n"
             "{\n"
-            '  "communities": {\n'
+            '  "clusters": {\n'
             '    "<id>": {"topics": ["topic1", "topic2"], "description": "..."},\n'
             "    ...\n"
             "  }\n"
@@ -187,10 +196,10 @@ def _build_community_prompt(communities: list[dict]) -> str:
     return prompt
 
 
-def _fallback_community_labels(communities: list[dict]) -> dict:
+def _fallback_cluster_labels(clusters: list[dict]) -> dict:
     """Fallback labels using most common entity types."""
     labels: dict = {}
-    for c in communities:
+    for c in clusters:
         type_counts: dict[str, int] = {}
         for m in c["members"]:
             etype = (m.get("type") or "").strip().lower()

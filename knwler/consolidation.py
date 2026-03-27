@@ -39,7 +39,7 @@ async def consolidate_document_graphs(
     This reuses the same consolidation logic as the one to merge chunk graphs into a document graph, but at a higher level to merge multiple document graphs into a single consolidated graph.
 
     The clustering flag is False by default since it's assumed that the merge of a a large amount of graphs is towards a database ingestion where clustering is more scalable.
-    The clustering is also a reuse of the same community detection and labeling logic as in the community analysis step, but applied at the consolidation level to group similar entities together across documents.
+    The clustering is also a reuse of the same cluster detection and labeling logic as in the cluster analysis step, but applied at the consolidation level to group similar entities together across documents.
 
     The chunks can be consolidated as well but typically one would move the chunks into a vector database.
     """

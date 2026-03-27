@@ -22,7 +22,7 @@ Key modules in `knwler/`:
 | `extraction.py` | `extract_graph()` → `extract_chunk()` → `extract_all()` with async batching |
 | `discovery.py` | `detect_language()` and `discover_schema()` for adaptive prompting |
 | `consolidation.py` | Merges per-chunk results, deduplicates entities/relations |
-| `clustering.py` | Community detection via Louvain, `create_network()` using NetworkX |
+| `clustering.py` | Cluster detection via Louvain, `create_network()` using NetworkX |
 | `chunking.py` | Token-aware overlapping text chunking |
 | `language.py` | Localized prompts from `languages.json`, supports EN/DE/FR/ES/NL/IT/PT/ZH |
 | `cache.py` | JSON-based caching in `~/.knwler/cache/` by type (llm, webpage, wikipedia, document) |

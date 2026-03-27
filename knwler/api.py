@@ -197,7 +197,7 @@ async def cluster_graph(
     graph: Graph, config: Config | None = Config()
 ) -> ClusteredGraph:
     """
-    Analyze the communities in the graph and return statistics about them.
+    Analyze the clusters in the graph and return statistics about them.
     This can be used to identify clusters of related entities and relations in the graph, which can be useful for understanding the structure of the knowledge and for downstream applications like question answering or recommendation.
     """
     clustered_graph = await clustering(graph, config)

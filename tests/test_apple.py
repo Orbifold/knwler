@@ -108,7 +108,7 @@ async def test_disambiguation():
         }
         for r in extraction_results
     ]
-    g["communities"] = [
+    g["clusters"] = [
         {
             "id": 0,
             "topics": [

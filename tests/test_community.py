@@ -38,15 +38,15 @@ def test_create_network_with_entities_and_relations():
     assert g.has_edge("Alice::person", "Bob::person")
 
 
-def test_create_network_with_community_id():
-    """Test that community_id is preserved when present."""
+def test_create_network_with_cluster_id():
+    """Test that cluster_id is preserved when present."""
     consolidated = {
         "entities": [
             {
                 "name": "Entity1",
                 "type": "type1",
                 "description": "desc1",
-                "community_id": 0,
+                "cluster_id": 0,
             },
         ],
         "relations": [],
@@ -54,11 +54,11 @@ def test_create_network_with_community_id():
 
     g = create_network(consolidated)
 
-    assert g.nodes["Entity1::type1"]["community_id"] == 0
+    assert g.nodes["Entity1::type1"]["cluster_id"] == 0
 
 
-def test_create_network_without_community_id():
-    """Test that community_id defaults to None when not present."""
+def test_create_network_without_cluster_id():
+    """Test that cluster_id defaults to None when not present."""
     consolidated = {
         "entities": [
             {"name": "Entity1", "type": "type1", "description": "desc1"},
@@ -68,7 +68,7 @@ def test_create_network_without_community_id():
 
     g = create_network(consolidated)
 
-    assert g.nodes["Entity1::type1"]["community_id"] is None
+    assert g.nodes["Entity1::type1"]["cluster_id"] is None
 
 
 def test_create_network_empty():

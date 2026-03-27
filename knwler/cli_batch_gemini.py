@@ -27,7 +27,7 @@ Usage:
 Pipeline Rounds:
     Round 1 (Discovery):    Language detection + Schema discovery
     Round 2 (Processing):   Title + Summary + Rephrase + Graph extraction
-    Round 3 (Finalization): Consolidation summarization + Community labeling
+    Round 3 (Finalization): Consolidation summarization + Cluster labeling
 
 Requirements:
     GEMINI_API_KEY or GOOGLE_API_KEY environment variable must be set.
@@ -122,7 +122,7 @@ class Database:
                 agg_entities_json    TEXT,
                 agg_relations_json   TEXT,
                 summaries_json       TEXT,
-                communities_json     TEXT,
+                clusters_json        TEXT,
                 graph_output_json    TEXT
             );
 
@@ -429,24 +429,24 @@ def _prompt_summarize(items: list[dict]) -> str:
     return prompt
 
 
-def _prompt_community(communities: list[dict]) -> str:
+def _prompt_cluster(clusters: list[dict]) -> str:
     lines = []
-    for c in communities:
+    for c in clusters:
         members = ", ".join(
             f'{{"name": "{m["name"]}", "type": "{m["type"]}", '
             f'"description": "{m["description"]}"}}'
             for m in c["members"]
         )
         lines.append(f'- "{c["id"]}": [{members}]')
-    communities_text = "\n".join(lines)
-    prompt = get_prompt("community_labeling", communities_text=communities_text)
+    clusters_text = "\n".join(lines)
+    prompt = get_prompt("cluster_labeling", clusters_text=clusters_text)
     if not prompt:
         prompt = (
-            "You are labeling graph communities. For each community, return "
+            "You are labeling graph clusters. For each cluster, return "
             "1-3 short topics and a 1-2 sentence description.\n\n"
-            f"COMMUNITIES:\n{communities_text}\n\n"
+            f"CLUSTERS:\n{clusters_text}\n\n"
             "Return JSON:\n{\n"
-            '  "communities": {\n'
+            '  "clusters": {\n'
             '    "<id>": {"topics": ["topic1", "topic2"], "description": "..."},\n'
             "    ...\n  }\n}"
         )
@@ -649,8 +649,8 @@ def _build_graph(entity_map: dict, relation_map: dict) -> dict:
     return {"entities": entities, "relations": relations}
 
 
-def _detect_communities(consolidated: dict) -> tuple[list[set], list[dict]]:
-    """Run Louvain and build the community payload for the labeling prompt."""
+def _detect_clusters(consolidated: dict) -> tuple[list[set], list[dict]]:
+    """Run Louvain and build the cluster payload for the labeling prompt."""
     g = nx.Graph()
     entity_idx = {}
     for e in consolidated.get("entities", []):
@@ -688,8 +688,8 @@ def _detect_communities(consolidated: dict) -> tuple[list[set], list[dict]]:
     return clusters, payload
 
 
-def _apply_communities(consolidated: dict, clusters: list[set], labels: dict) -> dict:
-    """Attach community info to the consolidated graph."""
+def _apply_clusters(consolidated: dict, clusters: list[set], labels: dict) -> dict:
+    """Attach cluster info to the consolidated graph."""
     entity_idx = {}
     for e in consolidated.get("entities", []):
         nid = f"{e['name']}::{e['type']}" if e.get("type") else e["name"]
@@ -709,10 +709,10 @@ def _apply_communities(consolidated: dict, clusters: list[set], labels: dict) ->
             ]
             labels[str(cid)] = {"topics": topics or ["misc"], "description": ""}
 
-    communities_out = []
+    clusters_out = []
     for cid, members in enumerate(clusters):
         label = labels.get(str(cid), {"topics": ["misc"], "description": ""})
-        communities_out.append(
+        clusters_out.append(
             {
                 "id": cid,
                 "topics": label.get("topics", ["misc"]),
@@ -722,9 +722,9 @@ def _apply_communities(consolidated: dict, clusters: list[set], labels: dict) ->
         )
         for nid in members:
             if nid in entity_idx:
-                entity_idx[nid]["community_id"] = cid
+                entity_idx[nid]["cluster_id"] = cid
 
-    consolidated["communities"] = communities_out
+    consolidated["clusters"] = clusters_out
     return consolidated
 
 
@@ -1023,10 +1023,10 @@ class GeminiBatchProcessor:
                 f"entities={te}  relations={tr_}"
             )
 
-    # ── Phase 3: consolidation + communities ─────────────────────────────
+    # ── Phase 3: consolidation + clusters ─────────────────────────────
 
     def round3(self):
-        """Round 3 — summarisation + community labeling."""
+        """Round 3 — summarisation + cluster labeling."""
         rnd = "round3_consolidation"
 
         if self._is_round_complete(rnd):
@@ -1068,17 +1068,17 @@ class GeminiBatchProcessor:
                         )
                     )
 
-            # Community detection (local) + labeling request
+            # Cluster detection (local) + labeling request
             pre_graph = _build_graph(emap, rmap)
-            clusters, cpayload = _detect_communities(pre_graph)
+            clusters, cpayload = _detect_clusters(pre_graph)
             clusters_ser = [sorted(c) for c in clusters]
-            self.db.update_file(fid, communities_json=json.dumps(clusters_ser))
+            self.db.update_file(fid, clusters_json=json.dumps(clusters_ser))
 
             if cpayload:
                 reqs.append(
                     _gemini_request(
-                        f"{fid}|community",
-                        _prompt_community(cpayload),
+                        f"{fid}|cluster",
+                        _prompt_cluster(cpayload),
                     )
                 )
 
@@ -1136,21 +1136,21 @@ class GeminiBatchProcessor:
             # Build final consolidated graph
             consolidated = _build_graph(emap, rmap)
 
-            # Apply community labels
-            clusters_data = json.loads(f.get("communities_json") or "[]")
+            # Apply cluster labels
+            clusters_data = json.loads(f.get("clusters_json") or "[]")
             clusters = [set(c) for c in clusters_data]
 
-            comm_resp = responses.get(f"{fid}|community")
+            comm_resp = responses.get(f"{fid}|cluster")
             comm_labels = (
-                parse_json_response(comm_resp).get("communities", {})
+                parse_json_response(comm_resp).get("clusters", {})
                 if comm_resp
                 else {}
             )
 
             if clusters:
-                consolidated = _apply_communities(consolidated, clusters, comm_labels)
+                consolidated = _apply_clusters(consolidated, clusters, comm_labels)
             else:
-                consolidated["communities"] = []
+                consolidated["clusters"] = []
 
             # Assemble output (same schema as knwler's graph.json)
             doc_id = str(uuid4())
@@ -1436,15 +1436,15 @@ class GeminiBatchProcessor:
                 )
 
         pre_graph = _build_graph(emap, rmap)
-        clusters, cpayload = _detect_communities(pre_graph)
+        clusters, cpayload = _detect_clusters(pre_graph)
         (self.batches_dir / "cross_clusters.json").write_text(
             json.dumps([sorted(c) for c in clusters]), encoding="utf-8"
         )
         if cpayload:
             reqs.append(
                 _gemini_request(
-                    "cross|community",
-                    _prompt_community(cpayload),
+                    "cross|cluster",
+                    _prompt_cluster(cpayload),
                 )
             )
 
@@ -1488,12 +1488,12 @@ class GeminiBatchProcessor:
             (self.batches_dir / "cross_clusters.json").read_text()
         )
         clusters = [set(c) for c in clusters_data]
-        comm_resp = responses.get("cross|community")
-        comm_labels = (
-            parse_json_response(comm_resp).get("communities", {}) if comm_resp else {}
+        cluster_resp = responses.get("cross|cluster")
+        cluster_labels = (
+            parse_json_response(cluster_resp).get("clusters", {}) if cluster_resp else {}
         )
 
-        self._write_consolidated(graphs, emap, rmap, clusters, comm_labels)
+        self._write_consolidated(graphs, emap, rmap, clusters, cluster_labels)
 
     def _write_consolidated(
         self,
@@ -1501,7 +1501,7 @@ class GeminiBatchProcessor:
         emap: dict,
         rmap: dict,
         clusters: list[set],
-        comm_labels: dict,
+        cluster_labels: dict,
     ) -> None:
         """Build and write consolidated_graph.json (+ HTML report)."""
         consolidated = (
@@ -1509,9 +1509,9 @@ class GeminiBatchProcessor:
         )
 
         if clusters:
-            consolidated = _apply_communities(consolidated, clusters, comm_labels)
-        elif "communities" not in consolidated:
-            consolidated["communities"] = []
+            consolidated = _apply_clusters(consolidated, clusters, cluster_labels)
+        elif "clusters" not in consolidated:
+            consolidated["clusters"] = []
 
         documents = [
             {
@@ -1632,7 +1632,7 @@ class GeminiBatchProcessor:
 
         console.print()
         console.rule(
-            "[bold cyan]Phase 3 · Per-file Consolidation & Communities[/bold cyan]"
+            "[bold cyan]Phase 3 · Per-file Consolidation & Clusters[/bold cyan]"
         )
         self.round3()
 

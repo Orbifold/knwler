@@ -24,7 +24,7 @@ from knwler.consolidation import (
 )
 from knwler.clustering import cluster_graph, create_network
 from knwler.export import export_html
-from knwler.stats import compute_stats, compute_community_stats, print_stats
+from knwler.stats import compute_stats, compute_cluster_stats, print_stats
 from knwler.extras import rephrase_chunks, extract_title, extract_summary
 from knwler.cli import app
 
@@ -59,14 +59,14 @@ __all__ = [
     # Consolidation
     "consolidate_extracted_graphs",
     "consolidate_graphs",
-    # Community
-    "analyze_communities",
+    # Cluster
+    "analyze_clusters",
     "create_network",
     # Export
     "export_html",
     # Stats
     "compute_stats",
-    "compute_community_stats",
+    "compute_cluster_stats",
     "print_stats",
     # Extras
     "rephrase_chunks",

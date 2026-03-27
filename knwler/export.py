@@ -90,12 +90,13 @@ def export_html(
     graph = kg.get("graph", {})
     entities = graph.get("entities", [])
     relations = graph.get("relations", [])
-    communities = graph.get("communities", [])
+    clusters = graph.get("clusters", [])
 
     entity_names = {e["name"] for e in entities}
     chunk_mapping = {
         c["id"]: c["chunk_idx"] for c in chunks if "id" in c and "chunk_idx" in c
     }
+    print(chunk_mapping)
     # Build relation lookup: entity -> list of (other, type, description, direction)
     rel_map: dict[Tuple[str, str], list[dict]] = {}
     for r in relations:
@@ -117,7 +118,7 @@ def export_html(
             "type": e.get("type", ""),
             "description": e.get("description", ""),
             "chunk_ids": e.get("chunk_ids", []),
-            "community_id": e.get("community_id"),
+            "cluster_id": e.get("cluster_id"),
         }
         for e in entities
     ]
@@ -135,9 +136,9 @@ def export_html(
         if r.get("source", "") in entity_names and r.get("target", "") in entity_names
     ]
 
-    # Prepare communities display data
-    clusters = []
-    for c in communities:
+    # Prepare clusters display data
+    clusters_display = []
+    for c in clusters:
         topics = c.get("topics", [])
         members = c.get("members", [])
         member_links = ", ".join(
@@ -145,7 +146,7 @@ def export_html(
             f"{html_mod.escape(m)}</a>"
             for m in sorted(members)
         )
-        clusters.append(
+        clusters_display.append(
             {
                 "topics": topics,
                 "description": c.get("description", ""),
@@ -205,7 +206,7 @@ def export_html(
         chunk_links = " \u2022 ".join(
             f'<a href="#chunk-{cid}-rephrase">{chunk_label} {chunk_mapping.get(cid)+1}</a>'  # index is 0-based, so add 1 for display
             for cid in chunk_ids
-            if cid is not None
+            if cid is not None and cid in chunk_mapping
         )
 
         entities_display.append(
@@ -225,11 +226,11 @@ def export_html(
         "metadata",
         entities=len(entities),
         relations=len(relations),
-        communities=len(communities),
+        clusters=len(clusters_display),
         date=date_info,
     ) or (
         f"Extracted {len(entities)} entities, {len(relations)} relations "
-        f"and {len(communities)} topics on {date_info}"
+        f"and {len(clusters_display)} clusters on {date_info}"
     )
 
     labels = {
@@ -250,7 +251,7 @@ def export_html(
     js_labels = {
         "type": get_ui("type_label") or "Type",
         "description": get_ui("description_label") or "Description",
-        "community": get_ui("community_label") or "Community",
+        "cluster": get_ui("cluster_label") or "Cluster",
         "chunks": get_ui("chunks_label") or "Chunks",
         "chunk": get_ui("chunk_label") or "Chunk",
         "showOriginal": get_ui("show_original") or "Show original text",

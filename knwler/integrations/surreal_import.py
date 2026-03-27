@@ -298,7 +298,7 @@ def import_file(db, path: Path) -> dict:
     entities = graph.get("entities", [])
     relations = graph.get("relations", [])
     chunks = doc.get("chunks", [])
-    clusters = graph.get("communities", [])
+    clusters = graph.get("clusters", [])
 
     if doc.get("documents") is not None:
         # Consolidated format: multiple documents listed explicitly

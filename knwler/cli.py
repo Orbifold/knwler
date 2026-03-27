@@ -48,7 +48,7 @@ from knwler.discovery import detect_language, discover_schema
 from knwler.export import export_html
 from knwler.extraction import extract_chunks
 from knwler.extras import extract_summary, extract_title, rephrase_chunks
-from knwler.stats import compute_community_stats, compute_stats, print_stats
+from knwler.stats import compute_cluster_stats, compute_stats, print_stats
 from knwler.cli_extract import extract_app
 from knwler.cli_info import info_app, show_version
 from knwler.cli_consolidate import cli_consolidate_graphs

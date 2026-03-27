@@ -161,9 +161,10 @@ async def extract_chunks(
                             _save_partial_results(
                                 output_path, schema, results, len(results), total
                             )
-                        progress.update(task, advance=1)
                     except Exception as e:
                         _console.print(f"[red]Error saving partial results:[/red] {e}")
+                    progress.update(task, advance=1)
+
                 return result
 
         await asyncio.gather(*[bounded(c, i) for i, c in enumerate(chunks)])

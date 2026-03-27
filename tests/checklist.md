@@ -12,7 +12,7 @@ So many new features added in v1.0.0 so here is a comprehensive checklist (for m
 ## Chore and PR
 
 - [x] version set
-- [ ] Pypi deployment
+- [x] Pypi deployment
 - [x] Screenshots
 - [x] LinkedIn
 - [x] license
@@ -60,7 +60,7 @@ So many new features added in v1.0.0 so here is a comprehensive checklist (for m
 - [x] Linux
 - [x] LMStudio
 - [x] OpenRouter
-- [ ] rename community to cluster
+- [x] rename community to cluster
 - [x] check localization file again
 - [x] Jupyter notebooks
 - [x] Spanish, Italian, Chinese examples
@@ -80,20 +80,21 @@ So many new features added in v1.0.0 so here is a comprehensive checklist (for m
 - [x] knwler fetch url https://knwler.com/pdfs/HumanRights.pdf --output ~/temp/knwler/ --parse
 - [x] knwler extract -f https://knwler.com/pdfs/mbti.pdf --output ~/temp/knwler/ -m qwen2.5:7b
 - [x] knwler -f https://knwler.com --backend gemini --output ~/temp/knwler
-- [x] uv run main.py batch run --input /Users/swa/temp/pdfs --output ~/temp/batching
-- [x] uv run main.py batch run --input /Users/swa/temp/pdfs --output ~/temp/batching --backend gemini
-- [x] uv run main.py graph analyze /Users/swa/Desktop/AI/knwler-website/examples/burgerlijk/BurgerlijkAll.json --output /Users/swa/Desktop/AI/knwler-website/examples/CivilAnalytics --open
-- [x] uv run main.py -f /Users/swa/Desktop/AI/knwler-website/pdfs/Deloitte.pdf --output /Users/swa/Desktop/AI/knwler-website/examples/Deloitte --url https://www.deloitte.com/de/de/legal/publikationen.html --backend gemini
-- [x] uv run main.py -f /Users/swa/Desktop/AI/knwler-website/pdfs/NIST.pdf --output /Users/swa/Desktop/AI/knwler-website/examples/NIST --url https://nvlpubs.nist.gov/nistpubs/ai/nist.ai.100-1.pdf --backend gemini --template columns
-- [x] knwler graph analyze /Users/swa/Desktop/AI/knwler-website/examples/EUAI_anthropic/default/graph.json --output /Users/swa/Desktop/AI/knwler-website/examples/HumanRightsAnalytics --open
-- [x] knwler parse file /Users/swa/Desktop/AI/PdfKnowledgeBase/metagpt.pdf --output ~/temp/test.md
+- [x] knwler batch run --input ~/temp/pdfs --output ~/temp/batching
+- [x] knwler batch run --input ~/temp/pdfs --output ~/temp/batching --backend gemini
+- [x] knwler graph analyze ~/Desktop/AI/knwler-collect/examples/burgerlijk/BurgerlijkAll.json --output ~/Desktop/AI/knwler-website/examples/CivilAnalytics --open
+- [x] knwler -f ~/Desktop/AI/knwler-collect/examples/Deloitte/Deloitte.pdf --output ~/Desktop/AI/knwler-website/examples/Deloitte --url https://www.deloitte.com/de/de/legal/publikationen.html --backend gemini
+- [x] knwler -f ~/Desktop/AI/knwler-website/pdfs/NIST.pdf --output ~/Desktop/AI/knwler-website/examples/NIST --url https://nvlpubs.nist.gov/nistpubs/ai/nist.ai.100-1.pdf --backend gemini --template columns
+- [x] knwler graph analyze ~/Desktop/AI/knwler-website/examples/EUAI_anthropic/default/graph.json --output ~/Desktop/AI/knwler-website/examples/HumanRightsAnalytics --open
+- [x] knwler parse file ~/Desktop/AI/PdfKnowledgeBase/metagpt.pdf --output ~/temp/test.md
 
 ## Ideas
 
-- SHACL
-- kuzu/ladybug
-- contradictions
-- n8n
-- FastAPI
-- no console prints option
-- https://github.com/Pro-GenAI/Index-RAG
+- [ ] SHACL
+- [ ] kuzu/ladybug
+- [ ] contradictions
+- [ ] n8n
+- [ ] FastAPI
+- [ ] no console prints option
+- [ ] https://github.com/Pro-GenAI/Index-RAG
+- [ ] Ontocast https://growgraph.github.io/ontocast/

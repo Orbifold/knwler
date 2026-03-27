@@ -33,7 +33,7 @@ class AugmentedChunk(Chunk):
 
 @dataclass
 class ClusteredGraph(Graph):
-    """Graph with community/cluster information added."""
+    """Graph with cluster information added."""
 
     clusters: dict = field(default_factory=dict)
 

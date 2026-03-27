@@ -33,7 +33,7 @@ from knwler.language import (
 from knwler.export import export_html
 from knwler.extraction import extract_chunks
 from knwler.extras import extract_summary, extract_title, rephrase_chunks
-from knwler.stats import compute_community_stats, compute_stats, print_stats
+from knwler.stats import compute_cluster_stats, compute_stats, print_stats
 from knwler.config import (
     DEFAULT_OLLAMA_EXTRACTION_MODEL,
     DEFAULT_OLLAMA_DISCOVERY_MODEL,
@@ -122,11 +122,12 @@ async def _process_file(
         existing_data = json.loads(graph_json_path.read_text())
         consolidated_ents = existing_data.get("graph", {}).get("entities", [])
         consolidated_rels = existing_data.get("graph", {}).get("relations", [])
+        chunk = existing_data.get("chunk", {})
         existing_result = ChunkGraph(
             entities=consolidated_ents,
             relations=consolidated_rels,
             id=existing_data.get("id", str(uuid4())),
-            chunk_idx=-1,
+            chunk=chunk,
             chunk_time=0.0,
             chunk_tokens=0,
         )
@@ -256,19 +257,19 @@ async def _process_file(
         all_results, config, summarize=True, _console=_console
     )
 
-    # ── Community analysis ──
+    # ── Cluster analysis ──
     _console.print()
-    _console.rule("[bold cyan]Community Analysis[/bold cyan]")
-    community_t0 = time.perf_counter()
+    _console.rule("[bold cyan]Cluster Analysis[/bold cyan]")
+    cluster_t0 = time.perf_counter()
     consolidated = await cluster_graph(consolidated, config, _console=_console)
-    community_time = time.perf_counter() - community_t0
+    cluster_time = time.perf_counter() - cluster_t0
 
     # ── Stats ──
     stats = compute_stats(
         extraction_results, schema.discovery_time, wall_time, consolidation_time
     )
-    stats["community_detection_time"] = round(community_time, 2)
-    stats["communities"] = compute_community_stats(consolidated)
+    stats["cluster_detection_time"] = round(cluster_time, 2)
+    stats["clusters"] = compute_cluster_stats(consolidated)
     print_stats(stats, schema, consolidated, _console=_console)
 
     # ── Save results ──
@@ -319,11 +320,13 @@ async def _process_file(
     document_id = str(uuid4())  # hash_args(title, url)
     final_chunks = (existing_data.get("chunks", []) if existing_data else []) + [
         {
-            "id": r.id,
-            "chunk_idx": r.chunk_idx,
-            "text": chunks[r.chunk_idx],
+            "id": r.chunk.id,
+            "chunk_idx": r.chunk.chunk_idx,
+            "text": chunks[r.chunk.chunk_idx].text,
             "rephrase": (
-                rephrased[r.chunk_idx] if r.chunk_idx < len(rephrased) else ""
+                rephrased[r.chunk.chunk_idx].text
+                if r.chunk.chunk_idx < len(rephrased)
+                else ""
             ),
             "entities": r.entities,
             "relations": r.relations,
@@ -333,7 +336,7 @@ async def _process_file(
         }
         for r in extraction_results
     ]
-    # note that communities are not unique and can span multiple chunks, so we won't assign them to specific chunks
+    # note that clusters are not unique and can span multiple chunks, so we won't assign them to specific chunks
     output_data = {
         "id": document_id,
         "title": title,

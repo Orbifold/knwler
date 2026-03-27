@@ -59,6 +59,8 @@ from knwler.cli_benchmark import benchmark_app
 from knwler.cli_graph import graph_app
 from knwler.cli_batch import batch_app
 from knwler.cli_parse import parse_app
+from knwler.cli_render import render_command
+from knwler.cli_export import export_app
 
 app = typer.Typer(
     help="Turn documents into structured knowledge.",
@@ -311,6 +313,12 @@ app.add_typer(batch_app, name="batch", help="Run batch API pipeline (OpenAI / Ge
 app.add_typer(
     parse_app, name="parse", help="Parse documents and extract their text content."
 )
+app.command("render", help="Render a graph.json or all_data.json to HTML.")(
+    render_command
+)
+app.add_typer(
+    export_app, name="export", help="Export graph data to Neo4j, SurrealDB, or JSON-LD."
+)
 
 
 def main():
@@ -326,6 +334,8 @@ def main():
         "benchmark",
         "graph",
         "batch",
+        "render",
+        "export",
     }
     _GLOBAL_FLAGS = {"--version", "-V", "--help", "-h"}
     args = sys.argv[1:]
@@ -346,11 +356,11 @@ def main():
         # 'knwler -f ...' → 'knwler extract extract -f ...'
         sys.argv.insert(1, "extract")
         sys.argv.insert(2, "extract")
-    app()
-    # try:
-    #     app()
-    # except typer.Exit:
-    #     pass
-    # except Exception as e:
-    #     console.print(Panel.fit(f"[red]Error:[/red] {str(e)}"))
-    #     sys.exit(1)
+    # app()
+    try:
+        app()
+    except typer.Exit:
+        pass
+    except Exception as e:
+        console.print(Panel.fit(f"[red]Error:[/red] {str(e)}"))
+        sys.exit(1)

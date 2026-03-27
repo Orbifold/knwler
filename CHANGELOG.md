@@ -16,6 +16,9 @@
 - fix: chunk references in `extract` api
 - refactoring: various data classes make method more strict
 - fix: various edge-cases where an LLM behaves badly
+- feature: `knwler render` renders html from existing extraction json
+- feature: new 'cypher' and 'research' templates
+- feature: `knwler export` exports to Neo4j, SurrealDB, JSONLD and more
 
 ## v1.0.4
 

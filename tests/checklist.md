@@ -81,12 +81,15 @@ So many new features added in v1.0.0 so here is a comprehensive checklist (for m
 - [x] knwler extract -f https://knwler.com/pdfs/mbti.pdf --output ~/temp/knwler/ -m qwen2.5:7b
 - [x] knwler -f https://knwler.com --backend gemini --output ~/temp/knwler
 - [x] knwler batch run --input ~/temp/pdfs --output ~/temp/batching
-- [x] knwler batch run --input ~/temp/pdfs --output ~/temp/batching --backend gemini
+- [x] knwler batch run --input ~/temp/pdfs --output ~/temp/batching --backend gemini --consolidate
 - [x] knwler graph analyze ~/Desktop/AI/knwler-collect/examples/burgerlijk/BurgerlijkAll.json --output ~/Desktop/AI/knwler-website/examples/CivilAnalytics --open
 - [x] knwler -f ~/Desktop/AI/knwler-collect/examples/Deloitte/Deloitte.pdf --output ~/Desktop/AI/knwler-website/examples/Deloitte --url https://www.deloitte.com/de/de/legal/publikationen.html --backend gemini
 - [x] knwler -f ~/Desktop/AI/knwler-website/pdfs/NIST.pdf --output ~/Desktop/AI/knwler-website/examples/NIST --url https://nvlpubs.nist.gov/nistpubs/ai/nist.ai.100-1.pdf --backend gemini --template columns
 - [x] knwler graph analyze ~/Desktop/AI/knwler-website/examples/EUAI_anthropic/default/graph.json --output ~/Desktop/AI/knwler-website/examples/HumanRightsAnalytics --open
 - [x] knwler parse file ~/Desktop/AI/PdfKnowledgeBase/metagpt.pdf --output ~/temp/test.md
+- [x] knwler export neo4j ~/temp/knwler.com/graph.json
+- [x] knwler export surrealdb /Users/swa/temp/knwler.com/graph.json
+- [x] knwler export jsonld /Users/swa/temp/knwler.com/graph.json
 
 ## Ideas
 

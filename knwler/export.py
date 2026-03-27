@@ -96,7 +96,6 @@ def export_html(
     chunk_mapping = {
         c["id"]: c["chunk_idx"] for c in chunks if "id" in c and "chunk_idx" in c
     }
-    print(chunk_mapping)
     # Build relation lookup: entity -> list of (other, type, description, direction)
     rel_map: dict[Tuple[str, str], list[dict]] = {}
     for r in relations:
@@ -286,7 +285,7 @@ def export_html(
         url=url,
         metadata=metadata,
         labels=labels,
-        clusters=clusters,
+        clusters=clusters_display,
         chunks=chunks_display,
         entities_display=entities_display,
         disclaimer=disclaimer,

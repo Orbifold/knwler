@@ -55,13 +55,19 @@ async def rephrase_chunks(
                 )
             response = await llm_generate(prompt, config, model=config.extraction_model)
             parsed = parse_json_response(response)
-            result.append(
-                Chunk(
-                    text=parsed.get("rephrase", chunk.text).strip(),
-                    chunk_idx=chunk.chunk_idx,
-                    id=chunk.id,
+            try:
+                result.append(
+                    Chunk(
+                        text=parsed.get("rephrase", chunk.text).strip(),
+                        chunk_idx=chunk.chunk_idx,
+                        id=chunk.id,
+                    )
                 )
-            )
+            except Exception as e:
+                console.print(
+                    f"[red]Error parsing rephrase response for chunk {chunk.chunk_idx}:[/red] {e}"
+                )
+                result.append(chunk)
             progress.update(task, advance=1)
 
     return result

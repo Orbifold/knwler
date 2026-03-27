@@ -1,0 +1,1795 @@
+<!doctype html>
+<html lang="{{ lang }}">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ title }} — Cypher Console</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #f1f5f9;
+        --surface: #ffffff;
+        --surface2: #f8fafc;
+        --border: #e2e8f0;
+        --text: #1e293b;
+        --text2: #64748b;
+        --accent: #2563eb;
+        --accent-fg: #fff;
+        --node-chip: #e0e7ff;
+        --node-chip-text: #3730a3;
+        --rel-chip: #fef3c7;
+        --rel-chip-text: #92400e;
+        --error: #dc2626;
+        --error-bg: #fef2f2;
+        --success: #16a34a;
+        --row-alt: #f8fafc;
+        --header-bg: #0f172a;
+        --header-text: #f1f5f9;
+        --editor-bg: #0f172a;
+        --editor-text: #e2e8f0;
+        --editor-border: #1e293b;
+        --editor-cursor: #10b981;
+        --footer-color: #94a3b8;
+        --footer-border: #e2e8f0;
+        --edge: #3a4656;
+      }
+      [data-theme="dark"] {
+        --bg: #0f172a;
+        --surface: #1e293b;
+        --surface2: #0f172a;
+        --border: #334155;
+        --text: #f1f5f9;
+        --text2: #94a3b8;
+        --accent: #3b82f6;
+        --node-chip: #1e3a8a;
+        --node-chip-text: #93c5fd;
+        --rel-chip: #78350f;
+        --rel-chip-text: #fcd34d;
+        --error: #f87171;
+        --error-bg: #3b0000;
+        --success: #4ade80;
+        --row-alt: #1e293b;
+        --header-bg: #020617;
+        --editor-bg: #020617;
+        --editor-border: #0f172a;
+        --footer-color: #475569;
+        --footer-border: #334155;
+        --edge: #bdd0e8;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        font-family:
+          "Inter",
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        font-size: 14px;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+
+      /* ── Page header ──────────────────────────────────────────────── */
+      .page-header {
+        background: var(--header-bg);
+        color: var(--header-text);
+        padding: 0.65rem 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex-shrink: 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      }
+      .page-header h1 {
+        font-size: 0.95rem;
+        font-weight: 600;
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .page-header .meta {
+        font-size: 0.76rem;
+        opacity: 0.5;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .theme-switch {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        cursor: pointer;
+        user-select: none;
+        flex-shrink: 0;
+      }
+      .theme-switch input {
+        display: none;
+      }
+      .theme-track {
+        width: 30px;
+        height: 16px;
+        background: rgba(255, 255, 255, 0.18);
+        border-radius: 8px;
+        position: relative;
+        transition: background 0.2s;
+      }
+      .theme-track::after {
+        content: "";
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #fff;
+        transition: transform 0.2s;
+      }
+      .theme-switch input:checked + .theme-track {
+        background: #3b82f6;
+      }
+      .theme-switch input:checked + .theme-track::after {
+        transform: translateX(14px);
+      }
+      .theme-label {
+        font-size: 0.78rem;
+        opacity: 0.6;
+      }
+
+      /* ── Schema bar ───────────────────────────────────────────────── */
+      .schema-bar {
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        padding: 0.45rem 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        flex-shrink: 0;
+      }
+      .schema-label {
+        font-size: 0.68rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: var(--text2);
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .schema-sep {
+        color: var(--border);
+        font-size: 1rem;
+        margin: 0 0.2rem;
+        flex-shrink: 0;
+      }
+      .chip-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3rem;
+        align-items: center;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.18rem 0.55rem;
+        border-radius: 9999px;
+        font-size: 0.72rem;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+        transition:
+          opacity 0.15s,
+          transform 0.1s;
+        white-space: nowrap;
+        font-family: "Inter", sans-serif;
+      }
+      .chip:hover {
+        opacity: 0.8;
+        transform: translateY(-1px);
+      }
+      .chip:active {
+        transform: translateY(0);
+      }
+      .chip.node {
+        background: var(--node-chip);
+        color: var(--node-chip-text);
+      }
+      .chip.rel {
+        background: var(--rel-chip);
+        color: var(--rel-chip-text);
+      }
+      .chip .count {
+        font-weight: 400;
+        opacity: 0.7;
+        font-size: 0.65rem;
+      }
+
+      /* ── Query panel ──────────────────────────────────────────────── */
+      .query-panel {
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        padding: 0.85rem 1.5rem;
+        flex-shrink: 0;
+      }
+      .editor-row {
+        display: flex;
+        gap: 0.6rem;
+        align-items: flex-start;
+      }
+      .editor-prompt {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.9rem;
+        color: #10b981;
+        padding-top: 0.55rem;
+        flex-shrink: 0;
+        user-select: none;
+      }
+      #query-editor {
+        flex: 1;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.82rem;
+        background: var(--editor-bg);
+        color: var(--editor-text);
+        border: 1px solid var(--editor-border);
+        border-radius: 6px;
+        padding: 0.55rem 0.8rem;
+        resize: vertical;
+        min-height: 56px;
+        max-height: 300px;
+        outline: none;
+        line-height: 1.65;
+        caret-color: #10b981;
+        tab-size: 2;
+      }
+      #query-editor:focus {
+        border-color: var(--accent);
+      }
+      .query-toolbar {
+        margin-top: 0.55rem;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+      }
+      .btn-run {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        background: var(--accent);
+        color: var(--accent-fg);
+        border: none;
+        border-radius: 6px;
+        padding: 0.38rem 0.85rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        cursor: pointer;
+        letter-spacing: 0.01em;
+        transition: opacity 0.15s;
+      }
+      .btn-run:hover {
+        opacity: 0.85;
+      }
+      .btn-secondary {
+        background: none;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 0.38rem 0.7rem;
+        font-size: 0.8rem;
+        color: var(--text2);
+        cursor: pointer;
+        transition:
+          border-color 0.15s,
+          color 0.15s;
+      }
+      .btn-secondary:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      .kbd-hint {
+        font-size: 0.72rem;
+        color: var(--text2);
+        margin-left: auto;
+      }
+      kbd {
+        display: inline-block;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 3px;
+        padding: 0.05em 0.3em;
+        font-size: 0.68rem;
+        font-family: "JetBrains Mono", monospace;
+      }
+      .query-error {
+        display: none;
+        margin-top: 0.5rem;
+        background: var(--error-bg);
+        color: var(--error);
+        border-radius: 6px;
+        padding: 0.45rem 0.75rem;
+        font-size: 0.8rem;
+        font-family: "JetBrains Mono", monospace;
+      }
+
+      /* ── Example chips ────────────────────────────────────────────── */
+      .examples-bar {
+        background: var(--surface2);
+        border-bottom: 1px solid var(--border);
+        padding: 0.38rem 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+        flex-shrink: 0;
+      }
+      .ex-label {
+        font-size: 0.7rem;
+        color: var(--text2);
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .ex-chip {
+        background: none;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 0.15rem 0.5rem;
+        font-size: 0.7rem;
+        font-family: "JetBrains Mono", monospace;
+        color: var(--text2);
+        cursor: pointer;
+        white-space: nowrap;
+        transition:
+          border-color 0.15s,
+          color 0.15s;
+      }
+      .ex-chip:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+
+      /* ── Results ──────────────────────────────────────────────────── */
+      .results-panel {
+        flex: 1;
+        overflow: auto;
+        padding: 1rem 1.5rem 1.5rem;
+        display: flex;
+        flex-direction: column;
+      }
+      .results-header {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        margin-bottom: 0.7rem;
+        flex-shrink: 0;
+      }
+      .results-meta {
+        display: none;
+        align-items: center;
+        gap: 0.6rem;
+        font-size: 0.78rem;
+        color: var(--text2);
+        flex: 1;
+      }
+      .results-count {
+        font-weight: 700;
+        color: var(--success);
+      }
+      .view-toggle {
+        display: none;
+        align-items: center;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        overflow: hidden;
+        flex-shrink: 0;
+      }
+      .view-toggle button {
+        background: none;
+        border: none;
+        padding: 0.3rem 0.65rem;
+        font-size: 0.74rem;
+        font-weight: 600;
+        color: var(--text2);
+        cursor: pointer;
+        font-family: "Inter", sans-serif;
+        transition:
+          background 0.15s,
+          color 0.15s;
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+      }
+      .view-toggle button + button {
+        border-left: 1px solid var(--border);
+      }
+      .view-toggle button.active {
+        background: var(--accent);
+        color: var(--accent-fg);
+      }
+      .view-toggle button:hover:not(.active) {
+        background: var(--surface2);
+      }
+      .results-placeholder {
+        text-align: center;
+        color: var(--text2);
+        font-size: 0.88rem;
+        padding: 3rem 0;
+        font-style: italic;
+      }
+      .results-table-wrap {
+        overflow-x: auto;
+        flex: 1;
+      }
+      #graph-view {
+        display: none;
+        flex: 1;
+        min-height: 400px;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        position: relative;
+        overflow: hidden;
+      }
+      #graph-view svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+        cursor: grab;
+        min-height: 400px;
+      }
+      #graph-view svg.panning {
+        cursor: grabbing;
+      }
+      #graph-view .gv-edge {
+        stroke: var(--edge);
+        stroke-width: 1.4;
+        fill: none;
+        opacity: 0.85;
+      }
+      #graph-view .gv-edge.highlighted {
+        stroke: #e06030;
+        stroke-width: 2.4;
+        opacity: 1;
+      }
+      #graph-view .gv-arrowhead {
+        fill: var(--edge);
+        opacity: 0.5;
+      }
+      #graph-view .gv-arrowhead.highlighted {
+        fill: #e06030;
+        opacity: 1;
+      }
+      #graph-view .gv-node {
+        cursor: pointer;
+        transition: r 0.15s;
+      }
+      #graph-view .gv-node:hover {
+        filter: brightness(1.15);
+      }
+      #graph-view .gv-node.faded {
+        opacity: 0.2;
+      }
+      #graph-view .gv-label {
+        font-size: 10px;
+        fill: var(--text);
+        text-anchor: middle;
+        dominant-baseline: central;
+        pointer-events: none;
+        font-weight: 500;
+        font-family: "Inter", sans-serif;
+      }
+      #graph-view .gv-label.faded {
+        opacity: 0.15;
+      }
+      #graph-view .gv-edge-label {
+        font-size: 8px;
+        fill: var(--text2);
+        text-anchor: middle;
+        dominant-baseline: central;
+        pointer-events: none;
+        font-family: "JetBrains Mono", monospace;
+      }
+      #gv-tooltip {
+        position: fixed;
+        background: #3f3f3f;
+        border: 1px solid #666;
+        border-radius: 6px;
+        padding: 6px 10px;
+        font-size: 12px;
+        color: #fff;
+        pointer-events: none;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        display: none;
+        z-index: 100;
+        max-width: 320px;
+        word-wrap: break-word;
+        line-height: 1.4;
+      }
+      #gv-tooltip .tt-name {
+        font-weight: 700;
+      }
+      #gv-tooltip .tt-type {
+        opacity: 0.6;
+        font-size: 10px;
+        margin-left: 4px;
+      }
+      #gv-tooltip .tt-desc {
+        margin-top: 3px;
+        opacity: 0.8;
+        font-size: 11px;
+      }
+      table.rtable {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.78rem;
+      }
+      table.rtable th {
+        background: var(--surface2);
+        text-align: left;
+        padding: 0.45rem 0.75rem;
+        border: 1px solid var(--border);
+        font-weight: 700;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.74rem;
+        white-space: nowrap;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        color: var(--accent);
+      }
+      table.rtable td {
+        padding: 0.4rem 0.75rem;
+        border: 1px solid var(--border);
+        vertical-align: top;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.76rem;
+        max-width: 380px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      table.rtable tbody tr:nth-child(even) td {
+        background: var(--row-alt);
+      }
+      table.rtable tbody tr:hover td {
+        background: color-mix(in srgb, var(--accent) 6%, transparent);
+      }
+      table.rtable td.v-null {
+        color: var(--text2);
+        font-style: italic;
+      }
+      table.rtable td:hover {
+        overflow: visible;
+        white-space: normal;
+        word-break: break-word;
+        position: relative;
+        z-index: 2;
+        background: var(--surface) !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+      }
+
+      /* ── Footer ───────────────────────────────────────────────────── */
+      .page-footer {
+        background: var(--surface);
+        border-top: 1px solid var(--footer-border);
+        padding: 0.5rem 1.5rem;
+        font-size: 0.72rem;
+        color: var(--footer-color);
+        text-align: center;
+        flex-shrink: 0;
+      }
+      .page-footer a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .page-footer a:hover {
+        text-decoration: underline;
+      }
+      .disclaimer {
+        margin-top: 0.25rem;
+        font-size: 0.62rem;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="page-header">
+      <h1>{{ title }}</h1>
+      <span class="meta">{{ metadata }}</span>
+      <label class="theme-switch" title="Toggle dark/light theme">
+        <input type="checkbox" id="theme-toggle" />
+        <span class="theme-track"></span>
+        <span class="theme-label" id="theme-label">&#9790;</span>
+      </label>
+    </header>
+
+    <div class="schema-bar">
+      <span class="schema-label">Labels</span>
+      <div class="chip-group" id="node-chips"></div>
+      <span class="schema-sep">|</span>
+      <span class="schema-label">Relationships</span>
+      <div class="chip-group" id="rel-chips"></div>
+    </div>
+
+    <div class="query-panel">
+      <div class="editor-row">
+        <span class="editor-prompt">⟩</span>
+        <textarea
+          id="query-editor"
+          rows="2"
+          spellcheck="false"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+          placeholder="MATCH (n) RETURN n LIMIT 25"
+        ></textarea>
+      </div>
+      <div class="query-toolbar">
+        <button class="btn-run" id="btn-run">&#9654; Run</button>
+        <button class="btn-secondary" id="btn-clear">Clear</button>
+        <span class="kbd-hint"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> to run</span>
+      </div>
+      <div class="query-error" id="query-error"></div>
+    </div>
+
+    <div class="examples-bar">
+      <span class="ex-label">Examples:</span>
+      <div
+        id="example-chips"
+        style="display: flex; flex-wrap: wrap; gap: 0.35rem"
+      ></div>
+    </div>
+
+    <div class="results-panel">
+      <div class="results-header">
+        <div class="results-meta" id="results-meta"></div>
+        <div class="view-toggle" id="view-toggle">
+          <button class="active" id="btn-table" title="Table view">
+            &#9783; Table
+          </button>
+          <button id="btn-graph" title="Graph view">&#9673; Graph</button>
+        </div>
+      </div>
+      <div class="results-placeholder" id="results-placeholder">
+        Run a query to see results.
+      </div>
+      <div class="results-table-wrap" id="results-table-wrap"></div>
+      <div id="graph-view">
+        <svg id="gv-svg">
+          <defs>
+            <marker
+              id="arrowhead"
+              viewBox="0 0 10 7"
+              refX="10"
+              refY="3.5"
+              markerWidth="8"
+              markerHeight="6"
+              orient="auto-start-reverse"
+            >
+              <polygon points="0 0, 10 3.5, 0 7" />
+            </marker>
+          </defs>
+          <g id="gv-viewport">
+            <g id="gv-edges"></g>
+            <g id="gv-nodes"></g>
+          </g>
+        </svg>
+      </div>
+      <div id="gv-tooltip"></div>
+    </div>
+
+    <footer class="page-footer">
+      Generated by
+      <a href="https://knwler.com" target="_blank" rel="noopener noreferrer"
+        >Knwler AI</a
+      >, &copy; 2026
+      <a
+        href="https://graphsandnetworks.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        >Orbifold Consulting</a
+      >.
+      <div class="disclaimer">{{ disclaimer }}</div>
+    </footer>
+
+    <script>
+      // ─── Data ──────────────────────────────────────────────────────────────
+      const rawData = {{ rawData | safe }};
+
+      // Support both graph.json (entities at top level) and all_data.json (nested under graph)
+      const graphData  = rawData.graph || rawData;
+      const entities   = graphData.entities  || [];
+      const relations  = graphData.relations || [];
+
+      // Fast entity lookup by name
+      const nodeMap = new Map();
+      for (const e of entities) nodeMap.set(e.name, e);
+
+      // ─── Theme toggle ───────────────────────────────────────────────────────
+      (function () {
+        const toggle = document.getElementById("theme-toggle");
+        const label  = document.getElementById("theme-label");
+        const saved  = localStorage.getItem("knwler-theme");
+        if (saved === "dark") {
+          document.documentElement.setAttribute("data-theme", "dark");
+          toggle.checked  = true;
+          label.textContent = "☀";
+        }
+        toggle.addEventListener("change", () => {
+          if (toggle.checked) {
+            document.documentElement.setAttribute("data-theme", "dark");
+            localStorage.setItem("knwler-theme", "dark");
+            label.textContent = "☀";
+          } else {
+            document.documentElement.removeAttribute("data-theme");
+            localStorage.setItem("knwler-theme", "light");
+            label.textContent = "☾";
+          }
+        });
+      })();
+
+      // ─── Schema bar ─────────────────────────────────────────────────────────
+      function buildSchema() {
+        const labelCounts = new Map();
+        for (const e of entities) labelCounts.set(e.type, (labelCounts.get(e.type) || 0) + 1);
+
+        const relCounts = new Map();
+        for (const r of relations) relCounts.set(r.type, (relCounts.get(r.type) || 0) + 1);
+
+        const nodeChipsEl = document.getElementById("node-chips");
+        for (const [label, count] of [...labelCounts.entries()].sort()) {
+          const btn = document.createElement("button");
+          btn.className = "chip node";
+          btn.innerHTML = `${label} <span class="count">(${count})</span>`;
+          btn.title = `Query all ${label} nodes`;
+          btn.addEventListener("click", () => {
+            document.getElementById("query-editor").value = `MATCH (n:${label}) RETURN n LIMIT 25`;
+            runQuery();
+          });
+          nodeChipsEl.appendChild(btn);
+        }
+
+        const relChipsEl = document.getElementById("rel-chips");
+        for (const [type, count] of [...relCounts.entries()].sort()) {
+          const btn = document.createElement("button");
+          btn.className = "chip rel";
+          btn.innerHTML = `${type} <span class="count">(${count})</span>`;
+          btn.title = `Query all ${type} relationships`;
+          btn.addEventListener("click", () => {
+            document.getElementById("query-editor").value =
+              `MATCH (n)-[r:${type}]->(m) RETURN n.name, r.type, m.name LIMIT 25`;
+            runQuery();
+          });
+          relChipsEl.appendChild(btn);
+        }
+      }
+
+      // ─── Example queries ────────────────────────────────────────────────────
+      const EXAMPLES = [
+        "MATCH (n) RETURN n LIMIT 25",
+        "MATCH (n) RETURN n.name, n.type ORDER BY n.name LIMIT 50",
+        "MATCH (n)-[r]->(m) RETURN n.name, r.type, m.name LIMIT 25",
+        "MATCH (n) WHERE n.description CONTAINS 'data' RETURN n LIMIT 15",
+        "MATCH (n)-[r]->(m) WHERE n.name CONTAINS 'AI' RETURN n.name, r.type, m.name",
+        "MATCH (n)-[r]->(m) WHERE n.type = 'Person' RETURN n.name, r.type, m.name LIMIT 20",
+      ];
+
+      function buildExamples() {
+        const container = document.getElementById("example-chips");
+        for (const ex of EXAMPLES) {
+          const btn = document.createElement("button");
+          btn.className = "ex-chip";
+          btn.textContent = ex;
+          btn.addEventListener("click", () => {
+            document.getElementById("query-editor").value = ex;
+            runQuery();
+          });
+          container.appendChild(btn);
+        }
+      }
+
+      // ─── Cypher Engine ──────────────────────────────────────────────────────
+
+      function getEntityProps(e) {
+        return {
+          _label: e.type,
+          _isNode: true,
+          name: e.name,
+          type: e.type,
+          description: e.description || "",
+          cluster_id: e.cluster_id ?? null,
+          id: e.id || e.name,
+        };
+      }
+
+      function getRelProps(r) {
+        return {
+          _type: r.type,
+          _isRel: true,
+          type: r.type,
+          description: r.description || "",
+          source: r.source,
+          source_type: r.source_type || "",
+          target: r.target,
+          target_type: r.target_type || "",
+        };
+      }
+
+      // — Pattern parsers —
+
+      function parseNodePattern(s) {
+        s = s.trim();
+        // Accepts: varName? :Label? {key: val, ...}?
+        const m = s.match(/^(\w+)?(?::(\w+))?(?:\s*\{([^}]*)\})?$/);
+        if (!m) throw new Error(`Invalid node pattern: (${s})`);
+        const props = {};
+        if (m[3]) {
+          for (const part of m[3].split(",")) {
+            const idx = part.indexOf(":");
+            if (idx < 0) continue;
+            const k = part.slice(0, idx).trim();
+            const v = part.slice(idx + 1).trim().replace(/^["'`]|["'`]$/g, "");
+            props[k] = v;
+          }
+        }
+        return { variable: m[1] || null, label: m[2] || null, props };
+      }
+
+      function parseRelPattern(s) {
+        s = s.trim();
+        const m = s.match(/^(\w+)?(?::(\w+))?$/);
+        if (!m) throw new Error(`Invalid relationship pattern: [${s}]`);
+        return { variable: m[1] || null, type: m[2] || null };
+      }
+
+      function parseMatchPattern(matchStr) {
+        matchStr = matchStr.trim();
+
+        // Path: (a)-[r]->(b) or (a)<-[r]-(b) or (a)-[r]-(b)
+        const pathRe = /^\(([^)]*)\)\s*(<)?-\[([^\]]*)\]-\s*(>)?\s*\(([^)]*)\)$/;
+        const pathM  = matchStr.match(pathRe);
+        if (pathM) {
+          const reverse = !!pathM[2];
+          const forward = !!pathM[4];
+          const direction = (forward && !reverse) ? "out" : (reverse && !forward) ? "in" : "both";
+          const leftNode  = parseNodePattern(pathM[1]);
+          const rightNode = parseNodePattern(pathM[5]);
+          return {
+            type: "path",
+            src: reverse ? rightNode : leftNode,
+            rel: parseRelPattern(pathM[3]),
+            tgt: reverse ? leftNode  : rightNode,
+            direction,
+          };
+        }
+
+        // Single node: (n) or (n:Label) or (n:Label {prop: val})
+        const nodeRe = /^\(([^)]*)\)$/;
+        const nodeM  = matchStr.match(nodeRe);
+        if (nodeM) return { type: "node", node: parseNodePattern(nodeM[1]) };
+
+        throw new Error(`Cannot parse MATCH pattern: ${matchStr}`);
+      }
+
+      function entityMatchesPattern(entity, pattern) {
+        if (pattern.label && entity.type !== pattern.label) return false;
+        for (const [k, v] of Object.entries(pattern.props || {})) {
+          if (String(entity[k] ?? "") !== String(v)) return false;
+        }
+        return true;
+      }
+
+      function matchPattern(pattern) {
+        const bindings = [];
+
+        if (pattern.type === "node") {
+          for (const entity of entities) {
+            if (entityMatchesPattern(entity, pattern.node)) {
+              const b = {};
+              if (pattern.node.variable) b[pattern.node.variable] = getEntityProps(entity);
+              bindings.push(b);
+            }
+          }
+        } else if (pattern.type === "path") {
+          for (const rel of relations) {
+            const srcKey = rel.source;
+            const tgtKey = rel.target;
+
+            const fwd = pattern.direction !== "in";
+            const bwd = pattern.direction !== "out";
+
+            if (fwd) {
+              const s = nodeMap.get(srcKey);
+              const t = nodeMap.get(tgtKey);
+              if (s && t &&
+                  entityMatchesPattern(s, pattern.src) &&
+                  entityMatchesPattern(t, pattern.tgt) &&
+                  (!pattern.rel.type || rel.type === pattern.rel.type)) {
+                const b = {};
+                if (pattern.src.variable) b[pattern.src.variable] = getEntityProps(s);
+                if (pattern.rel.variable) b[pattern.rel.variable] = getRelProps(rel);
+                if (pattern.tgt.variable) b[pattern.tgt.variable] = getEntityProps(t);
+                bindings.push(b);
+              }
+            }
+            if (bwd) {
+              const s = nodeMap.get(tgtKey);
+              const t = nodeMap.get(srcKey);
+              if (s && t &&
+                  entityMatchesPattern(s, pattern.src) &&
+                  entityMatchesPattern(t, pattern.tgt) &&
+                  (!pattern.rel.type || rel.type === pattern.rel.type)) {
+                const b = {};
+                if (pattern.src.variable) b[pattern.src.variable] = getEntityProps(s);
+                if (pattern.rel.variable) b[pattern.rel.variable] = getRelProps(rel);
+                if (pattern.tgt.variable) b[pattern.tgt.variable] = getEntityProps(t);
+                bindings.push(b);
+              }
+            }
+          }
+        }
+
+        return bindings;
+      }
+
+      // — Expression evaluation —
+
+      function evalValue(s, binding) {
+        s = s.trim();
+        if (!s) return null;
+        // String literal
+        if (/^["'`]/.test(s) && /["'`]$/.test(s)) return s.slice(1, -1);
+        // Number
+        if (/^-?\d+(\.\d+)?$/.test(s)) return parseFloat(s);
+        // Booleans / null
+        if (/^true$/i.test(s))  return true;
+        if (/^false$/i.test(s)) return false;
+        if (/^null$/i.test(s))  return null;
+        // type(r)
+        const typeF = s.match(/^type\((\w+)\)$/i);
+        if (typeF) return binding[typeF[1]]?._type ?? null;
+        // labels(n) / label(n)
+        const labelF = s.match(/^labels?\((\w+)\)$/i);
+        if (labelF) return binding[labelF[1]]?._label ?? null;
+        // id(n)
+        const idF = s.match(/^id\((\w+)\)$/i);
+        if (idF) return binding[idF[1]]?.name ?? null;
+        // Property access: var.prop
+        const dotM = s.match(/^(\w+)\.(\w+)$/);
+        if (dotM) return binding[dotM[1]]?.[dotM[2]] ?? null;
+        // Variable reference (whole node/rel object)
+        if (/^\w+$/.test(s)) return binding[s] ?? null;
+        return s;
+      }
+
+      // Split expression on a keyword, respecting parens and quotes
+      function splitTopLevel(s, keyword) {
+        const parts = [];
+        let depth = 0, inQ = false, qc = "", start = 0;
+        const kwRe = new RegExp(`^\\s+${keyword}\\s+`, "i");
+
+        for (let i = 0; i < s.length; i++) {
+          const c = s[i];
+          if (!inQ) {
+            if      (c === "(" || c === "[") depth++;
+            else if (c === ")" || c === "]") depth--;
+            else if (c === '"' || c === "'" || c === "`") { inQ = true; qc = c; }
+          } else if (c === qc) inQ = false;
+
+          if (!inQ && depth === 0 && i > start) {
+            const rest = s.slice(i);
+            const m = rest.match(kwRe);
+            if (m) {
+              parts.push(s.slice(start, i).trim());
+              i += m[0].length - 1;
+              start = i + 1;
+            }
+          }
+        }
+        const last = s.slice(start).trim();
+        if (last) parts.push(last);
+        return parts.filter(p => p.length > 0);
+      }
+
+      function evalCondition(s, binding) {
+        s = s.trim();
+        if (!s) return true;
+        if (s.startsWith("(") && s.endsWith(")")) return evalCondition(s.slice(1, -1), binding);
+
+        // OR
+        const orParts = splitTopLevel(s, "OR");
+        if (orParts.length > 1) return orParts.some(p => evalCondition(p, binding));
+
+        // AND
+        const andParts = splitTopLevel(s, "AND");
+        if (andParts.length > 1) return andParts.every(p => evalCondition(p, binding));
+
+        // NOT
+        if (/^NOT\s+/i.test(s)) return !evalCondition(s.replace(/^NOT\s+/i, ""), binding);
+
+        // CONTAINS
+        const containsM = s.match(/^(.+?)\s+CONTAINS\s+(.+)$/i);
+        if (containsM) {
+          const l = String(evalValue(containsM[1], binding) ?? "").toLowerCase();
+          const r = String(evalValue(containsM[2], binding) ?? "").toLowerCase();
+          return l.includes(r);
+        }
+
+        // STARTS WITH
+        const startsM = s.match(/^(.+?)\s+STARTS\s+WITH\s+(.+)$/i);
+        if (startsM) {
+          const l = String(evalValue(startsM[1], binding) ?? "").toLowerCase();
+          const r = String(evalValue(startsM[2], binding) ?? "").toLowerCase();
+          return l.startsWith(r);
+        }
+
+        // ENDS WITH
+        const endsM = s.match(/^(.+?)\s+ENDS\s+WITH\s+(.+)$/i);
+        if (endsM) {
+          const l = String(evalValue(endsM[1], binding) ?? "").toLowerCase();
+          const r = String(evalValue(endsM[2], binding) ?? "").toLowerCase();
+          return l.endsWith(r);
+        }
+
+        // IN [...]
+        const inM = s.match(/^(.+?)\s+IN\s+\[(.+)\]$/i);
+        if (inM) {
+          const l    = String(evalValue(inM[1], binding) ?? "").toLowerCase();
+          const list = inM[2].split(",").map(v => String(evalValue(v.trim(), binding) ?? "").toLowerCase());
+          return list.includes(l);
+        }
+
+        // IS [NOT] NULL
+        const isNullM = s.match(/^(.+?)\s+IS\s+(NOT\s+)?NULL$/i);
+        if (isNullM) {
+          const v = evalValue(isNullM[1], binding);
+          return isNullM[2] ? v != null : v == null;
+        }
+
+        // Comparison operators
+        const cmpM = s.match(/^(.+?)\s*(<=|>=|<>|!=|=|<|>)\s*(.+)$/);
+        if (cmpM) {
+          const l  = evalValue(cmpM[1].trim(), binding);
+          const r  = evalValue(cmpM[3].trim(), binding);
+          const ls = String(l ?? "").toLowerCase();
+          const rs = String(r ?? "").toLowerCase();
+          switch (cmpM[2]) {
+            case "=":               return ls === rs;
+            case "<>": case "!=":   return ls !== rs;
+            case "<":               return parseFloat(l) <  parseFloat(r);
+            case ">":               return parseFloat(l) >  parseFloat(r);
+            case "<=":              return parseFloat(l) <= parseFloat(r);
+            case ">=":              return parseFloat(l) >= parseFloat(r);
+          }
+        }
+
+        return true;
+      }
+
+      // — Query execution —
+
+      function parseClauses(query) {
+        const q = query.trim().replace(/\s+/g, " ");
+        const matchM  = q.match(/\bMATCH\s+([\s\S]+?)(?=\s+\bWHERE\b|\s+\bRETURN\b|\s+\bORDER\s+BY\b|\s+\bLIMIT\b|$)/i);
+        const whereM  = q.match(/\bWHERE\s+([\s\S]+?)(?=\s+\bRETURN\b|\s+\bORDER\s+BY\b|\s+\bLIMIT\b|$)/i);
+        const returnM = q.match(/\bRETURN\s+([\s\S]+?)(?=\s+\bORDER\s+BY\b|\s+\bLIMIT\b|$)/i);
+        const orderM  = q.match(/\bORDER\s+BY\s+([\s\S]+?)(?=\s+\bLIMIT\b|$)/i);
+        const limitM  = q.match(/\bLIMIT\s+(\d+)/i);
+        return {
+          matchStr:   matchM?.[1]?.trim()  ?? null,
+          whereStr:   whereM?.[1]?.trim()  ?? null,
+          returnStr:  returnM?.[1]?.trim() ?? "*",
+          orderByStr: orderM?.[1]?.trim()  ?? null,
+          limit:      limitM ? parseInt(limitM[1]) : 100,
+        };
+      }
+
+      function parseReturnItems(returnStr) {
+        if (returnStr.trim() === "*") return [{ expr: "*", alias: "*" }];
+        return returnStr.split(",").map(item => {
+          item      = item.trim();
+          const asM = item.match(/^(.+?)\s+AS\s+(\w+)$/i);
+          return asM
+            ? { expr: asM[1].trim(), alias: asM[2] }
+            : { expr: item, alias: item };
+        });
+      }
+
+      function projectRow(binding, returnItems) {
+        if (returnItems[0]?.expr === "*") {
+          const row = {};
+          for (const [k, v] of Object.entries(binding)) {
+            if (v && typeof v === "object") {
+              for (const [pk, pv] of Object.entries(v)) {
+                if (!pk.startsWith("_")) row[`${k}.${pk}`] = pv;
+              }
+            } else {
+              row[k] = v;
+            }
+          }
+          return row;
+        }
+        const row = {};
+        for (const item of returnItems) {
+          const val = evalValue(item.expr, binding);
+          if (val && typeof val === "object") {
+            for (const [pk, pv] of Object.entries(val)) {
+              if (!pk.startsWith("_")) row[`${item.alias}.${pk}`] = pv;
+            }
+          } else {
+            row[item.alias] = val;
+          }
+        }
+        return row;
+      }
+
+      function executeQuery(query) {
+        const t0      = performance.now();
+        const clauses = parseClauses(query);
+        if (!clauses.matchStr) throw new Error("Query must include a MATCH clause.");
+
+        const pattern  = parseMatchPattern(clauses.matchStr);
+        let   bindings = matchPattern(pattern);
+
+        if (clauses.whereStr) {
+          bindings = bindings.filter(b => evalCondition(clauses.whereStr, b));
+        }
+
+        const returnItems = parseReturnItems(clauses.returnStr);
+        let   rows        = bindings.map(b => projectRow(b, returnItems));
+
+        const colSet = new Set();
+        for (const row of rows) for (const k of Object.keys(row)) colSet.add(k);
+
+        if (clauses.orderByStr) {
+          const orderM = clauses.orderByStr.match(/^(.+?)(?:\s+(ASC|DESC))?$/i);
+          if (orderM) {
+            const field = orderM[1].trim();
+            const desc  = orderM[2]?.toUpperCase() === "DESC";
+            rows.sort((a, b) => {
+              const av = String(a[field] ?? "").toLowerCase();
+              const bv = String(b[field] ?? "").toLowerCase();
+              return desc ? bv.localeCompare(av) : av.localeCompare(bv);
+            });
+          }
+        }
+
+        const total = rows.length;
+        rows = rows.slice(0, clauses.limit);
+        return { columns: [...colSet], rows, total, elapsed: performance.now() - t0, bindings };
+      }
+
+      // ─── Results rendering ──────────────────────────────────────────────────
+      let lastResult = null;
+      let lastBindings = null;
+      let currentView = "table"; // "table" | "graph"
+
+      function renderResults(result, bindings) {
+        lastResult   = result;
+        lastBindings = bindings;
+        const meta        = document.getElementById("results-meta");
+        const tableWrap   = document.getElementById("results-table-wrap");
+        const graphView   = document.getElementById("graph-view");
+        const placeholder = document.getElementById("results-placeholder");
+        const viewToggle  = document.getElementById("view-toggle");
+
+        tableWrap.innerHTML = "";
+        graphView.style.display = "none";
+
+        if (result.rows.length === 0) {
+          placeholder.textContent = "No results found.";
+          placeholder.style.display = "block";
+          meta.style.display = "none";
+          viewToggle.style.display = "none";
+          return;
+        }
+
+        placeholder.style.display = "none";
+        meta.style.display = "flex";
+        meta.innerHTML = `
+          <span class="results-count">${result.rows.length} row${result.rows.length !== 1 ? "s" : ""}</span>
+          ${result.total > result.rows.length ? `<span>(of ${result.total})</span>` : ""}
+          <span>·</span>
+          <span>${result.elapsed.toFixed(1)} ms</span>
+          <span>·</span>
+          <span>${result.columns.length} column${result.columns.length !== 1 ? "s" : ""}</span>
+        `;
+
+        // Show toggle if we have graph-able data (nodes/rels in bindings)
+        const hasGraphData = bindings && bindings.length > 0 &&
+          bindings.some(b => Object.values(b).some(v => v && (v._isNode || v._isRel)));
+        viewToggle.style.display = hasGraphData ? "flex" : "none";
+
+        renderTable(result);
+
+        if (currentView === "graph" && hasGraphData) {
+          showGraphView();
+        } else {
+          currentView = "table";
+          document.getElementById("btn-table").classList.add("active");
+          document.getElementById("btn-graph").classList.remove("active");
+        }
+      }
+
+      function renderTable(result) {
+        const tableWrap = document.getElementById("results-table-wrap");
+        tableWrap.innerHTML = "";
+
+        const table = document.createElement("table");
+        table.className = "rtable";
+
+        const thead = table.createTHead();
+        const hr    = thead.insertRow();
+        for (const col of result.columns) {
+          const th        = document.createElement("th");
+          th.textContent  = col;
+          hr.appendChild(th);
+        }
+
+        const tbody = table.createTBody();
+        for (const row of result.rows) {
+          const tr = tbody.insertRow();
+          for (const col of result.columns) {
+            const td  = tr.insertCell();
+            const val = row[col];
+            if (val === null || val === undefined) {
+              td.textContent = "null";
+              td.classList.add("v-null");
+            } else {
+              td.textContent = String(val);
+            }
+          }
+        }
+
+        tableWrap.appendChild(table);
+      }
+
+      // ─── Graph View ─────────────────────────────────────────────────────────
+
+      const NODE_COLORS = [
+        "#4e79a7","#f28e2b","#e15759","#76b7b2","#59a14f",
+        "#edc948","#b07aa1","#ff9da7","#9c755f","#bab0ab",
+      ];
+      const typeColorMap = new Map();
+      let typeColorIdx = 0;
+      function colorForType(t) {
+        if (!typeColorMap.has(t)) typeColorMap.set(t, NODE_COLORS[typeColorIdx++ % NODE_COLORS.length]);
+        return typeColorMap.get(t);
+      }
+
+      function extractGraphFromBindings(bindings) {
+        const nodesMap = new Map();
+        const edgesSet = new Set();
+        const edges = [];
+
+        for (const b of bindings) {
+          const vals = Object.values(b);
+          // Collect nodes
+          for (const v of vals) {
+            if (v && v._isNode && !nodesMap.has(v.name)) {
+              nodesMap.set(v.name, { id: v.name, label: v.name, type: v._label || v.type || "", description: v.description || "" });
+            }
+          }
+          // Collect rels
+          for (const v of vals) {
+            if (v && v._isRel) {
+              const key = `${v.source}→${v.type}→${v.target}`;
+              if (!edgesSet.has(key)) {
+                edgesSet.add(key);
+                // Ensure source/target nodes exist
+                if (!nodesMap.has(v.source)) {
+                  const src = nodeMap.get(v.source);
+                  if (src) nodesMap.set(v.source, { id: v.source, label: v.source, type: src.type || "", description: src.description || "" });
+                }
+                if (!nodesMap.has(v.target)) {
+                  const tgt = nodeMap.get(v.target);
+                  if (tgt) nodesMap.set(v.target, { id: v.target, label: v.target, type: tgt.type || "", description: tgt.description || "" });
+                }
+                if (nodesMap.has(v.source) && nodesMap.has(v.target)) {
+                  edges.push({ source: v.source, target: v.target, type: v.type || "" });
+                }
+              }
+            }
+          }
+        }
+
+        // If no explicit relationships in bindings, infer edges from global relations
+        if (edges.length === 0 && nodesMap.size > 1) {
+          const nameSet = new Set(nodesMap.keys());
+          for (const r of relations) {
+            if (nameSet.has(r.source) && nameSet.has(r.target)) {
+              const key = `${r.source}→${r.type}→${r.target}`;
+              if (!edgesSet.has(key)) {
+                edgesSet.add(key);
+                edges.push({ source: r.source, target: r.target, type: r.type || "" });
+              }
+            }
+          }
+        }
+
+        return { nodes: [...nodesMap.values()], edges };
+      }
+
+      // ─── Live force simulation ───────────────────────────────────────────
+      let sim = null; // active simulation state
+
+      function stopSimulation() {
+        if (sim) { sim.running = false; sim = null; }
+      }
+
+      function createSimulation(nodes, edges, W, H) {
+        const N = nodes.length;
+        const idxMap = new Map();
+        nodes.forEach((n, i) => idxMap.set(n.id, i));
+
+        const cx = W / 2, cy = H / 2;
+        const spread = Math.min(W, H) * 0.35;
+        const k = Math.sqrt((W * H) / Math.max(N, 1)) * 0.6;
+
+        // init positions
+        nodes.forEach(n => {
+          if (n.x === undefined) {
+            n.x = cx + (Math.random() - 0.5) * spread;
+            n.y = cy + (Math.random() - 0.5) * spread;
+          }
+          n.vx = 0; n.vy = 0;
+          n.pinned = false;           // true while being dragged
+        });
+
+        const state = {
+          nodes, edges, idxMap, N, k, cx, cy, W, H,
+          alpha: 1,                   // current temperature (0–1)
+          alphaMin: 0.001,
+          alphaDecay: 1 - Math.pow(0.001, 1 / 300),
+          running: true,
+          svgEls: null,               // filled by showGraphView after DOM creation
+        };
+        return state;
+      }
+
+      function simTick(s) {
+        const { nodes, edges, idxMap, N, k, cx, cy, W, H } = s;
+        const pad = 40;
+        const alpha = s.alpha;
+
+        // Repulsive forces (all pairs)
+        for (let i = 0; i < N; i++) { nodes[i].vx = 0; nodes[i].vy = 0; }
+
+        for (let i = 0; i < N; i++) {
+          for (let j = i + 1; j < N; j++) {
+            let dx = nodes[i].x - nodes[j].x;
+            let dy = nodes[i].y - nodes[j].y;
+            const dist = Math.sqrt(dx * dx + dy * dy) || 0.01;
+            const force = (k * k) / dist * alpha;
+            const fx = (dx / dist) * force;
+            const fy = (dy / dist) * force;
+            nodes[i].vx += fx; nodes[i].vy += fy;
+            nodes[j].vx -= fx; nodes[j].vy -= fy;
+          }
+        }
+
+        // Attractive forces (edges)
+        for (const e of edges) {
+          const si = idxMap.get(e.source);
+          const ti = idxMap.get(e.target);
+          if (si === undefined || ti === undefined) continue;
+          let dx = nodes[si].x - nodes[ti].x;
+          let dy = nodes[si].y - nodes[ti].y;
+          const dist = Math.sqrt(dx * dx + dy * dy) || 0.01;
+          const force = (dist * dist) / k * alpha;
+          const fx = (dx / dist) * force;
+          const fy = (dy / dist) * force;
+          nodes[si].vx -= fx; nodes[si].vy -= fy;
+          nodes[ti].vx += fx; nodes[ti].vy += fy;
+        }
+
+        // Gravity toward center
+        for (let i = 0; i < N; i++) {
+          nodes[i].vx += (cx - nodes[i].x) * 0.01 * alpha;
+          nodes[i].vy += (cy - nodes[i].y) * 0.01 * alpha;
+        }
+
+        // Apply velocities (skip pinned nodes)
+        for (let i = 0; i < N; i++) {
+          if (nodes[i].pinned) continue;
+          const mag = Math.sqrt(nodes[i].vx ** 2 + nodes[i].vy ** 2) || 0.01;
+          const cap = Math.min(mag, 10 * alpha);
+          nodes[i].x += (nodes[i].vx / mag) * cap;
+          nodes[i].y += (nodes[i].vy / mag) * cap;
+          nodes[i].x = Math.max(pad, Math.min(W - pad, nodes[i].x));
+          nodes[i].y = Math.max(pad, Math.min(H - pad, nodes[i].y));
+        }
+
+        // Cool down
+        s.alpha += (s.alphaMin - s.alpha) * s.alphaDecay;
+      }
+
+      function updateSVGPositions(s) {
+        if (!s.svgEls) return;
+        const { nodeCircles, nodeLabels, edgeLines, edgeLabelEls, posMap } = s.svgEls;
+
+        // Nodes
+        for (const [id, els] of nodeCircles) {
+          const n = posMap.get(id);
+          if (!n) continue;
+          els.circle.setAttribute("cx", n.x);
+          els.circle.setAttribute("cy", n.y);
+          els.label.setAttribute("x", n.x);
+          els.label.setAttribute("y", n.y - 15);
+        }
+
+        // Edges
+        const R = 14;
+        for (const el of edgeLines) {
+          const sn = posMap.get(el.dataset.source);
+          const tn = posMap.get(el.dataset.target);
+          if (!sn || !tn) continue;
+          const dx = tn.x - sn.x, dy = tn.y - sn.y;
+          const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+          el.setAttribute("x1", sn.x + (dx / dist) * R);
+          el.setAttribute("y1", sn.y + (dy / dist) * R);
+          el.setAttribute("x2", tn.x - (dx / dist) * R);
+          el.setAttribute("y2", tn.y - (dy / dist) * R);
+        }
+        for (const el of edgeLabelEls) {
+          const sn = posMap.get(el.dataset.source);
+          const tn = posMap.get(el.dataset.target);
+          if (!sn || !tn) continue;
+          const dx = tn.x - sn.x, dy = tn.y - sn.y;
+          const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+          el.setAttribute("x", (sn.x + (dx / dist) * R + tn.x - (dx / dist) * R) / 2);
+          el.setAttribute("y", (sn.y + (dy / dist) * R + tn.y - (dy / dist) * R) / 2 - 4);
+        }
+      }
+
+      function runSimLoop(s) {
+        if (!s.running) return;
+        simTick(s);
+        updateSVGPositions(s);
+        if (s.alpha > s.alphaMin) {
+          requestAnimationFrame(() => runSimLoop(s));
+        }
+      }
+
+      function reheat(s, alpha) {
+        const wasIdle = s.alpha <= s.alphaMin;
+        s.alpha = alpha ?? 0.3;
+        if (wasIdle) runSimLoop(s);
+      }
+
+      let gvPanState = null;
+
+      function showGraphView() {
+        currentView = "graph";
+        document.getElementById("btn-table").classList.remove("active");
+        document.getElementById("btn-graph").classList.add("active");
+        document.getElementById("results-table-wrap").style.display = "none";
+        const gv = document.getElementById("graph-view");
+        gv.style.display = "block";
+
+        if (!lastBindings) return;
+        const g = extractGraphFromBindings(lastBindings);
+        if (g.nodes.length === 0) return;
+
+        const svg      = document.getElementById("gv-svg");
+        const viewport = document.getElementById("gv-viewport");
+        const edgesG   = document.getElementById("gv-edges");
+        const nodesG   = document.getElementById("gv-nodes");
+        const tooltip  = document.getElementById("gv-tooltip");
+        const svgNS    = "http://www.w3.org/2000/svg";
+
+        const rect = gv.getBoundingClientRect();
+        const W = rect.width || 700;
+        const H = Math.max(rect.height, 400);
+
+        svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+        edgesG.innerHTML = "";
+        nodesG.innerHTML = "";
+
+        // Stop previous simulation
+        stopSimulation();
+
+        // Create simulation
+        sim = createSimulation(g.nodes, g.edges, W, H);
+
+        const posMap = new Map();
+        g.nodes.forEach(n => posMap.set(n.id, n));
+
+        // Adjacency for highlighting
+        const adj = new Map();
+        g.nodes.forEach(n => adj.set(n.id, new Set()));
+        g.edges.forEach(e => {
+          if (adj.has(e.source)) adj.get(e.source).add(e.target);
+          if (adj.has(e.target)) adj.get(e.target).add(e.source);
+        });
+
+        // SVG element maps (for fast positional updates)
+        const nodeCircles  = new Map(); // id → { circle, label }
+        const edgeLines    = [];
+        const edgeLabelEls = [];
+
+        // Draw edges
+        for (const e of g.edges) {
+          const s = posMap.get(e.source);
+          const t = posMap.get(e.target);
+          if (!s || !t) continue;
+
+          const dx = t.x - s.x, dy = t.y - s.y;
+          const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+          const R = 14;
+
+          const line = document.createElementNS(svgNS, "line");
+          line.setAttribute("x1", s.x + (dx / dist) * R);
+          line.setAttribute("y1", s.y + (dy / dist) * R);
+          line.setAttribute("x2", t.x - (dx / dist) * R);
+          line.setAttribute("y2", t.y - (dy / dist) * R);
+          line.setAttribute("marker-end", "url(#arrowhead)");
+          line.classList.add("gv-edge");
+          line.dataset.source = e.source;
+          line.dataset.target = e.target;
+          edgesG.appendChild(line);
+          edgeLines.push(line);
+
+          if (e.type) {
+            const lbl = document.createElementNS(svgNS, "text");
+            lbl.setAttribute("x", (s.x + t.x) / 2);
+            lbl.setAttribute("y", (s.y + t.y) / 2 - 4);
+            lbl.classList.add("gv-edge-label");
+            lbl.dataset.source = e.source;
+            lbl.dataset.target = e.target;
+            lbl.textContent = e.type;
+            edgesG.appendChild(lbl);
+            edgeLabelEls.push(lbl);
+          }
+        }
+
+        // Draw nodes
+        for (const n of g.nodes) {
+          const group = document.createElementNS(svgNS, "g");
+          group.dataset.id = n.id;
+
+          const circle = document.createElementNS(svgNS, "circle");
+          circle.setAttribute("cx", n.x);
+          circle.setAttribute("cy", n.y);
+          circle.setAttribute("r", 10);
+          circle.setAttribute("fill", colorForType(n.type));
+          circle.setAttribute("stroke", "#fff");
+          circle.setAttribute("stroke-width", "2");
+          circle.classList.add("gv-node");
+          circle.dataset.id = n.id;
+          circle.style.cursor = "grab";
+          group.appendChild(circle);
+
+          const label = document.createElementNS(svgNS, "text");
+          label.setAttribute("x", n.x);
+          label.setAttribute("y", n.y - 15);
+          label.classList.add("gv-label");
+          label.dataset.id = n.id;
+          label.textContent = n.label.length > 20 ? n.label.slice(0, 18) + "…" : n.label;
+          label.style.cursor = "grab";
+          group.appendChild(label);
+
+          nodesG.appendChild(group);
+          nodeCircles.set(n.id, { circle, label });
+        }
+
+        // Store SVG element refs in sim for positional updates
+        sim.svgEls = { nodeCircles, nodeLabels: null, edgeLines, edgeLabelEls, posMap };
+
+        // Arrowhead coloring
+        const marker = document.getElementById("arrowhead");
+        if (marker) {
+          const poly = marker.querySelector("polygon");
+          if (poly) poly.classList.add("gv-arrowhead");
+        }
+
+        // ── Node dragging ──────────────────────────────────────────────────
+        let dragNode = null;
+
+        function svgPoint(clientX, clientY) {
+          // Convert screen coords → SVG viewBox coords accounting for pan/zoom
+          const pt = svg.createSVGPoint();
+          pt.x = clientX; pt.y = clientY;
+          const ctm = viewport.getScreenCTM();
+          if (ctm) {
+            const inv = ctm.inverse();
+            return pt.matrixTransform(inv);
+          }
+          // fallback
+          const r = svg.getBoundingClientRect();
+          return { x: (clientX - r.left), y: (clientY - r.top) };
+        }
+
+        svg.addEventListener("mousedown", ev => {
+          const hit = ev.target.closest(".gv-node") || ev.target.closest(".gv-label");
+          if (hit) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            const id = hit.dataset.id;
+            const n = posMap.get(id);
+            if (!n) return;
+            dragNode = n;
+            n.pinned = true;
+            svg.style.cursor = "grabbing";
+            // Reheat simulation so the rest of the graph reacts
+            if (sim) reheat(sim, 0.3);
+            return;
+          }
+          // Pan (no node hit)
+          isPanning = true; startX = ev.clientX; startY = ev.clientY; startTX = panTX; startTY = panTY;
+          svg.classList.add("panning");
+        });
+
+        window.addEventListener("mousemove", ev => {
+          if (dragNode) {
+            const p = svgPoint(ev.clientX, ev.clientY);
+            dragNode.x = p.x;
+            dragNode.y = p.y;
+            // Keep sim alive while dragging
+            if (sim && sim.alpha <= sim.alphaMin) reheat(sim, 0.1);
+            return;
+          }
+          if (isPanning) {
+            panTX = startTX + (ev.clientX - startX);
+            panTY = startTY + (ev.clientY - startY);
+            updateVP();
+          }
+        });
+
+        window.addEventListener("mouseup", () => {
+          if (dragNode) {
+            dragNode.pinned = false;
+            dragNode = null;
+            svg.style.cursor = "";
+            // Give a gentle reheat so nodes settle
+            if (sim) reheat(sim, 0.15);
+          }
+          if (isPanning) {
+            isPanning = false;
+            svg.classList.remove("panning");
+          }
+        });
+
+        // ── Hover highlight ────────────────────────────────────────────────
+        svg.addEventListener("mouseover", ev => {
+          if (dragNode) return;
+          const c = ev.target.closest(".gv-node");
+          if (!c) return;
+          const id = c.dataset.id;
+          const neighbors = adj.get(id) || new Set();
+          const connected = new Set([id, ...neighbors]);
+
+          nodesG.querySelectorAll(".gv-node").forEach(el => {
+            if (!connected.has(el.dataset.id)) el.classList.add("faded");
+          });
+          nodesG.querySelectorAll(".gv-label").forEach(el => {
+            if (!connected.has(el.dataset.id)) el.classList.add("faded");
+          });
+          edgesG.querySelectorAll(".gv-edge").forEach(el => {
+            if (el.dataset.source === id || el.dataset.target === id) {
+              el.classList.add("highlighted");
+            } else {
+              el.style.opacity = "0.08";
+            }
+          });
+
+          const node = posMap.get(id);
+          if (node) {
+            tooltip.innerHTML = `<span class="tt-name">${node.label}</span><span class="tt-type">${node.type}</span>` +
+              (node.description ? `<div class="tt-desc">${node.description}</div>` : "");
+            tooltip.style.display = "block";
+          }
+        });
+
+        svg.addEventListener("mousemove", ev => {
+          if (tooltip.style.display === "block" && !dragNode) {
+            tooltip.style.left = ev.clientX + 14 + "px";
+            tooltip.style.top  = ev.clientY - 10 + "px";
+          }
+        });
+
+        svg.addEventListener("mouseout", ev => {
+          const c = ev.target.closest(".gv-node");
+          if (!c) return;
+          tooltip.style.display = "none";
+          nodesG.querySelectorAll(".gv-node").forEach(el => el.classList.remove("faded"));
+          nodesG.querySelectorAll(".gv-label").forEach(el => el.classList.remove("faded"));
+          edgesG.querySelectorAll(".gv-edge").forEach(el => {
+            el.classList.remove("highlighted");
+            el.style.opacity = "";
+          });
+        });
+
+        // ── Pan & zoom ─────────────────────────────────────────────────────
+        let scale = 1, panTX = 0, panTY = 0, isPanning = false, startX, startY, startTX, startTY;
+        function updateVP() { viewport.setAttribute("transform", `translate(${panTX},${panTY}) scale(${scale})`); }
+
+        svg.addEventListener("wheel", ev => {
+          ev.preventDefault();
+          const f = ev.deltaY < 0 ? 1.08 : 1 / 1.08;
+          const ns = Math.max(0.2, Math.min(5, scale * f));
+          const r = svg.getBoundingClientRect();
+          const mx = ev.clientX - r.left, my = ev.clientY - r.top;
+          panTX = mx - (mx - panTX) * (ns / scale);
+          panTY = my - (my - panTY) * (ns / scale);
+          scale = ns;
+          updateVP();
+        }, { passive: false });
+
+        // Start the simulation loop
+        runSimLoop(sim);
+      }
+
+      function showTableView() {
+        currentView = "table";
+        document.getElementById("btn-graph").classList.remove("active");
+        document.getElementById("btn-table").classList.add("active");
+        document.getElementById("graph-view").style.display = "none";
+        document.getElementById("results-table-wrap").style.display = "";
+        stopSimulation();
+        if (lastResult) renderTable(lastResult);
+      }
+
+      // ─── UI wiring ──────────────────────────────────────────────────────────
+      function showError(msg) {
+        const el       = document.getElementById("query-error");
+        el.textContent = "Error: " + msg;
+        el.style.display = "block";
+      }
+
+      function clearError() {
+        document.getElementById("query-error").style.display = "none";
+      }
+
+      function runQuery() {
+        const query = document.getElementById("query-editor").value.trim();
+        if (!query) return;
+        clearError();
+        try {
+          const result = executeQuery(query);
+          renderResults(result, result.bindings);
+        } catch (e) {
+          document.getElementById("results-meta").style.display = "none";
+          document.getElementById("results-table-wrap").innerHTML = "";
+          document.getElementById("results-placeholder").style.display = "none";
+          showError(e.message);
+        }
+      }
+
+      document.getElementById("btn-run").addEventListener("click", runQuery);
+      document.getElementById("btn-clear").addEventListener("click", () => {
+        document.getElementById("query-editor").value = "";
+        clearError();
+        document.getElementById("results-meta").style.display = "none";
+        document.getElementById("results-table-wrap").innerHTML = "";
+        const p = document.getElementById("results-placeholder");
+        p.textContent   = "Run a query to see results.";
+        p.style.display = "block";
+      });
+      document.getElementById("query-editor").addEventListener("keydown", e => {
+        if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+          e.preventDefault();
+          runQuery();
+        }
+      });
+
+      // ─── Toggle buttons ──────────────────────────────────────────────────────
+      document.getElementById("btn-table").addEventListener("click", showTableView);
+      document.getElementById("btn-graph").addEventListener("click", showGraphView);
+
+      // ─── Init ───────────────────────────────────────────────────────────────
+      buildSchema();
+      buildExamples();
+    </script>
+  </body>
+</html>

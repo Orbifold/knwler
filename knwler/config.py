@@ -11,6 +11,7 @@ from rich.console import Console
 # Shared console
 # ---------------------------------------------------------------------------
 console = Console(record=True)
+null_console = Console(quiet=True)
 
 # ---------------------------------------------------------------------------
 # Project root (parent of the knwler package directory)
@@ -21,8 +22,8 @@ PACKAGE_ROOT = PROJECT_ROOT / "knwler"
 # ---------------------------------------------------------------------------
 # Default model names
 # ---------------------------------------------------------------------------
-DEFAULT_OLLAMA_DISCOVERY_MODEL = "llama3.2:latest"
-DEFAULT_OLLAMA_EXTRACTION_MODEL = "llama3.2:latest"
+DEFAULT_OLLAMA_DISCOVERY_MODEL = "qwen2.5:14b"
+DEFAULT_OLLAMA_EXTRACTION_MODEL = "qwen2.5:7b"
 
 DEFAULT_OPENAI_DISCOVERY_MODEL = "gpt-4o-mini"
 DEFAULT_OPENAI_EXTRACTION_MODEL = "gpt-4o-mini"
@@ -56,26 +57,60 @@ DEFAULT_GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/open
 # ---------------------------------------------------------------------------
 @dataclass
 class Config:
-    """Pipeline configuration."""
+    """
+    Pipeline configuration.
+    Attributes:
+        backend: Which backend to use for LLM calls. One of "ollama", "openai", "anthropic", "github", "lmstudio", or "gemini".
+        api_key: API key for the selected backend (if required).
+        base_url: Base URL for the selected backend's API.
+        extraction_model: Model name to use for information extraction.
+        discovery_model: Model name to use for discovery.
+        max_tokens: Maximum number of tokens per chunk.
+        overlap_tokens: Number of overlapping tokens between chunks.
+        max_concurrent: Maximum number of concurrent LLM calls.
+        num_predict: Number of tokens to predict in generation calls (set high to avoid truncation).
+        temperature: Sampling temperature for generation calls.
+        use_cache: Whether to cache LLM responses on disk.
+        template: Which prompt template to use (default is "default").
+    """
 
-    # Backend selection: "ollama" | "openai" | "anthropic" | "github" | "lmstudio" | "gemini"
     backend: str = "ollama"
+    """Which backend to use for LLM calls. One of "ollama", "openai", "anthropic", "github", "lmstudio", or "gemini"."""
 
     api_key: str = None
-    # None means "resolve from backend in __post_init__"
+    """API key for the selected backend (if required)."""
+
     base_url: str = None
+    """Base URL for the selected backend's API."""
+
     extraction_model: str = None
+    """Model name to use for information extraction."""
+
     discovery_model: str = None
+    """Model name to use for discovery."""
 
     max_tokens: int = 400
+    """Maximum number of tokens per chunk."""
+
     overlap_tokens: int = 50
+    """Number of overlapping tokens between chunks."""
+
     max_concurrent: int = 8
+    """Maximum number of concurrent LLM calls."""
+
     num_predict: int = (
         4096  # if too low this will truncate the JSON and it will fail to parse
     )
+    """Number of tokens to predict in generation calls (set high to avoid truncation)."""
+
     temperature: float = 0.1
+    """Sampling temperature for generation calls."""
+
     use_cache: bool = True
+    """Whether to cache LLM responses on disk."""
+
     template: str = "default"
+    """Which prompt template to use (default is "default")."""
 
     def __post_init__(self):
         # in case the user doesn't specify these, set them based on the backend

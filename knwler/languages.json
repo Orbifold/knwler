@@ -9,12 +9,12 @@
       "rephrase_chunk": "Rewrite the following text so that it is easy to understand. Keep all the key facts and names. Convey the information clearly and concisely.\n\nTEXT:\n\"\"\"{chunk}\"\"\"\n\nReturn JSON:\n{{\n  \"rephrase\": \"...\"\n}}",
       "extract_title": "Create a short, clear document title based on the text below. Return only a JSON object.\n\nTEXT:\n\"\"\"{sample}\"\"\"\n\nReturn JSON:\n{{\n  \"title\": \"...\"\n}}",
       "extract_summary": "Summarize the document below in 3-5 sentences. Focus on the main topic and key points. Return only JSON.\n\nTEXT:\n\"\"\"{sample}\"\"\"\n\nReturn JSON:\n{{\n  \"summary\": \"...\"\n}}",
-      "community_labeling": "You are labeling graph communities. For each community, return 1-3 short topics and a 1-2 sentence description.\n\nCOMMUNITIES:\n{communities_text}\n\nReturn JSON:\n{{\n  \"communities\": {{\n    \"<id>\": {{\"topics\": [\"topic1\", \"topic2\"], \"description\": \"...\"}},\n    ...\n  }}\n}}"
+      "cluster_labeling": "You are labeling graph clusters. For each cluster, return 1-3 short topics and a 1-2 sentence description.\n\nCLUSTERS:\n{clusters_text}\n\nReturn JSON:\n{{\n  \"clusters\": {{\n    \"<id>\": {{\"topics\": [\"topic1\", \"topic2\"], \"description\": \"...\"}},\n    ...\n  }}\n}}"
     },
     "ui": {
       "title": "Knowledge Graph",
       "summary_label": "Summary",
-      "metadata": "Extracted {entities} entities, {relations} relations and {communities} topics on {date}",
+      "metadata": "Extracted {entities} entities, {relations} relations and {clusters} topics on {date}",
       "source_label": "Source",
       "nav_chunks": "Text Chunks",
       "nav_topics": "Topics",
@@ -29,7 +29,7 @@
       "chunk_label": "Section",
       "type_label": "Type",
       "description_label": "Description",
-      "community_label": "Community",
+      "cluster_label": "Cluster",
       "chunks_label": "Sections",
       "disclaimer": "The information contained in this document has been extracted and processed using automated artificial intelligence tools (Knwl.AI). While we strive for accuracy, this data is generated via machine learning algorithms and natural language processing, which may result in errors, omissions, or misinterpretations of the original source material. This document is provided \"as is\" and for informational purposes only. Orbifold Consulting makes no warranties, express or implied, regarding the accuracy, completeness, or reliability of this information. Users are advised to independently verify any critical data against original source documents before making business, legal, or financial decisions. Orbifold Consulting assumes no liability for any actions taken in reliance upon this information."
     },
@@ -37,9 +37,9 @@
       "extracting": "Extracting...",
       "rephrasing": "Rephrasing...",
       "summarizing": "Summarizing {count} items...",
-      "analyzing_communities": "Analyzing communities...",
+      "analyzing_clusters": "Analyzing clusters...",
       "discovering_schema": "Discovering schema...",
-      "detected_communities": "Detected {count} communities",
+      "detected_clusters": "Detected {count} clusters",
       "removed_entities": "Removed {count} low-importance entities (meaningless name or zero degree)"
     }
   },
@@ -53,12 +53,12 @@
       "rephrase_chunk": "Schreibe den folgenden Text so um, dass er leicht verständlich ist. Behalte alle wichtigen Fakten und Namen bei. Vermittle die Informationen klar und prägnant.\n\nTEXT:\n\"\"\"{chunk}\"\"\"\n\nJSON zurückgeben:\n{{\n  \"rephrase\": \"...\"\n}}",
       "extract_title": "Erstelle einen kurzen, klaren Dokumenttitel basierend auf dem folgenden Text. Gib nur ein JSON-Objekt zurück.\n\nTEXT:\n\"\"\"{sample}\"\"\"\n\nJSON zurückgeben:\n{{\n  \"title\": \"...\"\n}}",
       "extract_summary": "Fasse das folgende Dokument in 3-5 Sätzen zusammen. Konzentriere dich auf das Hauptthema und die wichtigsten Punkte. Gib nur JSON zurück.\n\nTEXT:\n\"\"\"{sample}\"\"\"\n\nJSON zurückgeben:\n{{\n  \"summary\": \"...\"\n}}",
-      "community_labeling": "Du beschriftest Graph-Gemeinschaften. Gib für jede Gemeinschaft 1-3 kurze Themen und eine 1-2 Sätze lange Beschreibung zurück.\n\nGEMEINSCHAFTEN:\n{communities_text}\n\nJSON zurückgeben:\n{{\n  \"communities\": {{\n    \"<id>\": {{\"topics\": [\"thema1\", \"thema2\"], \"description\": \"...\"}},\n    ...\n  }}\n}}"
+      "cluster_labeling": "Du beschriftest Graph-Cluster. Gib für jeden Cluster 1-3 kurze Themen und eine 1-2 Sätze lange Beschreibung zurück.\n\nCLUSTER:\n{clusters_text}\n\nJSON zurückgeben:\n{{\n  \"clusters\": {{\n    \"<id>\": {{\"topics\": [\"thema1\", \"thema2\"], \"description\": \"...\"}},\n    ...\n  }}\n}}"
     },
     "ui": {
       "title": "Wissensgraph",
       "summary_label": "Zusammenfassung",
-      "metadata": "{entities} Entitäten, {relations} Beziehungen und {communities} Themen am {date} extrahiert",
+      "metadata": "{entities} Entitäten, {relations} Beziehungen und {clusters} Themen am {date} extrahiert",
       "source_label": "Quelle",
       "nav_chunks": "Textabschnitte",
       "nav_topics": "Themen",
@@ -73,7 +73,7 @@
       "chunk_label": "Abschnitt",
       "type_label": "Typ",
       "description_label": "Beschreibung",
-      "community_label": "Gemeinschaft",
+      "cluster_label": "Gemeinschaft",
       "chunks_label": "Abschnitte",
       "disclaimer": "Die in diesem Dokument enthaltenen Informationen wurden mit automatisierten Werkzeugen der künstlichen Intelligenz (Knwl.AI) extrahiert und verarbeitet. Obwohl wir nach Genauigkeit streben, werden diese Daten durch maschinelles Lernen und natürliche Sprachverarbeitung generiert, was zu Fehlern, Auslassungen oder Fehlinterpretationen des Quellmaterials führen kann. Dieses Dokument wird \"wie besehen\" und nur zu Informationszwecken bereitgestellt. Orbifold Consulting gibt keine ausdrücklichen oder stillschweigenden Garantien hinsichtlich der Genauigkeit, Vollständigkeit oder Zuverlässigkeit dieser Informationen. Benutzern wird empfohlen, kritische Daten unabhängig anhand der Originaldokumente zu überprüfen, bevor sie geschäftliche, rechtliche oder finanzielle Entscheidungen treffen. Orbifold Consulting übernimmt keine Haftung für Handlungen, die auf Grundlage dieser Informationen erfolgen."
     },
@@ -81,9 +81,9 @@
       "extracting": "Extrahiere...",
       "rephrasing": "Umformuliere...",
       "summarizing": "{count} Elemente zusammenfassen...",
-      "analyzing_communities": "Analysiere Gemeinschaften...",
+      "analyzing_clusters": "Analysiere Gemeinschaften...",
       "discovering_schema": "Schema wird entdeckt...",
-      "detected_communities": "{count} Gemeinschaften erkannt",
+      "detect_clusters": "{count} Gemeinschaften erkannt",
       "removed_entities": "{count} unwichtige Entitäten entfernt (bedeutungsloser Name oder Grad null)"
     }
   },
@@ -97,12 +97,12 @@
       "rephrase_chunk": "Réécrivez le texte suivant pour qu'il soit facile à comprendre. Gardez tous les faits clés et les noms. Transmettez les informations clairement et de manière concise.\n\nTEXTE:\n\"\"\"{chunk}\"\"\"\n\nRetourner JSON:\n{{\n  \"rephrase\": \"...\"\n}}",
       "extract_title": "Créez un titre de document court et clair basé sur le texte ci-dessous. Retournez uniquement un objet JSON.\n\nTEXTE:\n\"\"\"{sample}\"\"\"\n\nRetourner JSON:\n{{\n  \"title\": \"...\"\n}}",
       "extract_summary": "Résumez le document ci-dessous en 3-5 phrases. Concentrez-vous sur le sujet principal et les points clés. Retournez uniquement JSON.\n\nTEXTE:\n\"\"\"{sample}\"\"\"\n\nRetourner JSON:\n{{\n  \"summary\": \"...\"\n}}",
-      "community_labeling": "Vous étiquetez des communautés de graphes. Pour chaque communauté, retournez 1-3 sujets courts et une description de 1-2 phrases.\n\nCOMMUNAUTÉS:\n{communities_text}\n\nRetourner JSON:\n{{\n  \"communities\": {{\n    \"<id>\": {{\"topics\": [\"sujet1\", \"sujet2\"], \"description\": \"...\"}},\n    ...\n  }}\n}}"
+      "cluster_labeling": "Vous étiquetez des communautés de graphes. Pour chaque communauté, retournez 1-3 sujets courts et une description de 1-2 phrases.\n\nCOMMUNAUTÉS:\n{clusters_text}\n\nRetourner JSON:\n{{\n  \"clusters\": {{\n    \"<id>\": {{\"topics\": [\"sujet1\", \"sujet2\"], \"description\": \"...\"}},\n    ...\n  }}\n}}"
     },
     "ui": {
       "title": "Graphe de Connaissances",
       "summary_label": "Résumé",
-      "metadata": "{entities} entités, {relations} relations et {communities} sujets extraits le {date}",
+      "metadata": "{entities} entités, {relations} relations et {clusters} sujets extraits le {date}",
       "source_label": "Source",
       "nav_chunks": "Sections de Texte",
       "nav_topics": "Sujets",
@@ -117,7 +117,7 @@
       "chunk_label": "Section",
       "type_label": "Type",
       "description_label": "Description",
-      "community_label": "Communauté",
+      "cluster_label": "Communauté",
       "chunks_label": "Sections",
       "disclaimer": "Les informations contenues dans ce document ont été extraites et traitées à l'aide d'outils d'intelligence artificielle automatisés (Knwl.AI). Bien que nous nous efforcions d'être précis, ces données sont générées par des algorithmes d'apprentissage automatique et de traitement du langage naturel, ce qui peut entraîner des erreurs, des omissions ou des interprétations erronées du matériel source original. Ce document est fourni \"tel quel\" et à titre informatif uniquement. Orbifold Consulting ne donne aucune garantie, expresse ou implicite, concernant l'exactitude, l'exhaustivité ou la fiabilité de ces informations. Il est conseillé aux utilisateurs de vérifier indépendamment toute donnée critique par rapport aux documents sources originaux avant de prendre des décisions commerciales, juridiques ou financières. Orbifold Consulting décline toute responsabilité pour les actions entreprises sur la base de ces informations."
     },
@@ -125,9 +125,9 @@
       "extracting": "Extraction...",
       "rephrasing": "Reformulation...",
       "summarizing": "Résumé de {count} éléments...",
-      "analyzing_communities": "Analyse des communautés...",
+      "analyzing_clusters": "Analyse des communautés...",
       "discovering_schema": "Découverte du schéma...",
-      "detected_communities": "{count} communautés détectées",
+      "detect_clusters": "{count} communautés détectées",
       "removed_entities": "{count} entités de faible importance supprimées (nom sans signification ou degré zéro)"
     }
   },
@@ -141,12 +141,12 @@
       "rephrase_chunk": "Reescribe el siguiente texto para que sea fácil de entender. Mantén todos los hechos clave y nombres. Transmite la información de manera clara y concisa.\n\nTEXTO:\n\"\"\"{chunk}\"\"\"\n\nDevolver JSON:\n{{\n  \"rephrase\": \"...\"\n}}",
       "extract_title": "Crea un título de documento corto y claro basado en el texto a continuación. Devuelve solo un objeto JSON.\n\nTEXTO:\n\"\"\"{sample}\"\"\"\n\nDevolver JSON:\n{{\n  \"title\": \"...\"\n}}",
       "extract_summary": "Resume el documento a continuación en 3-5 oraciones. Concéntrate en el tema principal y los puntos clave. Devuelve solo JSON.\n\nTEXTO:\n\"\"\"{sample}\"\"\"\n\nDevolver JSON:\n{{\n  \"summary\": \"...\"\n}}",
-      "community_labeling": "Estás etiquetando comunidades de grafos. Para cada comunidad, devuelve 1-3 temas cortos y una descripción de 1-2 oraciones.\n\nCOMUNIDADES:\n{communities_text}\n\nDevolver JSON:\n{{\n  \"communities\": {{\n    \"<id>\": {{\"topics\": [\"tema1\", \"tema2\"], \"description\": \"...\"}},\n    ...\n  }}\n}}"
+      "cluster_labeling": "Estás etiquetando comunidades de grafos. Para cada comunidad, devuelve 1-3 temas cortos y una descripción de 1-2 oraciones.\n\nCOMUNIDADES:\n{clusters_text}\n\nDevolver JSON:\n{{\n  \"clusters\": {{\n    \"<id>\": {{\"topics\": [\"tema1\", \"tema2\"], \"description\": \"...\"}},\n    ...\n  }}\n}}"
     },
     "ui": {
       "title": "Grafo de Conocimiento",
       "summary_label": "Resumen",
-      "metadata": "{entities} entidades, {relations} relaciones y {communities} temas extraídos el {date}",
+      "metadata": "{entities} entidades, {relations} relaciones y {clusters} temas extraídos el {date}",
       "source_label": "Fuente",
       "nav_chunks": "Secciones de Texto",
       "nav_topics": "Temas",
@@ -161,7 +161,7 @@
       "chunk_label": "Sección",
       "type_label": "Tipo",
       "description_label": "Descripción",
-      "community_label": "Comunidad",
+      "cluster_label": "Comunidad",
       "chunks_label": "Secciones",
       "disclaimer": "La información contenida en este documento ha sido extraída y procesada utilizando herramientas automatizadas de inteligencia artificial (Knwl.AI). Aunque nos esforzamos por la precisión, estos datos se generan mediante algoritmos de aprendizaje automático y procesamiento del lenguaje natural, lo que puede resultar en errores, omisiones o interpretaciones erróneas del material fuente original. Este documento se proporciona \"tal cual\" y solo con fines informativos. Orbifold Consulting no ofrece garantías, expresas o implícitas, con respecto a la exactitud, integridad o fiabilidad de esta información. Se aconseja a los usuarios que verifiquen independientemente cualquier dato crítico contra los documentos fuente originales antes de tomar decisiones comerciales, legales o financieras. Orbifold Consulting no asume ninguna responsabilidad por las acciones tomadas en base a esta información."
     },
@@ -169,9 +169,9 @@
       "extracting": "Extrayendo...",
       "rephrasing": "Reformulando...",
       "summarizing": "Resumiendo {count} elementos...",
-      "analyzing_communities": "Analizando comunidades...",
+      "analyzing_clusters": "Analizando comunidades...",
       "discovering_schema": "Descubriendo esquema...",
-      "detected_communities": "{count} comunidades detectadas",
+      "detect_clusters": "{count} comunidades detectadas",
       "removed_entities": "{count} entidades de baja importancia eliminadas (nombre sin sentido o grado cero)"
     }
   },
@@ -185,12 +185,12 @@
       "rephrase_chunk": "Herschrijf de volgende tekst zodat deze gemakkelijk te begrijpen is. Behoud alle belangrijke feiten en namen. Breng de informatie duidelijk en beknopt over.\n\nTEKST:\n\"\"\"{chunk}\"\"\"\n\nReturneer JSON:\n{{\n  \"rephrase\": \"...\"\n}}",
       "extract_title": "Maak een korte, duidelijke documenttitel op basis van de onderstaande tekst. Retourneer alleen een JSON-object.\n\nTEKST:\n\"\"\"{sample}\"\"\"\n\nReturneer JSON:\n{{\n  \"title\": \"...\"\n}}",
       "extract_summary": "Vat het onderstaande document samen in 3-5 zinnen. Focus op het hoofdonderwerp en de belangrijkste punten. Retourneer alleen JSON.\n\nTEKST:\n\"\"\"{sample}\"\"\"\n\nReturneer JSON:\n{{\n  \"summary\": \"...\"\n}}",
-      "community_labeling": "Je labelt netwerk clusters. Geef voor elke cluster 1-3 korte onderwerpen en een beschrijving van 1-2 zinnen.\n\nCLUSTERS:\n{communities_text}\n\nRetourneer JSON:\n{{\n  \"communities\": {{\n    \"<id>\": {{\"topics\": [\"onderwerp1\", \"onderwerp2\"], \"description\": \"...\"}},\n    ...\n  }}\n}}"
+      "cluster_labeling": "Je labelt netwerk clusters. Geef voor elke cluster 1-3 korte onderwerpen en een beschrijving van 1-2 zinnen.\n\nCLUSTERS:\n{clusters_text}\n\nRetourneer JSON:\n{{\n  \"clusters\": {{\n    \"<id>\": {{\"topics\": [\"onderwerp1\", \"onderwerp2\"], \"description\": \"...\"}},\n    ...\n  }}\n}}"
     },
     "ui": {
       "title": "Kennisgraaf",
       "summary_label": "Samenvatting",
-      "metadata": "{entities} entiteiten, {relations} relaties en {communities} onderwerpen geëxtraheerd op {date}",
+      "metadata": "{entities} entiteiten, {relations} relaties en {clusters} onderwerpen geëxtraheerd op {date}",
       "source_label": "Bron",
       "nav_chunks": "Tekstsecties",
       "nav_topics": "Onderwerpen",
@@ -205,7 +205,7 @@
       "chunk_label": "Sectie",
       "type_label": "Type",
       "description_label": "Beschrijving",
-      "community_label": "Clusters",
+      "cluster_label": "Clusters",
       "chunks_label": "Secties",
       "disclaimer": "De informatie in dit document is geëxtraheerd en verwerkt met behulp van geautomatiseerde kunstmatige intelligentie-tools (Knwl.AI). Hoewel we streven naar nauwkeurigheid, worden deze gegevens gegenereerd via machine learning-algoritmen en natuurlijke taalverwerking, wat kan resulteren in fouten, weglatingen of verkeerde interpretaties van het originele bronmateriaal. Dit document wordt \"zoals het is\" en alleen voor informatieve doeleinden verstrekt. Orbifold Consulting geeft geen garanties, expliciet of impliciet, met betrekking tot de nauwkeurigheid, volledigheid of betrouwbaarheid van deze informatie. Gebruikers wordt geadviseerd om kritieke gegevens onafhankelijk te verifiëren aan de hand van originele brondocumenten voordat zij zakelijke, juridische of financiële beslissingen nemen. Orbifold Consulting aanvaardt geen aansprakelijkheid voor acties die worden ondernomen op basis van deze informatie."
     },
@@ -213,9 +213,9 @@
       "extracting": "Extraheren...",
       "rephrasing": "Herformuleren...",
       "summarizing": "{count} items samenvatten...",
-      "analyzing_communities": "Clusters analyse...",
+      "analyzing_clusters": "Clusters analyse...",
       "discovering_schema": "Schema ontdekken...",
-      "detected_communities": "{count} clusters gedetecteerd",
+      "detect_clusters": "{count} clusters gedetecteerd",
       "removed_entities": "{count} onbelangrijke entiteiten verwijderd (betekenisloze naam of graad nul)"
     }
   },
@@ -229,12 +229,12 @@
       "rephrase_chunk": "Riscrivi il seguente testo in modo che sia facile da capire. Mantieni tutti i fatti e i nomi chiave. Trasmetti le informazioni in modo chiaro e conciso.\n\nTESTO:\n\"\"\"{chunk}\"\"\"\n\nRestituisci JSON:\n{{\n  \"rephrase\": \"...\"\n}}",
       "extract_title": "Crea un titolo del documento breve e chiaro basato sul testo sottostante. Restituisci solo un oggetto JSON.\n\nTESTO:\n\"\"\"{sample}\"\"\"\n\nRestituisci JSON:\n{{\n  \"title\": \"...\"\n}}",
       "extract_summary": "Riassumi il documento sottostante in 3-5 frasi. Concentrati sull'argomento principale e sui punti chiave. Restituisci solo JSON.\n\nTESTO:\n\"\"\"{sample}\"\"\"\n\nRestituisci JSON:\n{{\n  \"summary\": \"...\"\n}}",
-      "community_labeling": "Stai etichettando le comunità del grafo. Per ogni comunità, restituisci 1-3 argomenti brevi e una descrizione di 1-2 frasi.\n\nCOMUNITÀ:\n{communities_text}\n\nRestituisci JSON:\n{{\n  \"communities\": {{\n    \"<id>\": {{\"topics\": [\"argomento1\", \"argomento2\"], \"description\": \"...\"}},\n    ...\n  }}\n}}"
+      "cluster_labeling": "Stai etichettando le comunità del grafo. Per ogni comunità, restituisci 1-3 argomenti brevi e una descrizione di 1-2 frasi.\n\nCOMUNITÀ:\n{clusters_text}\n\nRestituisci JSON:\n{{\n  \"clusters\": {{\n    \"<id>\": {{\"topics\": [\"argomento1\", \"argomento2\"], \"description\": \"...\"}},\n    ...\n  }}\n}}"
     },
     "ui": {
       "title": "Grafo di Conoscenza",
       "summary_label": "Sommario",
-      "metadata": "Estratte {entities} entità, {relations} relazioni e {communities} argomenti il {date}",
+      "metadata": "Estratte {entities} entità, {relations} relazioni e {clusters} argomenti il {date}",
       "source_label": "Fonte",
       "nav_chunks": "Porzioni di Testo",
       "nav_topics": "Argomenti",
@@ -249,7 +249,7 @@
       "chunk_label": "Sezione",
       "type_label": "Tipo",
       "description_label": "Descrizione",
-      "community_label": "Comunità",
+      "cluster_label": "Comunità",
       "chunks_label": "Sezioni",
       "disclaimer": "Le informazioni contenute in questo documento sono state estratte e elaborate utilizzando strumenti di intelligenza artificiale automatizzati (Knwl.AI). Sebbene ci sforziamo per l'accuratezza, questi dati vengono generati tramite algoritmi di apprendimento automatico e di elaborazione del linguaggio naturale, il che potrebbe comportare errori, omissioni o interpretazioni errate del materiale di origine originale. Questo documento è fornito \"così com'è\" e solo a scopo informativo. Orbifold Consulting non fornisce alcuna garanzia, esplicita o implicita, riguardo all'accuratezza, completezza o affidabilità di queste informazioni. Si consiglia agli utenti di verificare in modo indipendente qualsiasi dato critico rispetto ai documenti di origine originali prima di prendere decisioni aziendali, legali o finanziarie. Orbifold Consulting non si assume alcuna responsabilità per eventuali azioni intraprese facendo affidamento su queste informazioni."
     },
@@ -257,9 +257,9 @@
       "extracting": "Estrazione in corso...",
       "rephrasing": "Riformulazione in corso...",
       "summarizing": "Riassunto di {count} elementi in corso...",
-      "analyzing_communities": "Analisi delle comunità in corso...",
+      "analyzing_clusters": "Analisi delle comunità in corso...",
       "discovering_schema": "Scoperta dello schema in corso...",
-      "detected_communities": "Rilevate {count} comunità",
+      "detect_clusters": "Rilevate {count} comunità",
       "removed_entities": "Rimosse {count} entità di bassa importanza (nome senza senso o grado zero)"
     }
   },
@@ -273,12 +273,12 @@
       "rephrase_chunk": "Reescreva o texto a seguir para que seja fácil de entender. Mantenha todos os fatos e nomes principais. Transmita as informações de forma clara e concisa.\n\nTEXTO:\n\"\"\"{chunk}\"\"\"\n\nRetornar JSON:\n{{\n  \"rephrase\": \"...\"\n}}",
       "extract_title": "Crie um título de documento curto e claro com base no texto abaixo. Retorne apenas um objeto JSON.\n\nTEXTO:\n\"\"\"{sample}\"\"\"\n\nRetornar JSON:\n{{\n  \"title\": \"...\"\n}}",
       "extract_summary": "Resuma o documento abaixo em 3-5 frases. Concentre-se no tópico principal e nos pontos-chave. Retorne apenas JSON.\n\nTEXTO:\n\"\"\"{sample}\"\"\"\n\nRetornar JSON:\n{{\n  \"summary\": \"...\"\n}}",
-      "community_labeling": "Você está rotulando comunidades de grafos. Para cada comunidade, retorne 1-3 tópicos curtos e uma descrição de 1-2 frases.\n\nCOMUNIDADES:\n{communities_text}\n\nRetornar JSON:\n{{\n  \"communities\": {{\n    \"<id>\": {{\"topics\": [\"tópico1\", \"tópico2\"], \"description\": \"...\"}},\n    ...\n  }}\n}}"
+      "cluster_labeling": "Você está rotulando comunidades de grafos. Para cada comunidade, retorne 1-3 tópicos curtos e uma descrição de 1-2 frases.\n\nCOMUNIDADES:\n{clusters_text}\n\nRetornar JSON:\n{{\n  \"clusters\": {{\n    \"<id>\": {{\"topics\": [\"tópico1\", \"tópico2\"], \"description\": \"...\"}},\n    ...\n  }}\n}}"
     },
     "ui": {
       "title": "Grafo de Conhecimento",
       "summary_label": "Resumo",
-      "metadata": "{entities} entidades, {relations} relações e {communities} tópicos extraídos em {date}",
+      "metadata": "{entities} entidades, {relations} relações e {clusters} tópicos extraídos em {date}",
       "source_label": "Fonte",
       "nav_chunks": "Trechos de Texto",
       "nav_topics": "Tópicos",
@@ -293,7 +293,7 @@
       "chunk_label": "Seção",
       "type_label": "Tipo",
       "description_label": "Descrição",
-      "community_label": "Comunidade",
+      "cluster_label": "Comunidade",
       "chunks_label": "Seções",
       "disclaimer": "As informações contidas neste documento foram extraídas e processadas usando ferramentas automatizadas de inteligência artificial (Knwl.AI). Embora nos esforcemos para obter precisão, esses dados são gerados por algoritmos de aprendizado de máquina e processamento de linguagem natural, o que pode resultar em erros, omissões ou interpretações incorretas do material de origem original. Este documento é fornecido \"como está\" e apenas para fins informativos. A Orbifold Consulting não oferece garantias, expressas ou implícitas, em relação à precisão, integridade ou confiabilidade destas informações. Os usuários são aconselhados a verificar independentemente quaisquer dados críticos em relação aos documentos de origem originais antes de tomar decisões comerciais, legais ou financeiras. A Orbifold Consulting não assume nenhuma responsabilidade por quaisquer ações tomadas com base nestas informações."
     },
@@ -301,9 +301,9 @@
       "extracting": "Extraindo...",
       "rephrasing": "Reformulando...",
       "summarizing": "Resumindo {count} itens...",
-      "analyzing_communities": "Analisando comunidades...",
+      "analyzing_clusters": "Analisando comunidades...",
       "discovering_schema": "Descobrindo esquema...",
-      "detected_communities": "{count} comunidades detectadas",
+      "detect_clusters": "{count} comunidades detectadas",
       "removed_entities": "{count} entidades de baixa importância removidas (nome sem sentido ou grau zero)"
     }
   },
@@ -317,12 +317,12 @@
       "rephrase_chunk": "重写以下文本，使其易于理解。保留所有关键事实和名称。清晰而简洁地传达信息。\n\n文本：\n\"\"\"{chunk}\"\"\"\n\n返回 JSON：\n{{\n  \"rephrase\": \"...\"\n}}",
       "extract_title": "根据下面的文本创建一个简短明了的文档标题。仅返回 JSON 对象。\n\n文本：\n\"\"\"{sample}\"\"\"\n\n返回 JSON：\n{{\n  \"title\": \"...\"\n}}",
       "extract_summary": "用 3-5 句话总结下面的文档。专注于主要主题和关键点。仅返回 JSON。\n\n文本：\n\"\"\"{sample}\"\"\"\n\n返回 JSON：\n{{\n  \"summary\": \"...\"\n}}",
-      "community_labeling": "您正在标记图谱社区。对于每个社区，返回 1-3 个简短主题和 1-2 句话的描述。\n\n社区：\n{communities_text}\n\n返回 JSON：\n{{\n  \"communities\": {{\n    \"<id>\": {{\"topics\": [\"主题1\", \"主题2\"], \"description\": \"...\"}},\n    ...\n  }}\n}}"
+      "cluster_labeling": "您正在标记图谱社区。对于每个社区，返回 1-3 个简短主题和 1-2 句话的描述。\n\n社区：\n{clusters_text}\n\n返回 JSON：\n{{\n  \"clusters\": {{\n    \"<id>\": {{\"topics\": [\"主题1\", \"主题2\"], \"description\": \"...\"}},\n    ...\n  }}\n}}"
     },
     "ui": {
       "title": "知识图谱",
       "summary_label": "摘要",
-      "metadata": "于 {date} 提取了 {entities} 个实体、{relations} 个关系和 {communities} 个主题",
+      "metadata": "于 {date} 提取了 {entities} 个实体、{relations} 个关系和 {clusters} 个主题",
       "source_label": "来源",
       "nav_chunks": "文本块",
       "nav_topics": "主题",
@@ -337,7 +337,7 @@
       "chunk_label": "部分",
       "type_label": "类型",
       "description_label": "描述",
-      "community_label": "社区",
+      "cluster_label": "社区",
       "chunks_label": "部分",
       "disclaimer": "本文档中包含的信息是使用自动化人工智能工具（Knwl.AI）提取和处理的。虽然我们力求准确，但这些数据是通过机器学习算法和自然语言处理生成的，这可能会导致错误、遗漏或对原始材料的误解。本文件“按原样”提供，仅供参考。Orbifold Consulting 对于此信息的准确性、完整性或可靠性不作任何明示或暗示的保证。建议用户在做出商业、法律或财务决策之前，将任何关键数据与原始源文档独立进行验证。Orbifold Consulting 对依据这些信息采取的任何行动概不负责。"
     },
@@ -345,9 +345,9 @@
       "extracting": "正在提取...",
       "rephrasing": "正在改写...",
       "summarizing": "正在总结 {count} 个项目...",
-      "analyzing_communities": "正在分析社区...",
+      "analyzing_clusters": "正在分析社区...",
       "discovering_schema": "正在发现模式...",
-      "detected_communities": "检测到 {count} 个社区",
+      "detect_clusters": "检测到 {count} 个社区",
       "removed_entities": "移除了 {count} 个低重要性实体（无意义的名称或度数为零）"
     }
   }

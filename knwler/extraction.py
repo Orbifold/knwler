@@ -7,7 +7,7 @@ import json
 import time
 from pathlib import Path
 from typing import Any
-
+from uuid import uuid4
 from rich.progress import (
     BarColumn,
     Progress,
@@ -17,8 +17,8 @@ from rich.progress import (
     TimeElapsedColumn,
 )
 
-from knwler.config import Config, console
-from knwler.models import ExtractionResult, Schema, Graph
+from knwler.config import Config, console, null_console
+from knwler.models import ChunkGraph, Schema, Graph, Chunk
 
 from knwler.chunking import get_encoder
 from knwler.language import get_console_msg, get_prompt
@@ -67,19 +67,21 @@ async def extract_graph(text: str, schema: Schema, config: Config) -> dict[str, 
 
 
 async def extract_chunk(
-    chunk: str, idx: int, schema: Schema, config: Config
-) -> ExtractionResult:
+    chunk: Chunk | str, schema: Schema, config: Config
+) -> ChunkGraph:
     """Extract from a single chunk with timing."""
     t0 = time.perf_counter()
-    result = await extract_graph(chunk, schema, config)
+    if isinstance(chunk, str):
+        chunk = Chunk(chunk_idx=0, text=chunk)
+    result = await extract_graph(chunk.text, schema, config)
     elapsed = time.perf_counter() - t0
     # an ExtractionResult couples a chunk with a graph
-    return ExtractionResult(
+    return ChunkGraph(
         entities=result["entities"],
         relations=result["relations"],
-        chunk_idx=idx,
+        chunk=chunk,
         chunk_time=elapsed,
-        chunk_tokens=len(get_encoder().encode(chunk)),
+        chunk_tokens=len(get_encoder().encode(chunk.text)),
     )
 
 
@@ -89,7 +91,7 @@ async def extract_chunk(
 def _save_partial_results(
     output_path: Path,
     schema: Schema,
-    results: list[ExtractionResult],
+    results: list[ChunkGraph],
     completed: int,
     total: int,
 ):
@@ -106,13 +108,13 @@ def _save_partial_results(
         "results": [
             {
                 "id": r.id,
-                "chunk_idx": r.chunk_idx,
+                "chunk_idx": r.chunk.chunk_idx,
                 "entities": r.entities,
                 "relations": r.relations,
                 "chunk_time": r.chunk_time,
                 "chunk_tokens": r.chunk_tokens,
             }
-            for r in sorted(results, key=lambda x: x.chunk_idx)
+            for r in sorted(results, key=lambda x: x.chunk.chunk_idx)
         ],
     }
     partial_path.write_text(json.dumps(partial_json, indent=2), encoding="utf-8")
@@ -121,16 +123,19 @@ def _save_partial_results(
 # ---------------------------------------------------------------------------
 # Parallel extraction
 # ---------------------------------------------------------------------------
-async def extract_all(
-    chunks: list[str],
+async def extract_chunks(
+    chunks: list[Chunk],
     schema: Schema,
     config: Config = Config(),
     output_path: Path | None = None,
-) -> list[ExtractionResult]:
+    _console=None,
+) -> list[ChunkGraph]:
     """Extract from all chunks with concurrency control and incremental saving."""
+    if _console is None:
+        _console = console
     semaphore = asyncio.Semaphore(config.max_concurrent)
     total = len(chunks)
-    results: list[ExtractionResult] = []
+    results: list[ChunkGraph] = []
     lock = asyncio.Lock()
     progress_msg = get_console_msg("extracting") or "Extracting..."
 
@@ -141,14 +146,14 @@ async def extract_all(
         TaskProgressColumn(),
         TextColumn("•"),
         TimeElapsedColumn(),
-        console=console,
+        console=_console,
         transient=False,
     ) as progress:
         task = progress.add_task(f"[cyan]{progress_msg}", total=total)
 
-        async def bounded(chunk: str, idx: int) -> ExtractionResult:
+        async def bounded(chunk: Chunk, idx: int) -> ChunkGraph:
             async with semaphore:
-                result = await extract_chunk(chunk, idx, schema, config)
+                result = await extract_chunk(chunk, schema, config)
                 async with lock:
                     try:
                         results.append(result)
@@ -156,9 +161,10 @@ async def extract_all(
                             _save_partial_results(
                                 output_path, schema, results, len(results), total
                             )
-                        progress.update(task, advance=1)
                     except Exception as e:
-                        console.print(f"[red]Error saving partial results:[/red] {e}")
+                        _console.print(f"[red]Error saving partial results:[/red] {e}")
+                    progress.update(task, advance=1)
+
                 return result
 
         await asyncio.gather(*[bounded(c, i) for i, c in enumerate(chunks)])
@@ -169,4 +175,4 @@ async def extract_all(
         if partial_path.exists():
             partial_path.unlink()
 
-    return sorted(results, key=lambda x: x.chunk_idx)
+    return sorted(results, key=lambda x: x.chunk.chunk_idx)

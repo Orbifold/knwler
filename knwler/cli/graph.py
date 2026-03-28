@@ -47,7 +47,7 @@ def _load_graph_data(path: Path) -> dict:
     return {
         "entities": graph.get("entities", []),
         "relations": graph.get("relations", []),
-        "communities": graph.get("communities", []),
+        "clusters": graph.get("clusters", []),
         "chunks": data.get("chunks", []),
         "title": title,
         "schema": data.get("schema", {}),
@@ -272,7 +272,7 @@ def convert_graph(
 def _compute_analysis(data: dict, top_n: int) -> dict:
     entities = data["entities"]
     relations = data["relations"]
-    communities = data["communities"]
+    clusters = data["clusters"]
     chunks = data["chunks"]
 
     G = _build_nx_graph(entities, relations)
@@ -357,8 +357,8 @@ def _compute_analysis(data: dict, top_n: int) -> dict:
         Counter(r.get("type", "unknown") for r in relations).most_common(20)
     )
 
-    # Community summaries
-    community_stats = [
+    # Cluster summaries
+    cluster_stats = [
         {
             "id": c.get("id"),
             "topics": c.get("topics", []),
@@ -367,7 +367,7 @@ def _compute_analysis(data: dict, top_n: int) -> dict:
             "members": sorted(c.get("members", []))[:12],
         }
         for c in sorted(
-            communities, key=lambda x: len(x.get("members", [])), reverse=True
+            clusters, key=lambda x: len(x.get("members", [])), reverse=True
         )
     ]
 
@@ -392,7 +392,7 @@ def _compute_analysis(data: dict, top_n: int) -> dict:
             "num_relations": num_relations,
             "density": density,
             "avg_degree": avg_degree,
-            "num_communities": len(communities),
+            "num_clusters": len(clusters),
             "num_chunks": len(chunks),
             "n_components": n_components,
             "largest_cc_size": largest_cc_size,
@@ -404,7 +404,7 @@ def _compute_analysis(data: dict, top_n: int) -> dict:
         "top_chunks": top_chunks,
         "entity_type_counts": entity_type_counts,
         "relation_type_counts": relation_type_counts,
-        "communities": community_stats,
+        "clusters": cluster_stats,
     }
 
 
@@ -491,7 +491,7 @@ def analyze_graph(
     t = Table(show_header=False, box=None, padding=(0, 2))
     t.add_row("Entities", str(stats["num_entities"]))
     t.add_row("Relations", str(stats["num_relations"]))
-    t.add_row("Communities", str(stats["num_communities"]))
+    t.add_row("Clusters", str(stats["num_clusters"]))
     t.add_row("Avg degree", str(stats["avg_degree"]))
     t.add_row("Density", str(stats["density"]))
     t.add_row("Components", str(stats["n_components"]))

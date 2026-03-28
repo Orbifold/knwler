@@ -7,7 +7,7 @@ from statistics import mean, median
 from rich.table import Table
 
 from knwler.config import console
-from knwler.models import ExtractionResult, Schema, Graph, ClusteredGraph
+from knwler.models import ChunkGraph, Schema, Graph, ClusteredGraph
 
 from dataclasses import asdict
 
@@ -16,7 +16,7 @@ from dataclasses import asdict
 # Computation
 # ---------------------------------------------------------------------------
 def compute_stats(
-    results: list[ExtractionResult],
+    results: list[ChunkGraph],
     schema_time: float,
     wall_time: float,
     consolidation_time: float = 0.0,
@@ -56,12 +56,12 @@ def compute_stats(
     }
 
 
-def compute_community_stats(consolidated: dict | ClusteredGraph) -> dict:
-    """Compute community detection statistics."""
+def compute_cluster_stats(consolidated: dict | ClusteredGraph) -> dict:
+    """Compute cluster detection statistics."""
     if isinstance(consolidated, ClusteredGraph):
         consolidated = asdict(consolidated)  # type: ignore
-    communities = consolidated.get("communities", [])
-    sizes = [len(c.get("members", [])) for c in communities]
+    clusters = consolidated.get("clusters", [])
+    sizes = [len(c.get("members", [])) for c in clusters]
 
     if not sizes:
         return {
@@ -87,9 +87,16 @@ def compute_community_stats(consolidated: dict | ClusteredGraph) -> dict:
 # ---------------------------------------------------------------------------
 # Display
 # ---------------------------------------------------------------------------
-def print_stats(stats: dict, schema: Schema, consolidated: dict | ClusteredGraph | None = None):
+def print_stats(
+    stats: dict,
+    schema: Schema,
+    consolidated: dict | ClusteredGraph | None = None,
+    _console=None,
+):
     """Print formatted statistics using rich tables."""
-    console.print()
+    if _console is None:
+        _console = console
+    _console.print()
 
     table = Table(
         title="Extraction Results", show_header=True, header_style="bold cyan"
@@ -106,8 +113,8 @@ def print_stats(stats: dict, schema: Schema, consolidated: dict | ClusteredGraph
     table.add_row("Chunks", str(stats["num_chunks"]))
     table.add_row("Extraction time", f"{stats['extraction_wall_time']:.2f}s")
     table.add_row("Consolidation time", f"{stats['consolidation_time']:.2f}s")
-    if "community_detection_time" in stats:
-        table.add_row("Community time", f"{stats['community_detection_time']:.2f}s")
+    if "cluster_detection_time" in stats:
+        table.add_row("Cluster time", f"{stats['cluster_detection_time']:.2f}s")
     table.add_row("CPU time", f"{stats['total_cpu_time']:.2f}s")
     table.add_row("Parallelism", f"[green]{stats['parallelism']:.1f}x[/green]")
 
@@ -135,16 +142,16 @@ def print_stats(stats: dict, schema: Schema, consolidated: dict | ClusteredGraph
             f"[bold green]{len(consolidated['entities'])}[/bold green] entities, "
             f"[bold green]{len(consolidated['relations'])}[/bold green] relations",
         )
-        if "communities" in consolidated:
-            cstats = stats.get("communities", {})
+        if "clusters" in consolidated:
+            cstats = stats.get("clusters", {})
             size = cstats.get("size", {})
             table.add_row(
-                "Communities",
+                "Clusters",
                 f"{cstats.get('count', 0)} total, "
                 f"{cstats.get('singletons', 0)} singletons",
             )
             table.add_row(
-                "Community size",
+                "Cluster size",
                 f"min={size.get('min', 0)}, max={size.get('max', 0)}, "
                 f"avg={size.get('avg', 0):.1f}, median={size.get('median', 0):.1f}",
             )
@@ -155,4 +162,4 @@ def print_stats(stats: dict, schema: Schema, consolidated: dict | ClusteredGraph
         f"[bold cyan]{stats['total_time']:.2f}s[/bold cyan]",
     )
 
-    console.print(table)
+    _console.print(table)

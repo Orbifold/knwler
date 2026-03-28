@@ -1,9 +1,9 @@
 import pytest
 from knwler.chunking import chunk_text
 from knwler.config import Config
-from knwler.extraction import extract_all
-from knwler.models import Schema, ExtractionResult, Graph
-from knwler.consolidation import consolidate_extracted_graphs
+from knwler.extraction import extract_chunks
+from knwler.models import *
+from knwler.consolidation import consolidate_chunk_graphs
 from dataclasses import asdict
 import json
 from knwler.export import export_html
@@ -19,7 +19,9 @@ async def test_disambiguation():
     with open("tests/data/apple.md", "r") as f:
         text = f.read()
 
-    chunks = text.split("\n\n")  # simple chunking by paragraphs for this test
+    chunks = [
+        Chunk(text=chunk, chunk_idx=i) for i, chunk in enumerate(text.split("\n\n"))
+    ]  # simple chunking by paragraphs for this test
     assert len(chunks) == 2  # one about corp, one about fruit
     # couldn't be easier
     schema = Schema(
@@ -28,7 +30,9 @@ async def test_disambiguation():
     )
     # if you use a small model it typically fails to disambiguate and merges the two entities into one, which is a common error.
     config = Config(extraction_model="qwen3.5:9b")
-    extraction_results = await extract_all(chunks, schema, config=config)
+    extraction_results: list[ChunkGraph] = await extract_chunks(
+        chunks, schema, config=config
+    )
     assert len(extraction_results) == 2
     for g in extraction_results:
         assert g is not None
@@ -43,10 +47,16 @@ async def test_disambiguation():
             print(
                 f"- {r['source']}::{r['source_type']} -> {r['target']}::{r['target_type']} ({r['type']}): {r['description']} [Strength: {r['strength']}]"
             )
-    g, _ = await consolidate_extracted_graphs(
+
+    g, _ = await consolidate_chunk_graphs(
         extraction_results,
         config=config,
     )
+    # check that the chunk_ids are all chunk id's
+    chunk_ids = [r.chunk.id for r in extraction_results]
+    for e in g.entities:
+        assert all([u in chunk_ids for u in e["chunk_ids"]])
+    g = asdict(g)  # convert dataclass to dict for easier printing and assertions
     print("\n-------Consolidated-------\n")
     print(f"\nEntities:")
     for e in g["entities"]:
@@ -86,10 +96,10 @@ async def test_disambiguation():
     )
     extracted_chunks = [
         {
-            "id": r.id,
-            "chunk_idx": r.chunk_idx,
-            "text": chunks[r.chunk_idx],
-            "rephrase": chunks[r.chunk_idx],
+            "id": r.chunk.id,
+            "chunk_idx": r.chunk.chunk_idx,
+            "text": chunks[r.chunk.chunk_idx].text,
+            "rephrase": chunks[r.chunk.chunk_idx].text[:100] + "...",
             "entities": r.entities,
             "relations": r.relations,
             "chunk_time": r.chunk_time,
@@ -98,7 +108,7 @@ async def test_disambiguation():
         }
         for r in extraction_results
     ]
-    g["communities"] = [
+    g["clusters"] = [
         {
             "id": 0,
             "topics": [

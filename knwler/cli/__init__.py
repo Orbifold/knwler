@@ -31,7 +31,7 @@ from knwler.config import (
     Config,
     console,
 )
-from knwler.models import ExtractionResult, Schema, Graph
+from knwler.models import ChunkGraph, Schema, Graph
 
 from knwler.language import (
     DEFAULT_LANGUAGE,
@@ -43,21 +43,24 @@ from knwler.language import (
 from knwler.cache import CACHE_DIR
 from knwler.chunking import chunk_text
 from knwler.clustering import cluster_graph, create_network
-from knwler.consolidation import consolidate_extracted_graphs
+from knwler.consolidation import consolidate_chunk_graphs
 from knwler.discovery import detect_language, discover_schema
 from knwler.export import export_html
-from knwler.extraction import extract_all
+from knwler.extraction import extract_chunks
 from knwler.extras import extract_summary, extract_title, rephrase_chunks
-from knwler.stats import compute_community_stats, compute_stats, print_stats
-from knwler.cli_extract import extract_app
-from knwler.cli_info import info_app, show_version
-from knwler.cli_consolidate import cli_consolidate_graphs
-from knwler.cli_fetch import fetch_app
-from knwler.cli_cache import cache_app
-from knwler.cli_demo import demo_app
-from knwler.cli_benchmark import benchmark_app
-from knwler.cli_graph import graph_app
-from knwler.cli_batch import batch_app
+from knwler.stats import compute_cluster_stats, compute_stats, print_stats
+from knwler.cli.extract import extract_app
+from knwler.cli.info import info_app, show_version
+from knwler.cli.consolidate import cli_consolidate_graphs
+from knwler.cli.fetch import fetch_app
+from knwler.cli.cache import cache_app
+from knwler.cli.demo import demo_app
+from knwler.cli.benchmark import benchmark_app
+from knwler.cli.graph import graph_app
+from knwler.cli.batch import batch_app
+from knwler.cli.parse import parse_app
+from knwler.cli.render import render_command
+from knwler.cli.export import export_app
 
 app = typer.Typer(
     help="Turn documents into structured knowledge.",
@@ -255,7 +258,7 @@ def consolidate_graphs_command(
 def _version_callback(value: bool) -> None:
     if value:
         show_version()
-        return typer.Exit()
+        raise typer.Exit()
 
 
 @app.callback()
@@ -307,6 +310,15 @@ app.add_typer(
 )
 
 app.add_typer(batch_app, name="batch", help="Run batch API pipeline (OpenAI / Gemini).")
+app.add_typer(
+    parse_app, name="parse", help="Parse documents and extract their text content."
+)
+app.command("render", help="Render a graph.json or all_data.json to HTML.")(
+    render_command
+)
+app.add_typer(
+    export_app, name="export", help="Export graph data to Neo4j, SurrealDB, or JSON-LD."
+)
 
 
 def main():
@@ -322,6 +334,8 @@ def main():
         "benchmark",
         "graph",
         "batch",
+        "render",
+        "export",
     }
     _GLOBAL_FLAGS = {"--version", "-V", "--help", "-h"}
     args = sys.argv[1:]
@@ -342,5 +356,11 @@ def main():
         # 'knwler -f ...' → 'knwler extract extract -f ...'
         sys.argv.insert(1, "extract")
         sys.argv.insert(2, "extract")
-
-    app()
+    # app()
+    try:
+        app()
+    except typer.Exit:
+        pass
+    except Exception as e:
+        console.print(Panel.fit(f"[red]Error:[/red] {str(e)}"))
+        sys.exit(1)

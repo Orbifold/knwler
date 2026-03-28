@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="{{ lang }}">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ title }}</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,400;0,700;1,400&family=Source+Sans+Pro:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #fafafa;
+        --text: #1a1a1a;
+        --text-secondary: #555;
+        --accent: #8b0000;
+        --link: #1a5276;
+        --border: #c0c0c0;
+        --card-bg: #f0f0f0;
+        --entity-bg: #fff;
+        --entity-border: #d0d0d0;
+        --badge-bg: #e8e8e8;
+        --badge-color: #444;
+        --rule: #999;
+        --col-rule: #bbb;
+        --footer-color: #888;
+        --footer-border: #ddd;
+        --chunk-orig-bg: #ebebeb;
+        --toggle-track: #bbb;
+      }
+      [data-theme="dark"] {
+        --bg: #1c1c1c;
+        --text: #d4d4d4;
+        --text-secondary: #999;
+        --accent: #e07070;
+        --link: #7ab3c8;
+        --border: #444;
+        --card-bg: #2a2a2a;
+        --entity-bg: #242424;
+        --entity-border: #393939;
+        --badge-bg: #4b4b4b;
+        --badge-color: #b5b5b5;
+        --rule: #555;
+        --col-rule: #444;
+        --footer-color: #666;
+        --footer-border: #333;
+        --chunk-orig-bg: #2a2a2a;
+        --toggle-track: #555;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+      }
+      body {
+        font-family: "Merriweather", Georgia, "Times New Roman", serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.75;
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 2.5rem 1.5rem;
+        font-size: 14px;
+      }
+
+      /* ── Theme toggle ──────────────────────────────────────────── */
+      .theme-toggle-bar {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 1rem;
+      }
+      .theme-switch {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        user-select: none;
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        font-family: "Source Sans Pro", sans-serif;
+      }
+      .theme-switch input {
+        display: none;
+      }
+      .theme-track {
+        width: 34px;
+        height: 18px;
+        background: var(--toggle-track);
+        border-radius: 9px;
+        position: relative;
+        transition: background 0.2s;
+        flex-shrink: 0;
+      }
+      .theme-track::after {
+        content: "";
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: #fff;
+        transition: transform 0.2s;
+      }
+      .theme-switch input:checked + .theme-track {
+        background: #4e79a7;
+      }
+      .theme-switch input:checked + .theme-track::after {
+        transform: translateX(16px);
+      }
+
+      /* ── Article header ────────────────────────────────────────── */
+      .article-header {
+        text-align: center;
+        border-bottom: 2px solid var(--accent);
+        padding-bottom: 1.5rem;
+        margin-bottom: 2rem;
+      }
+      .article-header h1 {
+        font-size: 1.8rem;
+        font-weight: 700;
+        line-height: 1.3;
+        margin-bottom: 0.6rem;
+        color: var(--text);
+      }
+      .article-header .meta {
+        font-family: "Source Sans Pro", sans-serif;
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        margin-bottom: 0.4rem;
+      }
+      .article-header .source-link {
+        font-family: "Source Sans Pro", sans-serif;
+        font-size: 0.82rem;
+        color: var(--text-secondary);
+      }
+      .article-header .source-link a {
+        color: var(--link);
+        text-decoration: none;
+      }
+      .article-header .source-link a:hover {
+        text-decoration: underline;
+      }
+
+      /* ── Abstract ──────────────────────────────────────────────── */
+      .abstract {
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 1rem 1.2rem;
+        margin-bottom: 2rem;
+        background: var(--card-bg);
+      }
+      .abstract-label {
+        font-family: "Source Sans Pro", sans-serif;
+        font-weight: 700;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--accent);
+        margin-bottom: 0.3rem;
+      }
+      .abstract p {
+        font-size: 0.92rem;
+        line-height: 1.7;
+        text-align: justify;
+      }
+
+      /* ── Navigation bar ────────────────────────────────────────── */
+      .nav-bar {
+        font-family: "Source Sans Pro", sans-serif;
+        font-size: 0.82rem;
+        text-align: center;
+        margin-bottom: 2rem;
+        padding: 0.5rem 0;
+        border-top: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+        color: var(--text-secondary);
+      }
+      .nav-bar a {
+        color: var(--link);
+        text-decoration: none;
+        margin: 0 0.6rem;
+      }
+      .nav-bar a:hover {
+        text-decoration: underline;
+      }
+
+      /* ── Two-column layout ─────────────────────────────────────── */
+      .two-col {
+        column-count: 2;
+        column-gap: 2.5rem;
+        column-rule: 1px solid var(--col-rule);
+      }
+      .two-col > * {
+        break-inside: avoid;
+      }
+
+      /* ── Section headings ──────────────────────────────────────── */
+      .section-title {
+        font-family: "Source Sans Pro", sans-serif;
+        font-size: 1rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        border-bottom: 1px solid var(--rule);
+        padding-bottom: 0.2rem;
+        margin: 1.8rem 0 0.8rem;
+        color: var(--text);
+        column-span: none;
+      }
+      .section-title:first-child {
+        margin-top: 0;
+      }
+
+      /* ── Topic cards ───────────────────────────────────────────── */
+      .topic-card {
+        background: var(--card-bg);
+        border-radius: 4px;
+        padding: 0.7rem 0.9rem;
+        margin-bottom: 0.7rem;
+        font-size: 0.88rem;
+      }
+      .topic-card .topic-names {
+        font-family: "Source Sans Pro", sans-serif;
+        font-weight: 700;
+        color: var(--accent);
+        margin-bottom: 0.2rem;
+        font-size: 0.85rem;
+      }
+      .topic-card ul {
+        margin: 0.3rem 0 0 1rem;
+        list-style: disc;
+      }
+      .topic-card li {
+        margin-bottom: 0.15rem;
+        font-size: 0.84rem;
+      }
+      .topic-card a {
+        color: var(--link);
+        text-decoration: none;
+      }
+      .topic-card a:hover {
+        text-decoration: underline;
+      }
+
+      /* ── Chunk content ─────────────────────────────────────────── */
+      .chunk-block {
+        margin-bottom: 0.9rem;
+        font-size: 0.9rem;
+        text-align: justify;
+        hyphens: auto;
+      }
+      .chunk-block a.entity-link {
+        color: var(--link);
+        text-decoration: none;
+        border-bottom: 1px dashed var(--link);
+      }
+      .chunk-block a.entity-link:hover {
+        background: rgba(60, 60, 60, 0.08);
+        border-bottom-style: solid;
+        padding: 0 2px;
+        border-radius: 2px;
+      }
+      .chunk-block img {
+        max-width: 100%;
+        border-radius: 4px;
+        margin: 0.5rem 0;
+      }
+      .toggle-original {
+        font-family: "Source Sans Pro", sans-serif;
+        font-size: 0.74rem;
+        color: var(--text-secondary);
+        cursor: pointer;
+        user-select: none;
+        text-align: right;
+        margin-bottom: 0.2rem;
+      }
+      .toggle-original:hover {
+        color: var(--link);
+      }
+      .chunk-original {
+        display: none;
+        background: var(--chunk-orig-bg);
+        border-radius: 4px;
+        padding: 0.7rem 0.9rem;
+        margin-bottom: 0.9rem;
+        white-space: pre-wrap;
+        font-size: 0.84rem;
+      }
+      .chunk-original img {
+        max-width: 100%;
+        border-radius: 4px;
+        margin: 0.5rem 0;
+      }
+
+      /* ── Entity cards ──────────────────────────────────────────── */
+      .entity-card {
+        background: var(--entity-bg);
+        border: 1px solid var(--entity-border);
+        border-radius: 4px;
+        padding: 0.7rem 0.9rem;
+        margin-bottom: 0.7rem;
+        font-size: 0.88rem;
+      }
+      .entity-card h3 {
+        font-family: "Source Sans Pro", sans-serif;
+        font-size: 0.95rem;
+        font-weight: 700;
+        margin-bottom: 0.2rem;
+        color: var(--text);
+      }
+      .entity-label {
+        display: inline-block;
+        font-size: 0.55em;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        background: var(--badge-bg);
+        color: var(--badge-color);
+        padding: 0.1em 0.5em;
+        border-radius: 1em;
+        margin-left: 0.3em;
+        vertical-align: middle;
+      }
+      .entity-card .desc {
+        color: var(--text-secondary);
+        margin: 0.2rem 0 0.4rem;
+        font-size: 0.84rem;
+      }
+      .entity-card ul {
+        margin: 0 0 0.4rem 1rem;
+        list-style: disc;
+      }
+      .entity-card li {
+        margin-bottom: 0.15rem;
+        font-size: 0.84rem;
+      }
+      .entity-card a {
+        color: var(--link);
+        text-decoration: none;
+      }
+      .entity-card a:hover {
+        text-decoration: underline;
+      }
+      .chunk-links {
+        font-family: "Source Sans Pro", sans-serif;
+        font-size: 0.78rem;
+        color: var(--text-secondary);
+      }
+      .chunk-links a {
+        color: var(--link);
+        text-decoration: none;
+      }
+      .chunk-links a:hover {
+        text-decoration: underline;
+      }
+
+      /* ── Footer ────────────────────────────────────────────────── */
+      .footer {
+        font-family: "Source Sans Pro", sans-serif;
+        font-size: 0.75rem;
+        color: var(--footer-color);
+        text-align: center;
+        margin-top: 2.5rem;
+        padding-top: 1rem;
+        border-top: 2px solid var(--accent);
+      }
+      .footer a {
+        color: var(--link);
+        text-decoration: none;
+      }
+      .footer a:hover {
+        text-decoration: underline;
+      }
+      .disclaimer {
+        font-size: 0.65rem;
+        color: var(--footer-color);
+        margin-top: 0.6rem;
+        padding-top: 0.6rem;
+        border-top: 1px solid var(--footer-border);
+        text-align: left;
+      }
+
+      /* ── Responsive & print ────────────────────────────────────── */
+      @media (max-width: 640px) {
+        .two-col {
+          column-count: 1;
+        }
+      }
+      @media print {
+        body {
+          max-width: none;
+          padding: 0;
+        }
+        .theme-toggle-bar,
+        .toggle-original {
+          display: none;
+        }
+        .two-col {
+          column-count: 2;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="theme-toggle-bar">
+      <label class="theme-switch" title="Toggle dark/light theme">
+        <input type="checkbox" id="theme-toggle" />
+        <span class="theme-track"></span>
+        <span id="theme-label">&#9790;</span>
+      </label>
+    </div>
+
+    {# Article header #}
+    <div class="article-header">
+      <h1>{{ title }}</h1>
+      <div class="meta">{{ metadata }}</div>
+      {% if url %}
+      <div class="source-link">
+        {{ labels.source }}:
+        <a href="{{ url }}" target="_blank" rel="noopener noreferrer"
+          >{{ url }}</a
+        >
+      </div>
+      {% endif %}
+    </div>
+
+    {# Abstract #} {% if summary %}
+    <div class="abstract">
+      <div class="abstract-label">Abstract</div>
+      <p>{{ summary }}</p>
+    </div>
+    {% endif %} {# Navigation #}
+    <div class="nav-bar">
+      {% if clusters %}<a href="#topics">{{ labels.nav_topics }}</a>{% endif %}
+      {% if chunks %}<a href="#chunks">{{ labels.nav_chunks }}</a>{% endif %} {%
+      if entities_display %}<a href="#entities">{{ labels.nav_entities }}</a>{%
+      endif %}
+    </div>
+
+    <div class="two-col">
+      {# Topics (clusters) section #} {% if clusters %}
+      <h2 class="section-title" id="topics">{{ labels.topics_title }}</h2>
+      {% for cluster in clusters %}
+      <div class="topic-card">
+        <div class="topic-names">{{ cluster.topics | join(', ') }}</div>
+        {% if cluster.description %}
+        <div>{{ cluster.description }}</div>
+        {% endif %} {% if cluster.member_links %}
+        <ul>
+          <li>{{ cluster.member_links | safe }}</li>
+        </ul>
+        {% endif %}
+      </div>
+      {% endfor %} {% endif %} {# Content (chunks) section #} {% if chunks %}
+      <h2 class="section-title" id="chunks">{{ labels.content_title }}</h2>
+      {% for chunk in chunks %}
+      <div class="toggle-original" onclick="toggleChunk('{{ chunk.id }}')">
+        {{ labels.show_original }}
+      </div>
+      <div class="chunk-block" id="{{ chunk.id }}-rephrase">
+        {{ chunk.linkified | safe }}
+      </div>
+      <div class="chunk-original" id="{{ chunk.id }}-original">
+        {{ chunk.original | safe }}
+      </div>
+      {% endfor %} {% endif %} {# Entities section #} {% if entities_display %}
+      <h2 class="section-title" id="entities">{{ labels.entities_title }}</h2>
+      {% for entity in entities_display %}
+      <div class="entity-card" id="{{ entity.anchor }}">
+        <h3>
+          {{ entity.name }}
+          <span class="entity-label">{{ entity.type }}</span>
+        </h3>
+        {% if entity.description %}
+        <div class="desc">{{ entity.description }}</div>
+        {% endif %} {% if entity.relations %}
+        <ul>
+          {% for rel in entity.relations %}
+          <li>{{ rel | safe }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %} {% if entity.chunk_links %}
+        <div class="chunk-links">
+          {{ labels.appears_in }}: {{ entity.chunk_links | safe }}
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %} {% endif %}
+    </div>
+
+    {# Footer #}
+    <div class="footer">
+      <div>
+        Generated by
+        <a title="Knwler AI" target="_blank" href="https://knwler.com"
+          >Knwler AI</a
+        >, &copy; 2026
+        <a
+          href="https://graphsandnetworks.com"
+          title="Orbifold Consulting"
+          target="_blank"
+          >Orbifold Consulting</a
+        >.
+      </div>
+      <div class="disclaimer">{{ disclaimer }}</div>
+    </div>
+
+    <script>
+      // ─── Theme toggle ────────────────────────────────────────────────
+      (function () {
+        const toggle = document.getElementById("theme-toggle");
+        const label = document.getElementById("theme-label");
+        const saved = localStorage.getItem("knwler-theme");
+        if (saved === "dark") {
+          document.documentElement.setAttribute("data-theme", "dark");
+          toggle.checked = true;
+          label.textContent = "☀";
+        }
+        toggle.addEventListener("change", () => {
+          if (toggle.checked) {
+            document.documentElement.setAttribute("data-theme", "dark");
+            localStorage.setItem("knwler-theme", "dark");
+            label.textContent = "☀";
+          } else {
+            document.documentElement.removeAttribute("data-theme");
+            localStorage.setItem("knwler-theme", "light");
+            label.textContent = "☾";
+          }
+        });
+      })();
+
+      // ─── Chunk toggle ────────────────────────────────────────────────
+      function toggleChunk(id) {
+        const reph = document.getElementById(id + "-rephrase");
+        const orig = document.getElementById(id + "-original");
+        const toggle = reph.previousElementSibling;
+        if (orig.style.display === "block") {
+          orig.style.display = "none";
+          reph.style.display = "block";
+          toggle.textContent = "{{ labels.show_original }}";
+        } else {
+          orig.style.display = "block";
+          reph.style.display = "none";
+          toggle.textContent = "{{ labels.show_rephrased }}";
+        }
+      }
+    </script>
+  </body>
+</html>

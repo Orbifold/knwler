@@ -1,35 +1,37 @@
 #!/usr/bin/env python3
 """
-Knwler OpenAI Batch Processor
-==============================
+Knwler Google Gemini Batch Processor
+=====================================
 
 Processes a directory of documents through the Knwler knowledge graph
-extraction pipeline using OpenAI's Batch API for cost-effective bulk processing.
+extraction pipeline using Google Gemini's Batch API for cost-effective
+bulk processing (50% cost savings).
 
 Features:
     - Processes all supported files in a directory (.pdf, .txt, .md)
-    - Uses OpenAI Batch API (50% cost savings) for all LLM steps
+    - Uses Gemini Batch API (50% cost savings) via file-based requests
     - SQLite-based state management for disaster recovery
     - Automatic polling with exponential backoff
     - Organized output directory with per-file results
 
 Usage:
     # Start or resume processing
-    python batch_openai.py --input ./documents --output ./results
+    python main.py batch-gemini run --input ./documents --output ./results
 
     # Check pipeline status
-    python batch_openai.py --input ./documents --output ./results --status
+    python main.py batch-gemini status --input ./documents --output ./results
 
     # Use specific models
-    python batch_openai.py -i ./docs -o ./out --discovery-model gpt-4o --extraction-model gpt-4o-mini
+    python main.py batch-gemini run -i ./docs -o ./out --discovery-model gemini-3-flash-preview --extraction-model gemini-3-flash-preview
 
 Pipeline Rounds:
     Round 1 (Discovery):    Language detection + Schema discovery
     Round 2 (Processing):   Title + Summary + Rephrase + Graph extraction
-    Round 3 (Finalization): Consolidation summarization + Community labeling
+    Round 3 (Finalization): Consolidation summarization + Cluster labeling
 
 Requirements:
-    OPENAI_API_KEY environment variable must be set.
+    GEMINI_API_KEY or GOOGLE_API_KEY environment variable must be set.
+    The google-genai package must be installed: pip install google-genai
 """
 
 import asyncio
@@ -45,7 +47,6 @@ from pathlib import Path
 from typing import Annotated
 from uuid import uuid4
 
-import aiohttp
 import networkx as nx
 import typer
 from networkx.algorithms.community import louvain_communities
@@ -56,8 +57,8 @@ from rich.table import Table
 from knwler.chunking import chunk_text, get_encoder
 from knwler.config import (
     Config,
-    DEFAULT_OPENAI_DISCOVERY_MODEL,
-    DEFAULT_OPENAI_EXTRACTION_MODEL,
+    DEFAULT_GEMINI_DISCOVERY_MODEL,
+    DEFAULT_GEMINI_EXTRACTION_MODEL,
 )
 from knwler.export import export_html
 from knwler.language import (
@@ -71,18 +72,21 @@ from knwler.models import Schema
 
 console = Console()
 
-OPENAI_BASE = "https://api.openai.com/v1"
 SUPPORTED_EXTS = {".pdf", ".txt", ".md", ".text", ".markdown"}
 INITIAL_POLL_INTERVAL = 30
 MAX_POLL_INTERVAL = 300
 SUMMARIZATION_BATCH_SIZE = 20
 
-# OpenAI Batch API limits
-MAX_REQUESTS_PER_BATCH = 50_000
-MAX_BATCH_FILE_SIZE_BYTES = 200 * 1024 * 1024  # 200 MB
-MAX_BATCH_TOKENS = 2_000_000
-TOKEN_BUFFER_FACTOR = 0.90  # 10% safety buffer
-MAX_BATCH_TOKENS_SAFE = int(MAX_BATCH_TOKENS * TOKEN_BUFFER_FACTOR)
+# Gemini Batch API limits
+MAX_BATCH_FILE_SIZE_BYTES = 2 * 1024 * 1024 * 1024  # 2 GB
+
+# Terminal states for Gemini batch jobs
+TERMINAL_STATES = {
+    "JOB_STATE_SUCCEEDED",
+    "JOB_STATE_FAILED",
+    "JOB_STATE_CANCELLED",
+    "JOB_STATE_EXPIRED",
+}
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -118,16 +122,15 @@ class Database:
                 agg_entities_json    TEXT,
                 agg_relations_json   TEXT,
                 summaries_json       TEXT,
-                communities_json     TEXT,
+                clusters_json        TEXT,
                 graph_output_json    TEXT
             );
 
             CREATE TABLE IF NOT EXISTS batches (
                 round_name      TEXT PRIMARY KEY,
-                batch_id        TEXT,
-                input_file_id   TEXT,
-                output_file_id  TEXT,
-                error_file_id   TEXT,
+                job_name        TEXT,
+                input_file_name TEXT,
+                output_file_name TEXT,
                 status          TEXT DEFAULT 'pending',
                 request_count   INTEGER DEFAULT 0,
                 created_at      TEXT,
@@ -137,15 +140,6 @@ class Database:
         """
         )
         self.conn.commit()
-        self._migrate()
-
-    def _migrate(self):
-        """Add columns that may be missing in databases created by older versions."""
-        cursor = self.conn.execute("PRAGMA table_info(batches)")
-        columns = {row[1] for row in cursor.fetchall()}
-        if "error_details" not in columns:
-            self.conn.execute("ALTER TABLE batches ADD COLUMN error_details TEXT")
-            self.conn.commit()
 
     def upsert_file(self, file_id: str, file_path: str, file_name: str):
         self.conn.execute(
@@ -175,14 +169,6 @@ class Database:
         ).fetchone()
         return dict(row) if row else None
 
-    def get_round_parts(self, round_name: str) -> list[dict]:
-        """Get all sub-batch parts for a multi-part round."""
-        rows = self.conn.execute(
-            "SELECT * FROM batches WHERE round_name GLOB ?",
-            (f"{round_name}__part*",),
-        ).fetchall()
-        return sorted([dict(r) for r in rows], key=lambda x: x["round_name"])
-
     def upsert_batch(self, round_name: str, **kwargs):
         existing = self.get_batch(round_name)
         if existing:
@@ -204,98 +190,75 @@ class Database:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# OpenAI Batch API client
+# Gemini Batch API client
 # ═══════════════════════════════════════════════════════════════════════════
 
 
-class OpenAIBatchClient:
-    """Async client for OpenAI Batch API operations."""
+class GeminiBatchClient:
+    """Client for Google Gemini Batch API operations using google-genai SDK."""
 
     def __init__(self, api_key: str):
         if not api_key:
             raise ValueError(
-                "OPENAI_API_KEY environment variable is not set. "
+                "GEMINI_API_KEY or GOOGLE_API_KEY environment variable is not set. "
                 "Export it before running this script."
             )
-        self.api_key = api_key
-        self.headers = {"Authorization": f"Bearer {api_key}"}
-
-    async def upload_jsonl(self, jsonl_path: Path) -> str:
-        """Upload a JSONL file for batch processing. Returns the file ID."""
-        file_data = jsonl_path.read_bytes()
-        async with aiohttp.ClientSession() as session:
-            data = aiohttp.FormData()
-            data.add_field(
-                "file",
-                file_data,
-                filename=jsonl_path.name,
-                content_type="application/jsonl",
+        try:
+            from google import genai
+            from google.genai import types
+        except ImportError:
+            raise ImportError(
+                "The google-genai package is required for Gemini batch processing. "
+                "Install it with: pip install google-genai"
             )
-            data.add_field("purpose", "batch")
-            async with session.post(
-                f"{OPENAI_BASE}/files", headers=self.headers, data=data
-            ) as resp:
-                resp.raise_for_status()
-                result = await resp.json()
-                return result["id"]
+        self.genai = genai
+        self.types = types
+        self.client = genai.Client(api_key=api_key)
 
-    async def create_batch(self, input_file_id: str, metadata: dict = None) -> dict:
-        """Create a batch job. Returns the batch object."""
-        payload = {
-            "input_file_id": input_file_id,
-            "endpoint": "/v1/chat/completions",
-            "completion_window": "24h",
-        }
-        if metadata:
-            payload["metadata"] = metadata
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                f"{OPENAI_BASE}/batches",
-                headers={**self.headers, "Content-Type": "application/json"},
-                json=payload,
-            ) as resp:
-                resp.raise_for_status()
-                return await resp.json()
+    def upload_jsonl(self, jsonl_path: Path) -> str:
+        """Upload a JSONL file via the File API. Returns the file resource name."""
+        uploaded = self.client.files.upload(
+            file=str(jsonl_path),
+            config=self.types.UploadFileConfig(
+                display_name=jsonl_path.stem,
+                mime_type="jsonl",
+            ),
+        )
+        return uploaded.name
 
-    async def get_batch(self, batch_id: str) -> dict:
-        """Retrieve current batch status."""
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                f"{OPENAI_BASE}/batches/{batch_id}", headers=self.headers
-            ) as resp:
-                resp.raise_for_status()
-                return await resp.json()
+    def create_batch(self, model: str, file_name: str, display_name: str = None) -> str:
+        """Create a batch job from an uploaded file. Returns the job name."""
+        config = {}
+        if display_name:
+            config["display_name"] = display_name
+        job = self.client.batches.create(
+            model=model,
+            src=file_name,
+            config=config,
+        )
+        return job.name
 
-    async def download_file(self, file_id: str) -> str:
-        """Download file content as text."""
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                f"{OPENAI_BASE}/files/{file_id}/content", headers=self.headers
-            ) as resp:
-                resp.raise_for_status()
-                return await resp.text()
+    def get_batch(self, job_name: str):
+        """Retrieve current batch job status."""
+        return self.client.batches.get(name=job_name)
 
-    async def poll_batch(self, batch_id: str) -> dict:
-        """Poll until the batch reaches a terminal state. Returns final status."""
+    def download_file(self, file_name: str) -> bytes:
+        """Download result file content as bytes."""
+        return self.client.files.download(file=file_name)
+
+    def poll_batch(self, job_name: str):
+        """Poll until the batch job reaches a terminal state. Returns the final job."""
         interval = INITIAL_POLL_INTERVAL
         while True:
-            batch = await self.get_batch(batch_id)
-            status = batch.get("status")
-            counts = batch.get("request_counts", {})
-            total = counts.get("total", 0)
-            completed = counts.get("completed", 0)
-            failed = counts.get("failed", 0)
+            job = self.get_batch(job_name)
+            state = job.state.name if hasattr(job.state, "name") else str(job.state)
 
-            console.print(
-                f"  [dim]{time.strftime('%H:%M:%S')} | "
-                f"status={status}  completed={completed}/{total}  "
-                f"failed={failed}[/dim]"
-            )
+            console.print(f"  [dim]{time.strftime('%H:%M:%S')} | state={state}[/dim]")
 
-            if status in ("completed", "failed", "expired", "cancelled"):
-                return batch
+            if state in TERMINAL_STATES:
+                return job
 
-            await asyncio.sleep(interval)
+            time.sleep(interval)
             interval = min(interval * 1.5, MAX_POLL_INTERVAL)
 
 
@@ -304,24 +267,30 @@ class OpenAIBatchClient:
 # ═══════════════════════════════════════════════════════════════════════════
 
 
-def _chat_request(
-    custom_id: str,
-    model: str,
+def _gemini_request(
+    key: str,
     prompt: str,
     temperature: float = 0.1,
     max_tokens: int = 4096,
 ) -> dict:
-    """Build one JSONL line for the OpenAI Batch API."""
+    """Build one JSONL line for the Gemini Batch API (file-based format).
+
+    Format: {"key": "<id>", "request": {"contents": [...], "generation_config": {...}}}
+    """
     return {
-        "custom_id": custom_id,
-        "method": "POST",
-        "url": "/v1/chat/completions",
-        "body": {
-            "model": model,
-            "messages": [{"role": "user", "content": prompt}],
-            "response_format": {"type": "json_object"},
-            "temperature": temperature,
-            "max_tokens": max_tokens,
+        "key": key,
+        "request": {
+            "contents": [
+                {
+                    "parts": [{"text": prompt}],
+                    "role": "user",
+                }
+            ],
+            "generation_config": {
+                "response_mime_type": "application/json",
+                "temperature": temperature,
+                "max_output_tokens": max_tokens,
+            },
         },
     }
 
@@ -460,79 +429,28 @@ def _prompt_summarize(items: list[dict]) -> str:
     return prompt
 
 
-def _prompt_community(communities: list[dict]) -> str:
+def _prompt_cluster(clusters: list[dict]) -> str:
     lines = []
-    for c in communities:
+    for c in clusters:
         members = ", ".join(
             f'{{"name": "{m["name"]}", "type": "{m["type"]}", '
             f'"description": "{m["description"]}"}}'
             for m in c["members"]
         )
         lines.append(f'- "{c["id"]}": [{members}]')
-    communities_text = "\n".join(lines)
-    prompt = get_prompt("community_labeling", communities_text=communities_text)
+    clusters_text = "\n".join(lines)
+    prompt = get_prompt("cluster_labeling", clusters_text=clusters_text)
     if not prompt:
         prompt = (
-            "You are labeling graph communities. For each community, return "
+            "You are labeling graph clusters. For each cluster, return "
             "1-3 short topics and a 1-2 sentence description.\n\n"
-            f"COMMUNITIES:\n{communities_text}\n\n"
+            f"CLUSTERS:\n{clusters_text}\n\n"
             "Return JSON:\n{\n"
-            '  "communities": {\n'
+            '  "clusters": {\n'
             '    "<id>": {"topics": ["topic1", "topic2"], "description": "..."},\n'
             "    ...\n  }\n}"
         )
     return prompt
-
-
-# ═══════════════════════════════════════════════════════════════════════════
-# Batch limit helpers
-# ═══════════════════════════════════════════════════════════════════════════
-
-
-def _count_request_tokens(request: dict, encoder) -> int:
-    """Estimate prompt token count for a batch request using tiktoken (cl100k_base)."""
-    body = request.get("body", {})
-    tokens = 0
-    for msg in body.get("messages", []):
-        tokens += len(encoder.encode(msg.get("content", "")))
-        tokens += 4  # per-message overhead
-    tokens += 2  # conversation framing
-    return tokens
-
-
-def _split_into_batches(requests: list[dict], encoder) -> list[list[dict]]:
-    """Split requests into sub-batches respecting OpenAI per-batch limits.
-
-    Limits enforced (with 10 % token buffer):
-      - Max 50,000 requests per batch
-      - Max ~1,800,000 prompt tokens per batch (2M * 0.90)
-    File size (200 MB) is verified after the JSONL is written.
-    """
-    if not requests:
-        return [requests]
-
-    batches: list[list[dict]] = []
-    current_batch: list[dict] = []
-    current_tokens = 0
-
-    for req in requests:
-        req_tokens = _count_request_tokens(req, encoder)
-
-        would_exceed_requests = len(current_batch) >= MAX_REQUESTS_PER_BATCH
-        would_exceed_tokens = (current_tokens + req_tokens) > MAX_BATCH_TOKENS_SAFE
-
-        if current_batch and (would_exceed_requests or would_exceed_tokens):
-            batches.append(current_batch)
-            current_batch = []
-            current_tokens = 0
-
-        current_batch.append(req)
-        current_tokens += req_tokens
-
-    if current_batch:
-        batches.append(current_batch)
-
-    return batches
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -542,14 +460,9 @@ def _split_into_batches(requests: list[dict], encoder) -> list[list[dict]]:
 
 def _load_text(file_path: Path) -> str:
     """Extract text from a PDF or read a text file."""
-    if file_path.suffix.lower() == ".pdf":
-        import fitz
+    from knwler.parse import load_text
 
-        doc = fitz.open(str(file_path))
-        text = "\n\n".join(page.get_text() for page in doc)
-        doc.close()
-        return text
-    return file_path.read_text(encoding="utf-8", errors="ignore")
+    return load_text(file_path)
 
 
 def _file_id(file_path: Path) -> str:
@@ -736,8 +649,8 @@ def _build_graph(entity_map: dict, relation_map: dict) -> dict:
     return {"entities": entities, "relations": relations}
 
 
-def _detect_communities(consolidated: dict) -> tuple[list[set], list[dict]]:
-    """Run Louvain and build the community payload for the labeling prompt."""
+def _detect_clusters(consolidated: dict) -> tuple[list[set], list[dict]]:
+    """Run Louvain and build the cluster payload for the labeling prompt."""
     g = nx.Graph()
     entity_idx = {}
     for e in consolidated.get("entities", []):
@@ -775,8 +688,8 @@ def _detect_communities(consolidated: dict) -> tuple[list[set], list[dict]]:
     return clusters, payload
 
 
-def _apply_communities(consolidated: dict, clusters: list[set], labels: dict) -> dict:
-    """Attach community info to the consolidated graph."""
+def _apply_clusters(consolidated: dict, clusters: list[set], labels: dict) -> dict:
+    """Attach cluster info to the consolidated graph."""
     entity_idx = {}
     for e in consolidated.get("entities", []):
         nid = f"{e['name']}::{e['type']}" if e.get("type") else e["name"]
@@ -796,10 +709,10 @@ def _apply_communities(consolidated: dict, clusters: list[set], labels: dict) ->
             ]
             labels[str(cid)] = {"topics": topics or ["misc"], "description": ""}
 
-    communities_out = []
+    clusters_out = []
     for cid, members in enumerate(clusters):
         label = labels.get(str(cid), {"topics": ["misc"], "description": ""})
-        communities_out.append(
+        clusters_out.append(
             {
                 "id": cid,
                 "topics": label.get("topics", ["misc"]),
@@ -809,9 +722,9 @@ def _apply_communities(consolidated: dict, clusters: list[set], labels: dict) ->
         )
         for nid in members:
             if nid in entity_idx:
-                entity_idx[nid]["community_id"] = cid
+                entity_idx[nid]["cluster_id"] = cid
 
-    consolidated["communities"] = communities_out
+    consolidated["clusters"] = clusters_out
     return consolidated
 
 
@@ -849,8 +762,8 @@ def _deserialize_map(d: dict) -> dict:
 # ═══════════════════════════════════════════════════════════════════════════
 
 
-class BatchProcessor:
-    """Orchestrates the three-round OpenAI batch pipeline."""
+class GeminiBatchProcessor:
+    """Orchestrates the three-round Gemini batch pipeline."""
 
     def __init__(
         self,
@@ -871,20 +784,22 @@ class BatchProcessor:
         self.consolidate = consolidate
 
         self.config = Config(
-            backend="openai",
+            backend="gemini",
             extraction_model=extraction_model,
             discovery_model=discovery_model,
         )
 
-        api_key = os.environ.get("OPENAI_API_KEY", "")
-        self.client = OpenAIBatchClient(api_key)
+        api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get(
+            "GOOGLE_API_KEY", ""
+        )
+        self.client = GeminiBatchClient(api_key)
 
         # Ensure directories exist
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.batches_dir.mkdir(exist_ok=True)
         self.files_dir.mkdir(exist_ok=True)
 
-        self.db = Database(output_dir / "batch.db")
+        self.db = Database(output_dir / "batch_gemini.db")
 
     # ── Phase 0: scan & load ─────────────────────────────────────────────
 
@@ -914,60 +829,34 @@ class BatchProcessor:
 
             console.print(f"  Loading [cyan]{fp.name}[/cyan] … ", end="")
             text = _load_text(fp)
-            chunks = chunk_text(text, self.config)
-            console.print(f"[green]{len(chunks)}[/green] chunks")
+            chunk_objs = chunk_text(text, self.config)
+            console.print(f"[green]{len(chunk_objs)}[/green] chunks")
 
             (self.files_dir / fp.stem).mkdir(exist_ok=True)
 
-            self.db.update_file(fid, text_content=text, chunks_json=json.dumps(chunks))
+            self.db.update_file(
+                fid,
+                text_content=text,
+                chunks_json=json.dumps([c.text for c in chunk_objs]),
+            )
 
     # ── Round status helpers ─────────────────────────────────────────────
 
     def _is_round_complete(self, round_name: str) -> bool:
-        """Check if a round (single or multi-part) is fully completed."""
         batch = self.db.get_batch(round_name)
         if not batch:
-            parts = self.db.get_round_parts(round_name)
-            if parts:
-                return all(p["status"] == "completed" for p in parts)
             return False
-        if batch["status"] == "completed":
-            return True
-        if batch["status"] == "multi_part":
-            parts = self.db.get_round_parts(round_name)
-            return len(parts) > 0 and all(p["status"] == "completed" for p in parts)
-        return False
+        return batch["status"] == "completed"
 
     def _has_round_started(self, round_name: str) -> bool:
-        """Check if a round has any submitted or completed batches.
-
-        Returns False when all submitted parts have either completed or
-        failed, because failed parts need re-submission (not just polling).
-        """
         batch = self.db.get_batch(round_name)
         if not batch:
-            parts = self.db.get_round_parts(round_name)
-            return len(parts) > 0 and any(
-                p["status"] not in ("failed", "expired", "cancelled")
-                for p in parts
-                if p["status"] != "completed"
-            )
-        if batch["status"] in ("submitted", "completed"):
-            return True
-        if batch["status"] == "multi_part":
-            parts = self.db.get_round_parts(round_name)
-            # Only count as "started" if at least one part is still in-flight
-            # (submitted/pending).  If every non-completed part has failed we
-            # should re-enter the submission path so failed parts get retried.
-            return any(
-                p["status"] not in ("completed", "failed", "expired", "cancelled")
-                for p in parts
-            )
-        return False
+            return False
+        return batch["status"] in ("submitted", "completed")
 
     # ── Phase 1: discovery ───────────────────────────────────────────────
 
-    async def round1(self):
+    def round1(self):
         """Round 1 — language detection + schema discovery."""
         rnd = "round1_discovery"
 
@@ -976,7 +865,7 @@ class BatchProcessor:
             return
         if self._has_round_started(rnd):
             console.print("Resuming Round 1 polling …")
-            await self._poll_and_save(rnd)
+            self._poll_and_save(rnd)
             self._parse_round1()
             return
 
@@ -984,20 +873,12 @@ class BatchProcessor:
         reqs = []
         for f in files:
             fid, text = f["file_id"], f["text_content"]
-            reqs.append(
-                _chat_request(
-                    f"{fid}|language", self.discovery_model, _prompt_language(text)
-                )
-            )
-            reqs.append(
-                _chat_request(
-                    f"{fid}|schema", self.discovery_model, _prompt_schema(text)
-                )
-            )
+            reqs.append(_gemini_request(f"{fid}|language", _prompt_language(text)))
+            reqs.append(_gemini_request(f"{fid}|schema", _prompt_schema(text)))
 
         console.print(f"Submitting [cyan]{len(reqs)}[/cyan] requests …")
-        await self._submit(rnd, reqs)
-        await self._poll_and_save(rnd)
+        self._submit(rnd, reqs, self.discovery_model)
+        self._poll_and_save(rnd)
         self._parse_round1()
 
     def _parse_round1(self):
@@ -1038,7 +919,7 @@ class BatchProcessor:
 
     # ── Phase 2: processing ──────────────────────────────────────────────
 
-    async def round2(self):
+    def round2(self):
         """Round 2 — title, summary, rephrase, extraction."""
         rnd = "round2_processing"
 
@@ -1047,7 +928,7 @@ class BatchProcessor:
             return
         if self._has_round_started(rnd):
             console.print("Resuming Round 2 polling …")
-            await self._poll_and_save(rnd)
+            self._poll_and_save(rnd)
             self._parse_round2()
             return
 
@@ -1066,36 +947,22 @@ class BatchProcessor:
             # Set language so get_prompt returns localised templates
             set_language(f.get("language") or DEFAULT_LANGUAGE)
 
-            reqs.append(
-                _chat_request(
-                    f"{fid}|title", self.extraction_model, _prompt_title(chunks)
-                )
-            )
-            reqs.append(
-                _chat_request(
-                    f"{fid}|summary", self.extraction_model, _prompt_summary(chunks)
-                )
-            )
+            reqs.append(_gemini_request(f"{fid}|title", _prompt_title(chunks)))
+            reqs.append(_gemini_request(f"{fid}|summary", _prompt_summary(chunks)))
             for i, chunk in enumerate(chunks):
                 reqs.append(
-                    _chat_request(
-                        f"{fid}|rephrase|{i}",
-                        self.extraction_model,
-                        _prompt_rephrase(chunk),
-                    )
+                    _gemini_request(f"{fid}|rephrase|{i}", _prompt_rephrase(chunk))
                 )
             for i, chunk in enumerate(chunks):
                 reqs.append(
-                    _chat_request(
-                        f"{fid}|extract|{i}",
-                        self.extraction_model,
-                        _prompt_extraction(chunk, schema),
+                    _gemini_request(
+                        f"{fid}|extract|{i}", _prompt_extraction(chunk, schema)
                     )
                 )
 
         console.print(f"Submitting [cyan]{len(reqs)}[/cyan] requests …")
-        await self._submit(rnd, reqs)
-        await self._poll_and_save(rnd)
+        self._submit(rnd, reqs, self.extraction_model)
+        self._poll_and_save(rnd)
         self._parse_round2()
 
     def _parse_round2(self):
@@ -1156,10 +1023,10 @@ class BatchProcessor:
                 f"entities={te}  relations={tr_}"
             )
 
-    # ── Phase 3: consolidation + communities ─────────────────────────────
+    # ── Phase 3: consolidation + clusters ─────────────────────────────
 
-    async def round3(self):
-        """Round 3 — summarisation + community labeling."""
+    def round3(self):
+        """Round 3 — summarisation + cluster labeling."""
         rnd = "round3_consolidation"
 
         if self._is_round_complete(rnd):
@@ -1168,7 +1035,7 @@ class BatchProcessor:
             return
         if self._has_round_started(rnd):
             console.print("Resuming Round 3 polling …")
-            await self._poll_and_save(rnd)
+            self._poll_and_save(rnd)
             self._parse_round3()
             return
 
@@ -1195,25 +1062,23 @@ class BatchProcessor:
                 if batch_items:
                     idx = bi // SUMMARIZATION_BATCH_SIZE
                     reqs.append(
-                        _chat_request(
+                        _gemini_request(
                             f"{fid}|summarize|{idx}",
-                            self.extraction_model,
                             _prompt_summarize(batch_items),
                         )
                     )
 
-            # Community detection (local) + labeling request
+            # Cluster detection (local) + labeling request
             pre_graph = _build_graph(emap, rmap)
-            clusters, cpayload = _detect_communities(pre_graph)
+            clusters, cpayload = _detect_clusters(pre_graph)
             clusters_ser = [sorted(c) for c in clusters]
-            self.db.update_file(fid, communities_json=json.dumps(clusters_ser))
+            self.db.update_file(fid, clusters_json=json.dumps(clusters_ser))
 
             if cpayload:
                 reqs.append(
-                    _chat_request(
-                        f"{fid}|community",
-                        self.extraction_model,
-                        _prompt_community(cpayload),
+                    _gemini_request(
+                        f"{fid}|cluster",
+                        _prompt_cluster(cpayload),
                     )
                 )
 
@@ -1224,8 +1089,8 @@ class BatchProcessor:
             return
 
         console.print(f"Submitting [cyan]{len(reqs)}[/cyan] requests …")
-        await self._submit(rnd, reqs)
-        await self._poll_and_save(rnd)
+        self._submit(rnd, reqs, self.extraction_model)
+        self._poll_and_save(rnd)
         self._parse_round3()
 
     def _parse_round3(self):
@@ -1271,21 +1136,21 @@ class BatchProcessor:
             # Build final consolidated graph
             consolidated = _build_graph(emap, rmap)
 
-            # Apply community labels
-            clusters_data = json.loads(f.get("communities_json") or "[]")
+            # Apply cluster labels
+            clusters_data = json.loads(f.get("clusters_json") or "[]")
             clusters = [set(c) for c in clusters_data]
 
-            comm_resp = responses.get(f"{fid}|community")
+            comm_resp = responses.get(f"{fid}|cluster")
             comm_labels = (
-                parse_json_response(comm_resp).get("communities", {})
+                parse_json_response(comm_resp).get("clusters", {})
                 if comm_resp
                 else {}
             )
 
             if clusters:
-                consolidated = _apply_communities(consolidated, clusters, comm_labels)
+                consolidated = _apply_clusters(consolidated, clusters, comm_labels)
             else:
-                consolidated["communities"] = []
+                consolidated["clusters"] = []
 
             # Assemble output (same schema as knwler's graph.json)
             doc_id = str(uuid4())
@@ -1324,7 +1189,7 @@ class BatchProcessor:
                         "run": {
                             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
                             "file": f["file_path"],
-                            "backend": "openai_batch",
+                            "backend": "gemini_batch",
                             "extraction_model": self.extraction_model,
                             "discovery_model": self.discovery_model,
                         }
@@ -1356,214 +1221,113 @@ class BatchProcessor:
 
     # ── Batch helpers ────────────────────────────────────────────────────
 
-    async def _submit(self, round_name: str, requests: list[dict]):
-        encoder = get_encoder()
-        total_tokens = sum(_count_request_tokens(r, encoder) for r in requests)
-        console.print(
-            f"  Total: {len(requests):,} requests, ~{total_tokens:,} prompt tokens"
-        )
-
-        sub_batches = _split_into_batches(requests, encoder)
-        n_parts = len(sub_batches)
-
-        if n_parts > 1:
-            console.print(
-                f"  [yellow]Splitting into {n_parts} sub-batches "
-                f"(limits: {MAX_REQUESTS_PER_BATCH:,} reqs, "
-                f"{MAX_BATCH_TOKENS_SAFE:,} tokens per batch)[/yellow]"
-            )
-            console.print(
-                "  [yellow]Submitting sequentially to stay within "
-                "organisation enqueued-token limit[/yellow]"
-            )
-
-        for i, part_reqs in enumerate(sub_batches):
-            part_name = f"{round_name}__part{i}" if n_parts > 1 else round_name
-            if n_parts > 1:
-                part_tokens = sum(_count_request_tokens(r, encoder) for r in part_reqs)
-                console.print(
-                    f"  Sub-batch {i + 1}/{n_parts}: "
-                    f"{len(part_reqs):,} requests, ~{part_tokens:,} tokens"
-                )
-
-            # Skip parts already completed (resume support)
-            existing = self.db.get_batch(part_name)
-            if existing and existing["status"] == "completed":
-                console.print(f"  [green]✓[/green] {part_name} already completed")
-                continue
-
-            await self._submit_part(part_name, part_reqs)
-
-            # For multi-part rounds, poll each sub-batch to completion before
-            # submitting the next one.  This prevents the total enqueued tokens
-            # across all in-progress batches from exceeding the organisation
-            # limit (e.g. 2 000 000 tokens for gpt-4o-mini).
-            if n_parts > 1:
-                await self._poll_and_save_part(part_name)
-
-        if n_parts > 1:
-            self.db.upsert_batch(round_name, status="multi_part", request_count=n_parts)
-
-    async def _submit_part(self, part_name: str, requests: list[dict]):
-        """Upload JSONL and create a single batch, validating file size."""
-        jsonl_path = self.batches_dir / f"{part_name}_input.jsonl"
+    def _submit(self, round_name: str, requests: list[dict], model: str):
+        """Write JSONL, upload via File API, and create a Gemini batch job."""
+        jsonl_path = self.batches_dir / f"{round_name}_input.jsonl"
         with open(jsonl_path, "w", encoding="utf-8") as fh:
             for r in requests:
                 fh.write(json.dumps(r) + "\n")
 
-        # Validate file size (200 MB limit)
+        # Validate file size (2 GB limit)
         file_size = jsonl_path.stat().st_size
         if file_size > MAX_BATCH_FILE_SIZE_BYTES:
             raise ValueError(
                 f"Batch input file {jsonl_path.name} is "
-                f"{file_size / (1024 ** 2):.1f} MB, exceeding the "
-                f"{MAX_BATCH_FILE_SIZE_BYTES / (1024 ** 2):.0f} MB limit. "
-                "Try processing fewer documents at once."
+                f"{file_size / (1024 ** 3):.2f} GB, exceeding the "
+                f"2 GB limit. Try processing fewer documents at once."
             )
 
-        file_id = await self.client.upload_jsonl(jsonl_path)
         console.print(
-            f"  Uploaded → file [dim]{file_id}[/dim]  "
+            f"  Total: {len(requests):,} requests "
             f"({file_size / (1024 ** 2):.1f} MB)"
         )
 
-        result = await self.client.create_batch(file_id, metadata={"round": part_name})
-        batch_id = result["id"]
-        console.print(f"  Batch created → [dim]{batch_id}[/dim]")
+        file_name = self.client.upload_jsonl(jsonl_path)
+        console.print(f"  Uploaded → file [dim]{file_name}[/dim]")
 
-        # Log token/request counts from API response
-        req_counts = result.get("request_counts", {})
-        if req_counts:
-            console.print(
-                f"  [dim]API counts: total={req_counts.get('total', 0)}, "
-                f"completed={req_counts.get('completed', 0)}, "
-                f"failed={req_counts.get('failed', 0)}[/dim]"
-            )
+        job_name = self.client.create_batch(
+            model=model,
+            file_name=file_name,
+            display_name=round_name,
+        )
+        console.print(f"  Batch job created → [dim]{job_name}[/dim]")
 
         self.db.upsert_batch(
-            part_name,
-            batch_id=batch_id,
-            input_file_id=file_id,
+            round_name,
+            job_name=job_name,
+            input_file_name=file_name,
             status="submitted",
             request_count=len(requests),
             created_at=time.strftime("%Y-%m-%d %H:%M:%S"),
         )
 
-    async def _poll_and_save(self, round_name: str):
-        batch = self.db.get_batch(round_name)
-        if batch and batch["status"] == "multi_part":
-            parts = self.db.get_round_parts(round_name)
-            pending = [p for p in parts if p["status"] != "completed"]
-            if pending:
-                for part in pending:
-                    await self._poll_and_save_part(part["round_name"])
-                console.print(
-                    f"  [green]✓[/green] All {len(parts)} sub-batches complete"
+    def _poll_and_save(self, round_name: str):
+        """Poll a batch job until terminal and save outputs."""
+        info = self.db.get_batch(round_name)
+        job_name = info["job_name"]
+
+        console.print(f"  Polling job [dim]{job_name}[/dim] …")
+        result = self.client.poll_batch(job_name)
+        state = (
+            result.state.name if hasattr(result.state, "name") else str(result.state)
+        )
+
+        if state == "JOB_STATE_SUCCEEDED":
+            # Download the result file
+            if result.dest and result.dest.file_name:
+                content_bytes = self.client.download_file(result.dest.file_name)
+                content = (
+                    content_bytes.decode("utf-8")
+                    if isinstance(content_bytes, bytes)
+                    else str(content_bytes)
                 )
-            else:
-                console.print(
-                    f"  [green]✓[/green] All {len(parts)} sub-batches already complete"
-                )
-        else:
-            await self._poll_and_save_part(round_name)
-
-    async def _poll_and_save_part(self, part_name: str):
-        """Poll a single batch part until terminal and save outputs."""
-        info = self.db.get_batch(part_name)
-        batch_id = info["batch_id"]
-
-        console.print(f"  Polling batch [dim]{batch_id}[/dim] …")
-        result = await self.client.poll_batch(batch_id)
-        status = result.get("status")
-
-        out_fid = result.get("output_file_id")
-        err_fid = result.get("error_file_id")
-
-        # Log usage from completed batch
-        usage = result.get("usage", {})
-        if usage:
-            console.print(
-                f"  [dim]Usage: prompt_tokens={usage.get('prompt_tokens', 0):,}, "
-                f"completion_tokens={usage.get('completion_tokens', 0):,}, "
-                f"total_tokens={usage.get('total_tokens', 0):,}[/dim]"
-            )
-
-        if status == "completed":
-            if out_fid:
-                content = await self.client.download_file(out_fid)
-                (self.batches_dir / f"{part_name}_output.jsonl").write_text(
+                (self.batches_dir / f"{round_name}_output.jsonl").write_text(
                     content, encoding="utf-8"
                 )
-            if err_fid:
-                errs = await self.client.download_file(err_fid)
-                (self.batches_dir / f"{part_name}_errors.jsonl").write_text(
-                    errs, encoding="utf-8"
+                self.db.upsert_batch(
+                    round_name,
+                    status="completed",
+                    output_file_name=result.dest.file_name,
+                    completed_at=time.strftime("%Y-%m-%d %H:%M:%S"),
                 )
-                n_err = sum(1 for line in errs.strip().splitlines() if line.strip())
-                if n_err:
-                    console.print(f"  [yellow]{n_err} error(s) saved[/yellow]")
-
-            self.db.upsert_batch(
-                part_name,
-                status="completed",
-                output_file_id=out_fid or "",
-                error_file_id=err_fid or "",
-                completed_at=time.strftime("%Y-%m-%d %H:%M:%S"),
-            )
-            console.print(f"  [green]✓[/green] Batch {part_name} complete")
+                console.print(f"  [green]✓[/green] Batch {round_name} complete")
+            else:
+                # Inline responses (shouldn't happen with file-based, but handle gracefully)
+                self.db.upsert_batch(
+                    round_name,
+                    status="completed",
+                    completed_at=time.strftime("%Y-%m-%d %H:%M:%S"),
+                )
+                console.print(
+                    f"  [green]✓[/green] Batch {round_name} complete (no output file)"
+                )
         else:
-            # Extract error details from the batch response
-            errors = result.get("errors", {})
-            error_data = errors.get("data", []) if isinstance(errors, dict) else []
+            error_msg = ""
+            if hasattr(result, "error") and result.error:
+                error_msg = str(result.error)
             error_details = json.dumps(
                 {
-                    "status": status,
-                    "errors": [
-                        {
-                            "code": e.get("code", ""),
-                            "message": e.get("message", ""),
-                        }
-                        for e in error_data
-                    ],
-                    "failed_at": result.get("failed_at"),
-                    "expired_at": result.get("expired_at"),
-                    "cancelled_at": result.get("cancelled_at"),
+                    "state": state,
+                    "error": error_msg,
                 }
             )
             self.db.upsert_batch(
-                part_name,
-                status=status,
-                error_file_id=err_fid or "",
+                round_name,
+                status=state.lower(),
                 error_details=error_details,
             )
-
-            # Print error summary
-            for e in error_data:
-                console.print(
-                    f"  [red]{e.get('code', 'error')}: {e.get('message', 'unknown')}[/red]"
-                )
+            console.print(f"  [red]Batch {round_name} ended with state: {state}[/red]")
+            if error_msg:
+                console.print(f"  [red]{error_msg}[/red]")
 
             raise RuntimeError(
-                f"Batch {part_name} ended with status '{status}'. "
-                "Check the errors file and re-run to retry."
+                f"Batch {round_name} ended with state '{state}'. "
+                "Check the errors and re-run to retry."
             )
 
     def _load_responses(self, round_name: str) -> dict[str, str]:
-        """Parse JSONL output file(s) → {custom_id: content}.
-
-        Handles both single-batch and multi-part rounds transparently.
-        """
-        batch = self.db.get_batch(round_name)
-        if batch and batch["status"] == "multi_part":
-            merged: dict[str, str] = {}
-            for part in self.db.get_round_parts(round_name):
-                merged.update(self._load_responses_file(part["round_name"]))
-            return merged
-        return self._load_responses_file(round_name)
-
-    def _load_responses_file(self, part_name: str) -> dict[str, str]:
-        """Parse a single JSONL output file → {custom_id: content}."""
-        path = self.batches_dir / f"{part_name}_output.jsonl"
+        """Parse JSONL output file → {key: content_text}."""
+        path = self.batches_dir / f"{round_name}_output.jsonl"
         if not path.exists():
             return {}
         out: dict[str, str] = {}
@@ -1572,15 +1336,28 @@ class BatchProcessor:
             if not line:
                 continue
             obj = json.loads(line)
-            cid = obj.get("custom_id")
-            resp = obj.get("response", {})
-            if resp.get("status_code") == 200:
-                choices = resp.get("body", {}).get("choices", [])
-                if choices:
-                    out[cid] = choices[0].get("message", {}).get("content", "")
-            else:
-                err = resp.get("error", resp.get("body", {}).get("error", "unknown"))
-                console.print(f"  [yellow]Request {cid} failed: {err}[/yellow]")
+            key = obj.get("key")
+            if not key:
+                continue
+            # Gemini file-based output: {"key": "...", "response": {"candidates": [...]}}
+            resp = obj.get("response")
+            if resp and isinstance(resp, dict):
+                candidates = resp.get("candidates", [])
+                if candidates:
+                    content = candidates[0].get("content", {})
+                    parts = content.get("parts", [])
+                    if parts:
+                        out[key] = parts[0].get("text", "")
+                    else:
+                        console.print(
+                            f"  [yellow]Request {key}: no parts in response[/yellow]"
+                        )
+                else:
+                    console.print(f"  [yellow]Request {key}: no candidates[/yellow]")
+            elif "error" in obj:
+                console.print(
+                    f"  [yellow]Request {key} failed: {obj['error']}[/yellow]"
+                )
         return out
 
     # ── Phase 4: cross-file consolidation ─────────────────────────────
@@ -1594,7 +1371,7 @@ class BatchProcessor:
                 graphs.append(json.loads(graph_path.read_text()))
         return graphs
 
-    async def round4(self):
+    def round4(self):
         """Round 4 — cross-file consolidation with batch-submitted summarization."""
         rnd = "round4_cross_consolidation"
 
@@ -1603,7 +1380,7 @@ class BatchProcessor:
             return
         if self._has_round_started(rnd):
             console.print("Resuming Round 4 polling …")
-            await self._poll_and_save(rnd)
+            self._poll_and_save(rnd)
             self._parse_round4()
             return
 
@@ -1628,7 +1405,6 @@ class BatchProcessor:
 
         console.print(f"Aggregating [cyan]{len(graphs)}[/cyan] document graph(s) …")
 
-        # Build input for _aggregate: one pseudo-extraction per document
         extractions = [
             {
                 "id": g.get("id", str(uuid4())),
@@ -1639,7 +1415,6 @@ class BatchProcessor:
         ]
         emap, rmap = _aggregate(extractions)
 
-        # Persist aggregated maps so we can resume after a poll
         (self.batches_dir / "cross_agg_entities.json").write_text(
             json.dumps(_serialize_map(emap)), encoding="utf-8"
         )
@@ -1647,7 +1422,6 @@ class BatchProcessor:
             json.dumps(_serialize_map(rmap)), encoding="utf-8"
         )
 
-        # Build summarization requests for nodes with multiple descriptions
         to_summ = _items_to_summarize(emap, rmap)
         reqs: list[dict] = []
         for bi in range(0, max(len(to_summ), 1), SUMMARIZATION_BATCH_SIZE):
@@ -1655,25 +1429,22 @@ class BatchProcessor:
             if batch_items:
                 idx = bi // SUMMARIZATION_BATCH_SIZE
                 reqs.append(
-                    _chat_request(
+                    _gemini_request(
                         f"cross|summarize|{idx}",
-                        self.extraction_model,
                         _prompt_summarize(batch_items),
                     )
                 )
 
-        # Detect communities on the pre-summary graph and add labeling request
         pre_graph = _build_graph(emap, rmap)
-        clusters, cpayload = _detect_communities(pre_graph)
+        clusters, cpayload = _detect_clusters(pre_graph)
         (self.batches_dir / "cross_clusters.json").write_text(
             json.dumps([sorted(c) for c in clusters]), encoding="utf-8"
         )
         if cpayload:
             reqs.append(
-                _chat_request(
-                    "cross|community",
-                    self.extraction_model,
-                    _prompt_community(cpayload),
+                _gemini_request(
+                    "cross|cluster",
+                    _prompt_cluster(cpayload),
                 )
             )
 
@@ -1690,8 +1461,8 @@ class BatchProcessor:
             return
 
         console.print(f"Submitting [cyan]{len(reqs)}[/cyan] requests …")
-        await self._submit(rnd, reqs)
-        await self._poll_and_save(rnd)
+        self._submit(rnd, reqs, self.extraction_model)
+        self._poll_and_save(rnd)
         self._parse_round4()
 
     def _parse_round4(self):
@@ -1705,7 +1476,6 @@ class BatchProcessor:
             json.loads((self.batches_dir / "cross_agg_relations.json").read_text())
         )
 
-        # Collect summaries from batch output
         responses = self._load_responses("round4_cross_consolidation")
         summaries: dict[str, str] = {}
         for key, val in responses.items():
@@ -1714,17 +1484,16 @@ class BatchProcessor:
 
         emap, rmap = _apply_summaries(emap, rmap, summaries)
 
-        # Community labels
         clusters_data = json.loads(
             (self.batches_dir / "cross_clusters.json").read_text()
         )
         clusters = [set(c) for c in clusters_data]
-        comm_resp = responses.get("cross|community")
-        comm_labels = (
-            parse_json_response(comm_resp).get("communities", {}) if comm_resp else {}
+        cluster_resp = responses.get("cross|cluster")
+        cluster_labels = (
+            parse_json_response(cluster_resp).get("clusters", {}) if cluster_resp else {}
         )
 
-        self._write_consolidated(graphs, emap, rmap, clusters, comm_labels)
+        self._write_consolidated(graphs, emap, rmap, clusters, cluster_labels)
 
     def _write_consolidated(
         self,
@@ -1732,7 +1501,7 @@ class BatchProcessor:
         emap: dict,
         rmap: dict,
         clusters: list[set],
-        comm_labels: dict,
+        cluster_labels: dict,
     ) -> None:
         """Build and write consolidated_graph.json (+ HTML report)."""
         consolidated = (
@@ -1740,9 +1509,9 @@ class BatchProcessor:
         )
 
         if clusters:
-            consolidated = _apply_communities(consolidated, clusters, comm_labels)
-        elif "communities" not in consolidated:
-            consolidated["communities"] = []
+            consolidated = _apply_clusters(consolidated, clusters, cluster_labels)
+        elif "clusters" not in consolidated:
+            consolidated["clusters"] = []
 
         documents = [
             {
@@ -1820,45 +1589,26 @@ class BatchProcessor:
         for rnd in rounds:
             b = self.db.get_batch(rnd)
             if b:
-                if b["status"] == "multi_part":
-                    parts = self.db.get_round_parts(rnd)
-                    done = sum(1 for p in parts if p["status"] == "completed")
-                    failed = [p for p in parts if p["status"] == "failed"]
-                    total_reqs = sum(p.get("request_count", 0) for p in parts)
-                    color = "green" if done == len(parts) else "yellow"
-                    console.print(
-                        f"  {rnd}: [{color}]{done}/{len(parts)} parts complete[/] "
-                        f"({total_reqs} requests total)"
-                    )
-                    for fp in failed:
-                        err = fp.get("error_details")
-                        if err:
-                            details = json.loads(err)
-                            for e in details.get("errors", []):
-                                console.print(
-                                    f"    [red]{fp['round_name']}: "
-                                    f"{e.get('code', '?')} — {e.get('message', '?')}[/red]"
-                                )
-                else:
-                    console.print(
-                        f"  {rnd}: [{('green' if b['status'] == 'completed' else 'yellow')}]"
-                        f"{b['status']}[/] ({b.get('request_count', 0)} requests)"
-                    )
-                    if b["status"] == "failed" and b.get("error_details"):
-                        details = json.loads(b["error_details"])
-                        for e in details.get("errors", []):
-                            console.print(
-                                f"    [red]{e.get('code', '?')} — {e.get('message', '?')}[/red]"
-                            )
+                status = b["status"]
+                color = "green" if status == "completed" else "yellow"
+                console.print(
+                    f"  {rnd}: [{color}]{status}[/] ({b.get('request_count', 0)} requests)"
+                )
+                if status not in ("completed", "submitted", "pending") and b.get(
+                    "error_details"
+                ):
+                    details = json.loads(b["error_details"])
+                    if details.get("error"):
+                        console.print(f"    [red]{details['error']}[/red]")
             else:
                 console.print(f"  {rnd}: [dim]not started[/dim]")
 
     # ── Run ──────────────────────────────────────────────────────────────
 
-    async def run(self):
+    def run(self):
         console.print(
             Panel.fit(
-                "[bold]Knwler — OpenAI Batch Processor[/bold]\n"
+                "[bold]Knwler — Gemini Batch Processor[/bold]\n"
                 f"Input:      [cyan]{self.input_dir}[/cyan]\n"
                 f"Output:     [cyan]{self.output_dir}[/cyan]\n"
                 f"Discovery:  [green]{self.discovery_model}[/green]\n"
@@ -1874,22 +1624,22 @@ class BatchProcessor:
 
         console.print()
         console.rule("[bold cyan]Phase 1 · Discovery[/bold cyan]")
-        await self.round1()
+        self.round1()
 
         console.print()
         console.rule("[bold cyan]Phase 2 · Processing[/bold cyan]")
-        await self.round2()
+        self.round2()
 
         console.print()
         console.rule(
-            "[bold cyan]Phase 3 · Per-file Consolidation & Communities[/bold cyan]"
+            "[bold cyan]Phase 3 · Per-file Consolidation & Clusters[/bold cyan]"
         )
-        await self.round3()
+        self.round3()
 
         if self.consolidate:
             console.print()
             console.rule("[bold cyan]Phase 4 · Cross-file Consolidation[/bold cyan]")
-            await self.round4()
+            self.round4()
 
         console.print()
         console.rule("[bold green]Pipeline Complete[/bold green]")
@@ -1904,17 +1654,17 @@ class BatchProcessor:
 # ═══════════════════════════════════════════════════════════════════════════
 
 
-batch_openai_app = typer.Typer(
-    help="Process documents with Knwler via OpenAI Batch API.",
+batch_gemini_app = typer.Typer(
+    help="Process documents with Knwler via Google Gemini Batch API.",
     rich_markup_mode="rich",
     no_args_is_help=True,
     pretty_exceptions_enable=False,
 )
 
 
-@batch_openai_app.command(
+@batch_gemini_app.command(
     "run",
-    help="Run the full batch pipeline (optionally with cross-file consolidation).",
+    help="Run the full Gemini batch pipeline (optionally with cross-file consolidation).",
 )
 def cmd_run(
     input: Annotated[
@@ -1928,11 +1678,11 @@ def cmd_run(
     discovery_model: Annotated[
         str,
         typer.Option("--discovery-model", help="Model for schema discovery."),
-    ] = DEFAULT_OPENAI_DISCOVERY_MODEL,
+    ] = DEFAULT_GEMINI_DISCOVERY_MODEL,
     extraction_model: Annotated[
         str,
         typer.Option("--extraction-model", help="Model for extraction steps."),
-    ] = DEFAULT_OPENAI_EXTRACTION_MODEL,
+    ] = DEFAULT_GEMINI_EXTRACTION_MODEL,
     template: Annotated[
         str, typer.Option("--template", help="HTML report template.")
     ] = "default",
@@ -1945,12 +1695,12 @@ def cmd_run(
         ),
     ] = False,
 ) -> None:
-    """Run the OpenAI Batch API pipeline (3 rounds + optional cross-file consolidation)."""
+    """Run the Gemini Batch API pipeline (3 rounds + optional cross-file consolidation)."""
     if not input.is_dir():
         console.print(f"[red]\u2717[/red] Not a directory: [cyan]{input}[/cyan]")
         raise typer.Exit(1)
 
-    proc = BatchProcessor(
+    proc = GeminiBatchProcessor(
         input_dir=input,
         output_dir=output,
         discovery_model=discovery_model,
@@ -1959,12 +1709,12 @@ def cmd_run(
         consolidate=consolidate,
     )
     try:
-        asyncio.run(proc.run())
+        proc.run()
     finally:
         proc.close()
 
 
-@batch_openai_app.command(
+@batch_gemini_app.command(
     "consolidate",
     help="Run cross-file consolidation on an already-processed output directory.",
 )
@@ -1974,7 +1724,7 @@ def cmd_consolidate(
         typer.Option(
             "--input",
             "-i",
-            help="Original input directory (needed to locate batch.db).",
+            help="Original input directory (needed to locate batch_gemini.db).",
         ),
     ],
     output: Annotated[
@@ -1986,22 +1736,18 @@ def cmd_consolidate(
     discovery_model: Annotated[
         str,
         typer.Option("--discovery-model", help="Model for schema discovery."),
-    ] = DEFAULT_OPENAI_DISCOVERY_MODEL,
+    ] = DEFAULT_GEMINI_DISCOVERY_MODEL,
     extraction_model: Annotated[
         str,
         typer.Option(
             "--extraction-model", help="Model used for summarization requests."
         ),
-    ] = DEFAULT_OPENAI_EXTRACTION_MODEL,
+    ] = DEFAULT_GEMINI_EXTRACTION_MODEL,
     template: Annotated[
         str, typer.Option("--template", help="HTML report template.")
     ] = "default",
 ) -> None:
-    """Merge all per-file graphs from a previous run into consolidated_graph.json.
-
-    Node descriptions that appear in multiple documents are summarized via a
-    dedicated OpenAI batch round before the final graph is assembled.
-    """
+    """Merge all per-file graphs from a previous run into consolidated_graph.json."""
     if not input.is_dir():
         console.print(f"[red]\u2717[/red] Not a directory: [cyan]{input}[/cyan]")
         raise typer.Exit(1)
@@ -2011,7 +1757,7 @@ def cmd_consolidate(
         )
         raise typer.Exit(1)
 
-    proc = BatchProcessor(
+    proc = GeminiBatchProcessor(
         input_dir=input,
         output_dir=output,
         discovery_model=discovery_model,
@@ -2020,12 +1766,12 @@ def cmd_consolidate(
         consolidate=True,
     )
     try:
-        asyncio.run(proc.round4())
+        proc.round4()
     finally:
         proc.close()
 
 
-@batch_openai_app.command("status", help="Show the current pipeline status.")
+@batch_gemini_app.command("status", help="Show the current pipeline status.")
 def cmd_status(
     input: Annotated[
         Path,
@@ -2033,23 +1779,25 @@ def cmd_status(
     ],
     output: Annotated[
         Path,
-        typer.Option("--output", "-o", help="Output directory (where batch.db lives)."),
+        typer.Option(
+            "--output", "-o", help="Output directory (where batch_gemini.db lives)."
+        ),
     ],
     discovery_model: Annotated[
         str,
         typer.Option("--discovery-model", help="Model for schema discovery."),
-    ] = DEFAULT_OPENAI_DISCOVERY_MODEL,
+    ] = DEFAULT_GEMINI_DISCOVERY_MODEL,
     extraction_model: Annotated[
         str,
         typer.Option("--extraction-model", help="Model for extraction steps."),
-    ] = DEFAULT_OPENAI_EXTRACTION_MODEL,
+    ] = DEFAULT_GEMINI_EXTRACTION_MODEL,
 ) -> None:
     """Show current pipeline status for an existing output directory."""
     if not input.is_dir():
         console.print(f"[red]\u2717[/red] Not a directory: [cyan]{input}[/cyan]")
         raise typer.Exit(1)
 
-    proc = BatchProcessor(
+    proc = GeminiBatchProcessor(
         input_dir=input,
         output_dir=output,
         discovery_model=discovery_model,
@@ -2062,4 +1810,4 @@ def cmd_status(
 
 
 if __name__ == "__main__":
-    batch_openai_app()
+    batch_gemini_app()

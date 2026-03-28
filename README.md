@@ -114,9 +114,9 @@ Language is **auto-detected** on every run. All prompts and console/UI output ar
 
 Process multiple documents and **consolidate** the resulting knowledge graphs into a single unified graph. Entity descriptions from multiple sources are intelligently merged via LLM-powered summarization. Works both as a post-processing step and as a standalone command.
 
-### Community Detection & Topic Assignment
+### Cluster Detection & Topic Assignment
 
-The Louvain algorithm automatically **discovers clusters of related entities** and an LLM labels each community with human-readable topics — giving you instant thematic insight into the document's structure.
+The Louvain algorithm automatically **discovers clusters of related entities** and an LLM labels each cluster with human-readable topics — giving you instant thematic insight into the document's structure.
 
 ### Self-Contained HTML Report
 

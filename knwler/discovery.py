@@ -8,7 +8,7 @@ import time
 from knwler.config import Config, console
 from knwler.language import DEFAULT_LANGUAGE, get_prompt, load_languages
 from knwler.llm import llm_generate, parse_json_response
-from knwler.models import ExtractionResult, Schema, Graph
+from knwler.models import ChunkGraph, Schema, Graph
 
 
 # ---------------------------------------------------------------------------

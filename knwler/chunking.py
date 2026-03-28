@@ -2,9 +2,12 @@
 Text chunking utilities.
 """
 
+from uuid import uuid4
+
 import tiktoken
 
 from knwler.config import Config
+from knwler.models import Chunk
 
 # ---------------------------------------------------------------------------
 # Cached encoder
@@ -23,15 +26,18 @@ def get_encoder() -> tiktoken.Encoding:
 # ---------------------------------------------------------------------------
 # Chunking
 # ---------------------------------------------------------------------------
-def chunk_text(text: str, config: Config) -> list[str]:
+def chunk_text(text: str, config: Config) -> list[Chunk]:
     """Split text into overlapping chunks by token count."""
+    if not text or text.isspace():
+        return []
+
     enc = get_encoder()
     tokens = enc.encode(text)
 
     if len(tokens) <= config.max_tokens:
-        return [text]
+        return [Chunk(chunk_idx=0, text=text, id=str(uuid4()))]
 
-    chunks: list[str] = []
+    chunks: list[Chunk] = []
     start = 0
 
     while start < len(tokens):
@@ -46,9 +52,12 @@ def chunk_text(text: str, config: Config) -> list[str]:
                     end = start + i + 1
                     break
 
-        chunks.append(enc.decode(chunk_tokens))
+        chunks.append(
+            Chunk(chunk_idx=len(chunks), text=enc.decode(chunk_tokens), id=str(uuid4()))
+        )
         if end >= len(tokens):
             break
-        start = end - config.overlap_tokens
+        new_start = end - config.overlap_tokens
+        start = max(new_start, start + 1)
 
     return chunks

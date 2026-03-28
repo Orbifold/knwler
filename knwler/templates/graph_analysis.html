@@ -632,13 +632,13 @@
         font-size: 12px;
       }
 
-      /* ── Community / cluster grid ───────────────────── */
-      .community-grid {
+      /* ── Cluster grid ───────────────────── */
+      .cluster-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
         gap: 16px;
       }
-      .community-card {
+      .cluster-card {
         background: var(--surface);
         border: 1px solid var(--border-subtle);
         border-radius: var(--radius);
@@ -648,19 +648,19 @@
         flex-direction: column;
         gap: 8px;
       }
-      .comm-meta {
+      .cluster-meta {
         display: flex;
         align-items: center;
         justify-content: space-between;
       }
-      .comm-id {
+      .cluster-id {
         font-size: 12px;
         font-weight: 700;
         color: var(--accent2);
         text-transform: uppercase;
         letter-spacing: 0.05em;
       }
-      .comm-size {
+      .cluster-size {
         background: var(--surface2);
         border-radius: 99px;
         padding: 2px 10px;
@@ -668,7 +668,7 @@
         font-weight: 600;
         color: var(--text-muted);
       }
-      .comm-topics {
+      .cluster-topics {
         display: flex;
         flex-wrap: wrap;
         gap: 5px;
@@ -681,12 +681,12 @@
         font-size: 11px;
         font-weight: 500;
       }
-      .comm-desc {
+      .cluster-desc {
         font-size: 12px;
         color: var(--text-muted);
         line-height: 1.55;
       }
-      .comm-members {
+      .cluster-members {
         font-size: 12px;
         color: var(--text);
         line-height: 1.6;
@@ -746,7 +746,7 @@
             <div class="kpi-label">Relations</div>
           </div>
           <div class="kpi-card">
-            <div class="kpi-value">{{ stats.num_communities }}</div>
+            <div class="kpi-value">{{ stats.num_clusters }}</div>
             <div class="kpi-label">Clusters</div>
           </div>
           <div class="kpi-card">
@@ -988,16 +988,16 @@
       </section>
       {% endif %}
 
-      <!-- Communities -->
-      {% if communities %}
+      <!-- Clusters -->
+      {% if clusters %}
       <section>
         <div class="section-title">Clusters</div>
-        <div class="community-grid">
-          {% for c in communities[:9] %}
-          <div class="community-card">
-            <div class="comm-meta">
-              <span class="comm-id">Cluster {{ c.id }}</span>
-              <span class="comm-size">{{ c.size }}</span>
+        <div class="cluster-grid">
+          {% for c in clusters[:9] %}
+          <div class="cluster-card">
+            <div class="cluster-meta">
+              <span class="cluster-id">Cluster {{ c.id }}</span>
+              <span class="cluster-size">{{ c.size }}</span>
             </div>
             {% if c.topics %}
             <div class="comm-topics">

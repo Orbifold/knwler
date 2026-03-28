@@ -21,7 +21,7 @@ async def _post_json(
     *,
     payload: dict[str, Any],
     headers: dict[str, str] | None = None,
-    timeout_seconds: int = 360,
+    timeout_seconds: int = 480,
 ) -> dict[str, Any]:
     """POST JSON payload and parse JSON response using aiohttp."""
     # Debug: print equivalent curl command

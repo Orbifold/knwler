@@ -1,5 +1,25 @@
 # Changelog
 
+## v1.1.0
+
+- fix: error dump on using pipx but not via uv
+- other: added Copilot instruction under .github
+- fix: `knwler --version` does not append an error anymore
+- feature: added `knwler cache open`, opens in OS specific the cache dir
+- feature: `knwler extract` allows a `-m` option which combines `-d` and `-e`
+- feature: `knwler extract -w quantum` will fetch the Wikipedia article and extract it
+- fix: skip-continue badly formatted extractions
+- feature: `--no-print` option, will only output json info. Useful for n8n integrations and similar tools.
+- feature: `knwler parse` command added
+- breaking: `chunk_text` returns a `Chunk` and not a string anymore
+- fix: potential infinite loop in chunking
+- fix: chunk references in `extract` api
+- refactoring: various data classes make method more strict
+- fix: various edge-cases where an LLM behaves badly
+- feature: `knwler render` renders html from existing extraction json
+- feature: new 'cypher' and 'research' templates
+- feature: `knwler export` exports to Neo4j, SurrealDB, JSONLD and more
+
 ## v1.0.4
 
 - fix: benchmark output dir check
@@ -87,7 +107,7 @@
 - Automatic schema discovery (entity types and relation types)
 - Multilingual support with auto-detection (English, German, French, Spanish, Dutch)
 - Localized prompts and UI strings via `languages.json`
-- Community detection using Louvain algorithm with LLM-powered topic labeling
+- Cluster detection using Louvain algorithm with LLM-powered topic labeling
 - Interactive HTML report with Cytoscape.js network visualization
 - Export formats: JSON, GML, GraphML, HTML
 - LLM response caching for cost-efficient re-runs

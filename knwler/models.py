@@ -15,28 +15,36 @@ class Graph:
 
 
 @dataclass
-class AugmentedChunk:
-    """Chunk with associated entities and relations."""
+class Chunk:
+    """Text chunk with associated metadata."""
 
-    chunk_idx: int
     text: str
-    entities: list[dict]
-    relations: list[dict]
+    chunk_idx: int = 0
     id: str = field(default_factory=lambda: str(uuid4()))
 
 
 @dataclass
-class ClusteredGraph(Graph):
-    """Graph with community/cluster information added."""
+class AugmentedChunk(Chunk):
+    """Chunk with associated entities and relations."""
 
-    communities: dict = field(default_factory=dict)
+    entities: list[dict] = field(default_factory=list)
+    relations: list[dict] = field(default_factory=list)
 
 
 @dataclass
-class ExtractionResult(Graph):
-    """Result from extracting a single chunk."""
+class ClusteredGraph(Graph):
+    """Graph with cluster information added."""
 
-    chunk_idx: int
+    clusters: dict = field(default_factory=dict)
+
+
+@dataclass
+class ChunkGraph(Graph):
+    """
+    Result from extracting a single chunk.
+    """
+
+    chunk: Chunk
     chunk_time: float
     chunk_tokens: int
     id: str = field(default_factory=lambda: str(uuid4()))
@@ -98,3 +106,29 @@ class KnowledgeGraph:
     url: str | None = None
     chunks: list[AugmentedChunk] = field(default_factory=list)
     language: str | None = None
+
+
+@dataclass
+class DocumentGraph:
+    """Result from extracting a document, including the consolidated graph and metadata."""
+
+    graph: ChunkGraph = field(default_factory=ChunkGraph)
+    chunks: list[Chunk] = field(default_factory=list)
+    schema: Schema = field(default_factory=Schema.default)
+    id: str = field(default_factory=lambda: str(uuid4()))
+    title: str = ""
+    url: str | None = None
+    content: str | None = None
+    language: str | None = None
+    summary: str | None = None
+
+
+@dataclass
+class ConsolidatedGraph:
+    """Result from consolidating multiple document graphs."""
+
+    graph: ClusteredGraph = field(default_factory=ClusteredGraph)
+    id: str = field(default_factory=lambda: str(uuid4()))
+    documents: list[dict] = field(default_factory=list)
+    schema: dict = field(default_factory=dict)
+    chunks: list[Chunk] = field(default_factory=list)

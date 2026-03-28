@@ -107,7 +107,7 @@ def cmd_run(
     disc, extr = _resolve_models(backend, discovery_model, extraction_model)
 
     if backend == "gemini":
-        from knwler.cli_batch_gemini import GeminiBatchProcessor
+        from knwler.cli.batch_gemini import GeminiBatchProcessor
 
         proc = GeminiBatchProcessor(
             input_dir=input,
@@ -122,7 +122,7 @@ def cmd_run(
         finally:
             proc.close()
     else:
-        from knwler.cli_batch_openai import BatchProcessor
+        from knwler.cli.batch_openai import BatchProcessor
 
         proc = BatchProcessor(
             input_dir=input,
@@ -197,7 +197,7 @@ def cmd_consolidate(
     disc, extr = _resolve_models(backend, discovery_model, extraction_model)
 
     if backend == "gemini":
-        from knwler.cli_batch_gemini import GeminiBatchProcessor
+        from knwler.cli.batch_gemini import GeminiBatchProcessor
 
         proc = GeminiBatchProcessor(
             input_dir=input,
@@ -212,7 +212,7 @@ def cmd_consolidate(
         finally:
             proc.close()
     else:
-        from knwler.cli_batch_openai import BatchProcessor
+        from knwler.cli.batch_openai import BatchProcessor
 
         proc = BatchProcessor(
             input_dir=input,
@@ -270,7 +270,7 @@ def cmd_status(
     disc, extr = _resolve_models(backend, discovery_model, extraction_model)
 
     if backend == "gemini":
-        from knwler.cli_batch_gemini import GeminiBatchProcessor
+        from knwler.cli.batch_gemini import GeminiBatchProcessor
 
         proc = GeminiBatchProcessor(
             input_dir=input,
@@ -283,7 +283,7 @@ def cmd_status(
         finally:
             proc.close()
     else:
-        from knwler.cli_batch_openai import BatchProcessor
+        from knwler.cli.batch_openai import BatchProcessor
 
         proc = BatchProcessor(
             input_dir=input,

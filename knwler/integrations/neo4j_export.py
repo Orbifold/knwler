@@ -7,7 +7,7 @@ Expected JSON structure:
       "id": "<graph-id>",
       "documents": [{"id": ..., "title": ..., "url": ..., "language": ..., "summary": ...}],
       "schema":    {"entity_types": [...], "relation_types": [...]},
-      "graph":     {"entities": [...], "relations": [...], "communities": [...]}
+      "graph":     {"entities": [...], "relations": [...], "clusters": [...]}
     }
 
 Graph model:
@@ -122,7 +122,7 @@ def import_chunks(session, chunks: list):
 def create_constraints(session):
     constraints = [
         "CREATE CONSTRAINT doc_id IF NOT EXISTS FOR (d:Document) REQUIRE d.id IS UNIQUE",
-        "CREATE CONSTRAINT community_id IF NOT EXISTS FOR (co:Cluster) REQUIRE co.id IS UNIQUE",
+        "CREATE CONSTRAINT cluster_id IF NOT EXISTS FOR (co:Cluster) REQUIRE co.id IS UNIQUE",
         "CREATE CONSTRAINT entity_name_type IF NOT EXISTS FOR (e:Entity) REQUIRE (e.name, e.type) IS UNIQUE",
         "CREATE INDEX entity_type IF NOT EXISTS FOR (e:Entity) ON (e.type)",
     ]
@@ -155,7 +155,7 @@ def import_clusters(session, clusters: list):
             ],
         )
 
-    # Link member entities to their communities
+    # Link member entities to their clusters
     member_links = []
     for c in clusters:
         cluster_id = cluster_index_map[c["id"]]
@@ -287,7 +287,7 @@ def import_file(driver, path: Path, progress: Progress, file_task):
     chunks = doc.get("chunks", {})
     entities = graph.get("entities", [])
     relations = graph.get("relations", [])
-    clusters = graph.get("communities", [])
+    clusters = graph.get("clusters", [])
 
     steps = [
         (

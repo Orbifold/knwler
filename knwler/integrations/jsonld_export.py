@@ -310,9 +310,9 @@ def build_entity_nodes(
             node["extractedFromChunk"] = chunk_refs
 
         # Cluster membership — resolved later after clusters are built
-        if e.get("community_id") is not None:
-            node["_community_id"] = e[
-                "community_id"
+        if e.get("cluster_id") is not None:
+            node["_cluster_id"] = e[
+                "cluster_id"
             ]  # temporary, stripped before output
 
         nodes.append(node)
@@ -456,7 +456,7 @@ def convert_graph(doc: dict) -> dict:
     graph_section = doc.get("graph", {})
     entities_raw = graph_section.get("entities", [])
     relations_raw = graph_section.get("relations", [])
-    clusters_raw = graph_section.get("communities", [])
+    clusters_raw = graph_section.get("clusters", [])
     chunks_raw = doc.get("chunks", [])
 
     # ---- Schema node ----
@@ -500,9 +500,9 @@ def convert_graph(doc: dict) -> dict:
 
     # ---- Back-fill cluster membership on entity nodes ----
     for enode in entity_nodes:
-        comm_id = enode.pop("_community_id", None)
-        if comm_id is not None and comm_id in cluster_id_to_iri:
-            enode["belongsToCluster"] = cluster_id_to_iri[comm_id]
+        cluster_id = enode.pop("_cluster_id", None)
+        if cluster_id is not None and cluster_id in cluster_id_to_iri:
+            enode["belongsToCluster"] = cluster_id_to_iri[cluster_id]
 
     # ---- Relations ----
     relation_nodes, shorthand, stub_nodes = build_relation_nodes(
@@ -570,7 +570,7 @@ def export_file(path: Path, output_dir: Path | None) -> dict:
     entities = graph_section.get("entities", [])
     relations = graph_section.get("relations", [])
     chunks = doc.get("chunks", [])
-    clusters = graph_section.get("communities", [])
+    clusters = graph_section.get("clusters", [])
 
     with Progress(
         SpinnerColumn(),

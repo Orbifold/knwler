@@ -11,14 +11,17 @@ from pathlib import Path
 import json
 from uuid import uuid4
 from typing import Annotated, Optional
-import fitz  # pymupdf4llm
+from knwler.parse import parse_pdf
 from knwler.collect.webpage import WebpageCollector
 
 _URL_RE = re.compile(r"^https?://", re.IGNORECASE)
 from knwler.cache import CACHE_DIR, hash_args
 from knwler.chunking import chunk_text
 from knwler.clustering import cluster_graph, create_network
-from knwler.consolidation import consolidate_extracted_graphs, consolidate_graphs
+from knwler.consolidation import (
+    consolidate_chunk_graphs,
+    consolidate_document_graphs,
+)
 from knwler.discovery import detect_language, discover_schema
 from knwler.language import (
     DEFAULT_LANGUAGE,
@@ -28,9 +31,9 @@ from knwler.language import (
     get_current_language,
 )
 from knwler.export import export_html
-from knwler.extraction import extract_all
+from knwler.extraction import extract_chunks
 from knwler.extras import extract_summary, extract_title, rephrase_chunks
-from knwler.stats import compute_community_stats, compute_stats, print_stats
+from knwler.stats import compute_cluster_stats, compute_stats, print_stats
 from knwler.config import (
     DEFAULT_OLLAMA_EXTRACTION_MODEL,
     DEFAULT_OLLAMA_DISCOVERY_MODEL,
@@ -46,9 +49,10 @@ from knwler.config import (
     DEFAULT_GEMINI_DISCOVERY_MODEL,
     Config,
     console,
+    null_console,
 )
-from knwler.models import ExtractionResult, Schema, Graph
-from knwler.cli_consolidate import cli_consolidate_graphs
+from knwler.models import ChunkGraph, Schema, Graph
+from knwler.cli.consolidate import cli_consolidate_graphs
 from dataclasses import asdict
 
 extract_app = typer.Typer(help="Utility to manage documents.")
@@ -66,8 +70,11 @@ async def _process_file(
     gml_export: bool,
     template: Optional[str] = None,
     overwrite: bool = False,
-) -> None:
+    _console=None,
+) -> dict:
     """Run the full extraction pipeline on a single file."""
+    if _console is None:
+        _console = console
     # Determine this file's results directory
     if output is None:
         results_dir = Path(time.strftime("results/%Y%m%d-%H%M%S"))
@@ -96,14 +103,13 @@ async def _process_file(
             cached_pdf_path.write_bytes(file_path.read_bytes())
         extracted_text_path = results_dir / f"{file_path.stem}_extracted.txt"
         if extracted_text_path.exists():
-            console.print(
+            _console.print(
                 f"[green]\u2713[/green] Using cached extracted text: {extracted_text_path}"
             )
             text = extracted_text_path.read_text(encoding="utf-8", errors="ignore")
         else:
-            console.print(f"[yellow]Extracting text from PDF: {file_path}[/yellow]")
-            doc = fitz.open(file_path)
-            text = "\n\n".join(page.get_text() for page in doc)
+            _console.print(f"[yellow]Extracting text from PDF: {file_path}[/yellow]")
+            text = parse_pdf(file_path)
             extracted_text_path.write_text(text, encoding="utf-8", errors="ignore")
     else:
         text = file_path.read_text(encoding="utf-8", errors="ignore")
@@ -116,11 +122,12 @@ async def _process_file(
         existing_data = json.loads(graph_json_path.read_text())
         consolidated_ents = existing_data.get("graph", {}).get("entities", [])
         consolidated_rels = existing_data.get("graph", {}).get("relations", [])
-        existing_result = ExtractionResult(
+        chunk = existing_data.get("chunk", {})
+        existing_result = ChunkGraph(
             entities=consolidated_ents,
             relations=consolidated_rels,
             id=existing_data.get("id", str(uuid4())),
-            chunk_idx=-1,
+            chunk=chunk,
             chunk_time=0.0,
             chunk_tokens=0,
         )
@@ -150,7 +157,7 @@ async def _process_file(
         if existing_data
         else ""
     )
-    console.print(
+    _console.print(
         Panel.fit(
             f"[bold]Knwler Graph Extraction Pipeline[/bold]\n"
             f"Backend: {backend}  \u2022  File: [dim]{file_path.name}[/dim]  "
@@ -162,25 +169,25 @@ async def _process_file(
     # Cache status
     if config.use_cache:
         cache_count = len(list(CACHE_DIR.glob("*.json"))) if CACHE_DIR.exists() else 0
-        console.print(f"[dim]Cache: {CACHE_DIR} ({cache_count} entries)[/dim]")
+        _console.print(f"[dim]Cache: {CACHE_DIR} ({cache_count} entries)[/dim]")
     else:
-        console.print("[dim]Cache: disabled[/dim]")
+        _console.print("[dim]Cache: disabled[/dim]")
 
     # ── Schema discovery ──
-    console.print()
-    console.rule("[bold cyan]Schema Discovery[/bold cyan]")
-    console.print(f"Discovery model: [green]{config.discovery_model}[/green]")
+    _console.print()
+    _console.rule("[bold cyan]Schema Discovery[/bold cyan]")
+    _console.print(f"Discovery model: [green]{config.discovery_model}[/green]")
 
     if no_discovery:
         schema = Schema.default()
-        console.print("[yellow]Skipped (using defaults)[/yellow]")
+        _console.print("[yellow]Skipped (using defaults)[/yellow]")
     else:
         discovering_msg = (
             get_console_msg("discovering_schema") or "Discovering schema..."
         )
-        with console.status(f"[bold green]{discovering_msg}[/bold green]"):
+        with _console.status(f"[bold green]{discovering_msg}[/bold green]"):
             schema = await discover_schema(text, config)
-        console.print(f"Time: [cyan]{schema.discovery_time:.2f}s[/cyan]")
+        _console.print(f"Time: [cyan]{schema.discovery_time:.2f}s[/cyan]")
 
     # Merge existing schema types
     if existing_data and "schema" in existing_data:
@@ -192,78 +199,78 @@ async def _process_file(
             if rt.lower() not in {t.lower() for t in schema.relation_types}:
                 schema.relation_types.append(rt)
 
-    console.print(f"Entity types: [green]{', '.join(schema.entity_types)}[/green]")
-    console.print(f"Relation types: [green]{', '.join(schema.relation_types)}[/green]")
+    _console.print(f"Entity types: [green]{', '.join(schema.entity_types)}[/green]")
+    _console.print(f"Relation types: [green]{', '.join(schema.relation_types)}[/green]")
 
     # ── Chunking ──
-    console.print()
-    console.rule("[bold cyan]Text Chunking[/bold cyan]")
+    _console.print()
+    _console.rule("[bold cyan]Text Chunking[/bold cyan]")
     chunks = chunk_text(text, config)
-    console.print(
+    _console.print(
         f"\nChunks: [cyan]{len(chunks)}[/cyan] (~{config.max_tokens} tokens each)"
     )
 
     # ── Title ──
-    console.print()
-    console.rule("[bold cyan]Title Extraction[/bold cyan]")
+    _console.print()
+    _console.rule("[bold cyan]Title Extraction[/bold cyan]")
     title = await extract_title(chunks, config) or file_path.stem
-    console.print(f"Title: [green]{title}[/green]")
+    _console.print(f"Title: [green]{title}[/green]")
 
     # ── Summary ──
-    console.print()
-    console.rule("[bold cyan]Document Summary[/bold cyan]")
+    _console.print()
+    _console.rule("[bold cyan]Document Summary[/bold cyan]")
     summary = await extract_summary(chunks, config)
     if summary:
-        console.print(f"Summary: [green]{summary}[/green]")
+        _console.print(f"Summary: [green]{summary}[/green]")
     else:
-        console.print("[yellow]Summary not available[/yellow]")
+        _console.print("[yellow]Summary not available[/yellow]")
 
     # ── Rephrase ──
-    console.print()
-    console.rule("[bold cyan]Chunk Rephrase[/bold cyan]")
-    console.print(f"Rephrase model: [green]{config.extraction_model}[/green]")
+    _console.print()
+    _console.rule("[bold cyan]Chunk Rephrase[/bold cyan]")
+    _console.print(f"Rephrase model: [green]{config.extraction_model}[/green]")
     rephrase_t0 = time.perf_counter()
-    rephrased = await rephrase_chunks(chunks, config)
+    rephrased = await rephrase_chunks(chunks, config, _console=_console)
     rephrase_time = time.perf_counter() - rephrase_t0
-    console.print(f"Time: [cyan]{rephrase_time:.2f}s[/cyan]")
+    _console.print(f"Time: [cyan]{rephrase_time:.2f}s[/cyan]")
 
     # ── Extraction ──
-    console.print()
-    console.rule("[bold cyan]Extraction[/bold cyan]")
-    console.print(f"Extraction model: [green]{config.extraction_model}[/green]")
+    _console.print()
+    _console.rule("[bold cyan]Extraction[/bold cyan]")
+    _console.print(f"Extraction model: [green]{config.extraction_model}[/green]")
 
     t0 = time.perf_counter()
-    extraction_results: list[ExtractionResult] = await extract_all(
-        chunks, schema, config, output_path=output
+    extraction_results: list[ChunkGraph] = await extract_chunks(
+        chunks, schema, config, output_path=output, _console=_console
     )
     wall_time = time.perf_counter() - t0
 
     # ── Consolidation ──
-    console.print()
-    console.rule("[bold cyan]Consolidation[/bold cyan]")
+    _console.print()
+    _console.rule("[bold cyan]Consolidation[/bold cyan]")
     all_results = (
         ([existing_result] + extraction_results)
         if existing_result
         else extraction_results
     )
-    consolidated, consolidation_time = await consolidate_extracted_graphs(
-        all_results, config, summarize=True
+    consolidated, consolidation_time = await consolidate_chunk_graphs(
+        all_results, config, summarize=True, _console=_console
     )
 
-    # ── Community analysis ──
-    console.print()
-    console.rule("[bold cyan]Community Analysis[/bold cyan]")
-    community_t0 = time.perf_counter()
-    consolidated = await cluster_graph(consolidated, config)
-    community_time = time.perf_counter() - community_t0
+    # ── Cluster analysis ──
+    _console.print()
+    _console.rule("[bold cyan]Cluster Analysis[/bold cyan]")
+    cluster_t0 = time.perf_counter()
+    consolidated = await cluster_graph(consolidated, config, _console=_console)
+    cluster_time = time.perf_counter() - cluster_t0
 
     # ── Stats ──
     stats = compute_stats(
         extraction_results, schema.discovery_time, wall_time, consolidation_time
     )
-    stats["community_detection_time"] = round(community_time, 2)
-    stats["communities"] = compute_community_stats(consolidated)
-    print_stats(stats, schema, consolidated)
+    stats["cluster_detection_time"] = round(cluster_time, 2)
+    stats["clusters"] = compute_cluster_stats(consolidated)
+    print_stats(stats, schema, consolidated, _console=_console)
 
     # ── Save results ──
     if existing_data and "schema" in existing_data:
@@ -313,11 +320,13 @@ async def _process_file(
     document_id = str(uuid4())  # hash_args(title, url)
     final_chunks = (existing_data.get("chunks", []) if existing_data else []) + [
         {
-            "id": r.id,
-            "chunk_idx": r.chunk_idx,
-            "text": chunks[r.chunk_idx],
+            "id": r.chunk.id,
+            "chunk_idx": r.chunk.chunk_idx,
+            "text": chunks[r.chunk.chunk_idx].text,
             "rephrase": (
-                rephrased[r.chunk_idx] if r.chunk_idx < len(rephrased) else ""
+                rephrased[r.chunk.chunk_idx].text
+                if r.chunk.chunk_idx < len(rephrased)
+                else ""
             ),
             "entities": r.entities,
             "relations": r.relations,
@@ -327,7 +336,7 @@ async def _process_file(
         }
         for r in extraction_results
     ]
-    # note that communities are not unique and can span multiple chunks, so we won't assign them to specific chunks
+    # note that clusters are not unique and can span multiple chunks, so we won't assign them to specific chunks
     output_data = {
         "id": document_id,
         "title": title,
@@ -344,9 +353,10 @@ async def _process_file(
             asdict(consolidated) if isinstance(consolidated, Graph) else consolidated
         ),
         "chunks": final_chunks,
+        "path": str(results_dir),
     }
     graph_json_path.write_text(json.dumps(output_data, indent=2), encoding="utf-8")
-    console.print(
+    _console.print(
         f"\n[green]\u2713[/green] Results saved to [cyan]{graph_json_path}[/cyan]"
     )
 
@@ -356,7 +366,7 @@ async def _process_file(
             consolidated, title=title, url=url, language=lang_name, summary=summary
         )
         nx.write_gml(g, results_dir / "graph.gml")
-        console.print(
+        _console.print(
             f"[green]\u2713[/green] Graph saved to "
             f"[cyan]{results_dir / 'graph.gml'}[/cyan]"
         )
@@ -369,17 +379,21 @@ async def _process_file(
         )
         html_path = results_dir / "index.html"
         html_path.write_text(html_content, encoding="utf-8")
-        console.print(
+        _console.print(
             f"[green]\u2713[/green] HTML report saved to [cyan]{html_path}[/cyan]"
         )
 
     # Save console log
     log_path = results_dir / "log.txt"
     console.save_text(str(log_path), clear=False)
-    console.print(f"[green]\u2713[/green] Console log saved to [cyan]{log_path}[/cyan]")
+    _console.print(
+        f"[green]\u2713[/green] Console log saved to [cyan]{log_path}[/cyan]"
+    )
     log_path = results_dir / "log.html"
     console.save_html(str(log_path), clear=False)
-    console.print(f"[green]\u2713[/green] Console log saved to [cyan]{log_path}[/cyan]")
+    _console.print(
+        f"[green]\u2713[/green] Console log saved to [cyan]{log_path}[/cyan]"
+    )
 
     # Rename results directory to include the title
     if not output:
@@ -392,7 +406,7 @@ async def _process_file(
         new_dir_path = results_dir.parent / new_dir_name
         if new_dir_path.exists():
             if overwrite:
-                console.print(
+                _console.print(
                     f"[yellow]\u26a0 Overwriting existing directory: "
                     f"{new_dir_path}[/yellow]"
                 )
@@ -407,10 +421,13 @@ async def _process_file(
             else:
                 new_dir_path = results_dir.parent / f"{new_dir_name}_{int(time.time())}"
         results_dir.rename(new_dir_path)
-        console.print(
+        _console.print(
             f"[green]\u2713[/green] Results directory renamed to "
             f"[cyan]{new_dir_path}[/cyan]"
         )
+        output_data["path"] = str(new_dir_path)
+
+    return output_data
 
 
 @extract_app.command("extract")
@@ -422,6 +439,14 @@ def extract(
             "--file",
             "-f",
             help="Path to a text or pdf file, or a url (http/https), to extract from. If a URL is provided, the content will be fetched and extracted.",
+        ),
+    ] = None,
+    wikipedia: Annotated[
+        Optional[str],
+        typer.Option(
+            "--wikipedia",
+            "-w",
+            help="Wikipedia title to extract from.",
         ),
     ] = None,
     directory: Annotated[
@@ -455,6 +480,20 @@ def extract(
                 f"Defaults: Ollama={DEFAULT_OLLAMA_DISCOVERY_MODEL}, "
                 f"OpenAI={DEFAULT_OPENAI_DISCOVERY_MODEL}. "
                 f"Anthropic={DEFAULT_ANTHROPIC_DISCOVERY_MODEL}. "
+            ),
+        ),
+    ] = None,
+    universal_model: Annotated[
+        Optional[str],
+        typer.Option(
+            "--universal-model",
+            "-m",
+            help=(
+                "Model used for all purposes, effectively overriding --extraction-model and --discovery-model in one go. "
+                f"Defaults: Ollama={DEFAULT_OLLAMA_DISCOVERY_MODEL}, "
+                f"OpenAI={DEFAULT_OPENAI_DISCOVERY_MODEL}. "
+                f"Anthropic={DEFAULT_ANTHROPIC_DISCOVERY_MODEL}. "
+                f"Gemini={DEFAULT_GEMINI_DISCOVERY_MODEL}. "
             ),
         ),
     ] = None,
@@ -552,6 +591,14 @@ def extract(
             help="HTML template to use for the consolidated graph report (defaults to 'columns').",
         ),
     ] = "default",
+    json_output: Annotated[
+        bool,
+        typer.Option(
+            "--json-output",
+            "-j",
+            help="Do not use console prints. All progress output is redirected to stderr. Useful for piping into n8n or other tools.",
+        ),
+    ] = False,
 ):
     """Extract knowledge graphs from text using LLMs."""
     if html_only:
@@ -602,6 +649,20 @@ def extract(
             )
             _tmp_file_path = Path(tmp.name)
         file = _tmp_file_path  # type: ignore[assignment]
+    elif wikipedia is not None:
+        title = wikipedia
+        url = f"https://en.wikipedia.org/wiki/{title.replace(' ', '_')}"
+        result = asyncio.run(WebpageCollector.fetch_url(url, no_cache=no_cache))
+        if result is None:
+            typer.echo(f"Error: failed to fetch Wikipedia page: {url}")
+            return typer.Exit(1)
+        _metadata, content = result
+        with tempfile.NamedTemporaryFile(
+            delete=False, suffix=".md", mode="w", encoding="utf-8"
+        ) as tmp:
+            tmp.write(content if isinstance(content, str) else content.decode("utf-8"))
+            _tmp_file_path = Path(tmp.name)
+        file = _tmp_file_path  # type: ignore[assignment]
     elif file is not None:
         file = Path(file)  # type: ignore[assignment]
 
@@ -633,8 +694,12 @@ def extract(
         "lmstudio": DEFAULT_LMSTUDIO_DISCOVERY_MODEL,
         "gemini": DEFAULT_GEMINI_DISCOVERY_MODEL,
     }
-    resolved_extraction_model = extraction_model or _default_extraction[backend]
-    resolved_discovery = discovery_model or _default_discovery[backend]
+    resolved_extraction_model = (
+        universal_model or extraction_model or _default_extraction[backend]
+    )
+    resolved_discovery = (
+        universal_model or discovery_model or _default_discovery[backend]
+    )
     config = Config(
         backend=backend,
         extraction_model=resolved_extraction_model,
@@ -664,6 +729,8 @@ def extract(
         files_to_process = [file]
 
     # Process each file
+    _process_console = null_console if json_output else None
+    _json_print_output = []
     for fp in files_to_process:
         if directory is not None:
             fp_output = (output / fp.stem) if output is not None else None
@@ -671,7 +738,7 @@ def extract(
         else:
             fp_output = output
 
-        asyncio.run(
+        result = asyncio.run(
             _process_file(
                 fp,
                 output=fp_output,
@@ -683,12 +750,41 @@ def extract(
                 gml_export=gml_export,
                 overwrite=overwrite,
                 template=template,
+                _console=_process_console,
             )
         )
+        if json_output:
+            _json_print_output.append(
+                {
+                    "file": str(fp) if fp is not None else None,
+                    "output": result.get("path"),
+                    "url": url,
+                    "language": result.get("language"),
+                    "entities": len(result["graph"]["entities"]),
+                    "relations": len(result["graph"]["relations"]),
+                    "chunks": len(result["chunks"]),
+                    "stats": (
+                        result["stats"][-1]
+                        if "stats" in result and isinstance(result["stats"], list)
+                        else result.get("stats", {})
+                    ),
+                }
+            )
 
         if directory is None:
             break  # single file mode, so stop after first file
         # Directory mode: log error and continue to next file
+    if json_output:
+        import sys
+
+        output_json = (
+            _json_print_output[0]
+            if len(_json_print_output) == 1
+            else _json_print_output
+        )
+
+        sys.stdout.write(json.dumps(output_json, indent=2) + "\n")
+        sys.stdout.flush()
     if consolidate and len(files_to_process) > 1:
         asyncio.run(
             cli_consolidate_graphs(directory=output, output=output, config=config)
@@ -696,6 +792,6 @@ def extract(
     # Cleanup temp file if we fetched from a URL
     if _tmp_file_path is not None and _tmp_file_path.exists():
         _tmp_file_path.unlink()
-        console.print(
+        (_process_console or console).print(
             f"[green]\u2713[/green] Cleaned up temporary file: {_tmp_file_path}"
         )

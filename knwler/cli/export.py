@@ -39,7 +39,7 @@ def neo4j(
     ] = 500,
 ) -> None:
     """Import knowledge-graph JSON files into Neo4j."""
-    from knwler.integrations.neo4j_import import main as neo4j_main
+    from knwler.integrations.neo4j_export import main as neo4j_main
 
     neo4j_main(
         files=files, uri=uri, user=user, password=password, batch_size=batch_size
@@ -77,7 +77,7 @@ def surrealdb(
     ] = "knwler",
 ) -> None:
     """Import knowledge-graph JSON files into SurrealDB."""
-    from knwler.integrations.surreal_import import main as surreal_main
+    from knwler.integrations.surreal_export import main as surreal_main
 
     surreal_main(
         files=files,

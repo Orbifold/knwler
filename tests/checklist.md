@@ -1,7 +1,5 @@
 # QA Checklist
 
-So many new features added in v1.0.0 so here is a comprehensive checklist (for myself).
-
 ## Setup
 
 - [x] uv install
@@ -96,8 +94,9 @@ So many new features added in v1.0.0 so here is a comprehensive checklist (for m
 - [ ] SHACL
 - [ ] kuzu/ladybug
 - [ ] contradictions
-- [ ] n8n
+- [x] n8n
+- [ ] ChromaDB
 - [ ] FastAPI
-- [ ] no console prints option
+- [x] no console prints option
 - [ ] https://github.com/Pro-GenAI/Index-RAG
 - [ ] Ontocast https://growgraph.github.io/ontocast/

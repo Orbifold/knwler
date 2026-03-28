@@ -52,7 +52,7 @@ from knwler.config import (
     null_console,
 )
 from knwler.models import ChunkGraph, Schema, Graph
-from knwler.cli_consolidate import cli_consolidate_graphs
+from knwler.cli.consolidate import cli_consolidate_graphs
 from dataclasses import asdict
 
 extract_app = typer.Typer(help="Utility to manage documents.")

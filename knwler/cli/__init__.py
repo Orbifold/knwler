@@ -49,18 +49,18 @@ from knwler.export import export_html
 from knwler.extraction import extract_chunks
 from knwler.extras import extract_summary, extract_title, rephrase_chunks
 from knwler.stats import compute_cluster_stats, compute_stats, print_stats
-from knwler.cli_extract import extract_app
-from knwler.cli_info import info_app, show_version
-from knwler.cli_consolidate import cli_consolidate_graphs
-from knwler.cli_fetch import fetch_app
-from knwler.cli_cache import cache_app
-from knwler.cli_demo import demo_app
-from knwler.cli_benchmark import benchmark_app
-from knwler.cli_graph import graph_app
-from knwler.cli_batch import batch_app
-from knwler.cli_parse import parse_app
-from knwler.cli_render import render_command
-from knwler.cli_export import export_app
+from knwler.cli.extract import extract_app
+from knwler.cli.info import info_app, show_version
+from knwler.cli.consolidate import cli_consolidate_graphs
+from knwler.cli.fetch import fetch_app
+from knwler.cli.cache import cache_app
+from knwler.cli.demo import demo_app
+from knwler.cli.benchmark import benchmark_app
+from knwler.cli.graph import graph_app
+from knwler.cli.batch import batch_app
+from knwler.cli.parse import parse_app
+from knwler.cli.render import render_command
+from knwler.cli.export import export_app
 
 app = typer.Typer(
     help="Turn documents into structured knowledge.",

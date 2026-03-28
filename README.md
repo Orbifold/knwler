@@ -1,7 +1,7 @@
 # Knwler
 
 [![Pypi](https://img.shields.io/pypi/dm/knwler)](https://pypi.org/project/knwler/)
-[![Version](https://img.shields.io/badge/version-1.0.0-green.svg)](https://github.com/Orbifold/knwler)
+[![Version](https://img.shields.io/badge/version-1.1.0-green.svg)](https://github.com/Orbifold/knwler)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
 [![Stars](https://img.shields.io/github/stars/Orbifold/knwler)](https://github.com/Orbifold/knwler)

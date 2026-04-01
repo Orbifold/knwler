@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.1
+
+- fix: benchmark run and updated results
+
 ## v1.1.0
 
 - fix: error dump on using pipx but not via uv

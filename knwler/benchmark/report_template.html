@@ -708,8 +708,7 @@
               {% set t = r.total_time %} {% for phase, val, cls in [ ("Schema",
               r.schema_time, "schema-fill"), ("Rephrase", r.rephrase_time,
               "rephrase-fill"), ("Extraction", r.extraction_time,
-              "extract-fill"), ("Consolidation", r.consolidation_time,
-              "consolidate-fill") ] %}
+              "extract-fill") ] %}
               <div class="dc-time-row">
                 <span class="dc-time-label">{{ phase }}</span>
                 <div class="dc-time-bar">
@@ -743,8 +742,7 @@
           </p>
           <div class="formula-block">
             graph_size = num_entities + num_relations<br />
-            total_time = schema_time + rephrase_time + extraction_time +
-            consolidation_time<br /><br />
+            total_time = schema_time + rephrase_time + extraction_time<br /><br />
             quality_norm = graph_size / max(graph_size) &nbsp;# [0, 1]<br />
             speed_norm = min(total_time) / total_time &nbsp;# [0, 1] — fastest
             run scores 1.0<br /><br />
@@ -788,7 +786,6 @@
       const schemaTimes = {{ chart_schema_times | tojson }};
       const rephraseTimes = {{ chart_rephrase_times | tojson }};
       const extractTimes = {{ chart_extraction_times | tojson }};
-      const consolidateTimes = {{ chart_consolidation_times | tojson }};
       const entitiesData = {{ chart_entities | tojson }};
       const relationsData = {{ chart_relations | tojson }};
       const rateData = {{ chart_rates | tojson }};
@@ -850,7 +847,6 @@
             { label: "Schema",       data: schemaTimes,     backgroundColor: "#26c6da", borderRadius: 0, stack: "t" },
             { label: "Rephrase",     data: rephraseTimes,   backgroundColor: "#7986cb", borderRadius: 0, stack: "t" },
             { label: "Extraction",   data: extractTimes,    backgroundColor: "#ef9a9a", borderRadius: 0, stack: "t" },
-            { label: "Consolidation",data: consolidateTimes,backgroundColor: "#a5d6a7", borderRadius: 0, stack: "t" },
           ]
         },
         options: {

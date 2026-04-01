@@ -44,7 +44,7 @@ def compute_kys(results: list[dict]) -> list[dict]:
     Knowledge Yield Score (KYS) — geometric mean of two normalised sub-scores:
 
         graph_size   = num_entities + num_relations
-        total_time   = schema_time + rephrase_time + extraction_time + consolidation_time
+        total_time   = schema_time + rephrase_time + extraction_time 
 
         quality_norm = graph_size / max(graph_size)          → richness of output  [0,1]
         speed_norm   = min(total_time) / total_time          → pipeline efficiency [0,1]
@@ -64,7 +64,6 @@ def compute_kys(results: list[dict]) -> list[dict]:
         r["schema_time"]
         + r["rephrase_time"]
         + r["extraction_time"]
-        + r["consolidation_time"]
         for r in valid
     )
 
@@ -75,7 +74,6 @@ def compute_kys(results: list[dict]) -> list[dict]:
             r["schema_time"]
             + r["rephrase_time"]
             + r["extraction_time"]
-            + r["consolidation_time"]
         )
 
         quality_norm = graph_size / max_graph if max_graph > 0 else 0.0
@@ -150,7 +148,6 @@ def render_report(runs: list[dict], output_path: Path) -> None:
     chart_schema_times = [r["schema_time"] for r in runs]
     chart_rephrase_times = [r["rephrase_time"] for r in runs]
     chart_extraction_times = [r["extraction_time"] for r in runs]
-    chart_consolidation_times = [r["consolidation_time"] for r in runs]
     chart_entities = [r["num_entities"] for r in runs]
     chart_relations = [r["num_relations"] for r in runs]
     chart_rates = [r["knowledge_rate"] for r in runs]
@@ -177,7 +174,6 @@ def render_report(runs: list[dict], output_path: Path) -> None:
         "chart_schema_times": chart_schema_times,
         "chart_rephrase_times": chart_rephrase_times,
         "chart_extraction_times": chart_extraction_times,
-        "chart_consolidation_times": chart_consolidation_times,
         "chart_entities": chart_entities,
         "chart_relations": chart_relations,
         "chart_rates": chart_rates,

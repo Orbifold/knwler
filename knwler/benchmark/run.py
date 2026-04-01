@@ -93,7 +93,9 @@ async def crunch(config: Config):
         # Chunking is not timed but necessary for the pipeline to run end-to-end
         chunks = await chunk(text, config)
         chunks_path = output / "chunks.json"
-        chunks_path.write_text(json.dumps(chunks, indent=2), encoding="utf-8")
+        chunks_path.write_text(
+            json.dumps(chunks, indent=2, default=asdict), encoding="utf-8"
+        )
 
         # Rephrase chunks
         start_time = time.perf_counter()
@@ -102,36 +104,22 @@ async def crunch(config: Config):
         result["rephrase_time"] = round(rephrase_time, 2)
         rephrased_chunks_path = output / "rephrased_chunks.json"
         rephrased_chunks_path.write_text(
-            json.dumps(rephrased_chunks, indent=2), encoding="utf-8"
+            json.dumps(rephrased_chunks, indent=2, default=asdict), encoding="utf-8"
         )
 
         # Extraction
         start_time = time.perf_counter()
-        extraction_results = await extract_chunks(chunks, schema, config)
+        document_graph = await extract_chunks(chunks, schema, config)
         extraction_time = time.perf_counter() - start_time
         result["extraction_time"] = round(extraction_time, 2)
-        extraction_path = output / "extraction.json"
+        result["num_entities"] = len(document_graph.graph.entities)
+        result["num_relations"] = len(document_graph.graph.relations)
+        extraction_path = output / "consolidated_graph.json"
         extraction_path.write_text(
-            json.dumps([asdict(result) for result in extraction_results], indent=2),
+            json.dumps(document_graph, indent=2, default=asdict),
             encoding="utf-8",
         )
 
-        # Consolidation
-        start_time = time.perf_counter()
-        consolidated_graph = await consolidate_chunk_graphs(
-            extraction_results,
-            summarize=True,
-            filter_low_importance=False,
-            config=config,
-        )
-        consolidation_time = time.perf_counter() - start_time
-        result["num_entities"] = len(consolidated_graph.entities)
-        result["num_relations"] = len(consolidated_graph.relations)
-        result["consolidation_time"] = round(consolidation_time, 2)
-        consolidated_path = output / "consolidated_graph.json"
-        consolidated_path.write_text(
-            json.dumps(asdict(consolidated_graph), indent=2), encoding="utf-8"
-        )
         stats_path = output / "stats.json"
         stats_path.write_text(json.dumps(result, indent=2), encoding="utf-8")
     except Exception as e:
@@ -149,12 +137,16 @@ async def run(grid=None):
         grid = json.loads(grid_path.read_text(encoding="utf-8"))
     results = []
     for backend, configs in grid.items():
+
         for cfg in configs:
             config = Config(
                 backend=backend,
                 discovery_model=cfg["discovery_model"],
                 extraction_model=cfg["extraction_model"],
-                use_cache=True,  # if nothing has changed you can rely on the cache for faster iterations, but for benchmarking we want to disable it
+                use_cache="gemini-3.1-pro"
+                not in cfg[
+                    "discovery_model"
+                ],  # if nothing has changed you can rely on the cache for faster iterations, but for benchmarking we want to disable it
             )
             console.print(
                 f"[green]Running benchmark with config:[/green] {config.backend} - discovery={config.discovery_model}, extraction={config.extraction_model}"

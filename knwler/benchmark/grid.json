@@ -17,6 +17,14 @@
             "extraction_model": "qwen2.5:3b"
         },
         {
+            "discovery_model": "qwen3:8b",
+            "extraction_model": "qwen3:8b"
+        },
+        {
+            "discovery_model": "qwen3.5:9b",
+            "extraction_model": "qwen3.5:9b"
+        },
+        {
             "discovery_model": "gemma3:12b",
             "extraction_model": "gemma3:4b"
         },
@@ -31,6 +39,10 @@
         {
             "discovery_model": "mistral:latest",
             "extraction_model": "mistral:latest"
+        },
+        {
+            "discovery_model": "glm-4.7-flash:latest",
+            "extraction_model": "glm-4.7-flash:latest"
         }
     ],
     "openai": [

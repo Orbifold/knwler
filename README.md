@@ -16,19 +16,19 @@ No big package dependencies, runs local if you wish, no licenses, no fuss.
 
 <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:2px;">
 <a href="https://knwler.com/benchmark" target="_blank"><img src="https://knwler.com/images/benchmarks.png" style="height:200px;"/></a>
-<a href="https://knwler.com/images/Ogma.png" target="_blank"><img src="https://knwler.com/images/ogma.jpg" style="height:200px;"/></a>
-<a href="https://knwler.com/images/Surreal.jpg" target="_blank"><img src="https://knwler.com/images/SurrealExport.jpg" style="height:200px;"/></a>
-<a href="https://knwler.com/images/yEd.png" target="_blank"><img src="https://knwler.com/images/yEd.png" style="height:200px;"/></a>
-<a href="https://knwler.com/images/yFilesKnwler.png" target="_blank"><img src="https://knwler.com/images/yFilesKnwler.jpg" style="height:200px;"/></a>
-<a href="https://knwler.com/images/yFilesKnwlerDark.png" target="_blank"><img src="https://knwler.com/images/yFilesKnwlerDark.jpg" style="height:200px;"/></a>
-<a href="https://knwler.com/images/OgmaKnwler.png" target="_blank"><img src="https://knwler.com/images/OgmaKnwler.jpg" style="height:200px;"/></a>
-<a href="https://knwler.com/images/Neo4jExport.jpg" target="_blank"><img src="https://knwler.com/images/Neo4jExport.jpg" style="height:200px;"/></a>
-<a href="https://knwler.com/images/HumanRightsFancy.png" target="_blank"><img src="https://knwler.com/images/HumanRightsFancy.jpg" style="height:200px;"/></a>
-<a href="https://knwler.com/images/GraphDBVisualGraph.png" target="_blank"><img src="https://knwler.com/images/GraphDBVisualGraph.jpg" style="height:200px;"/></a>
-<a href="https://knwler.com/images/ColumnsTemplate.jpg" target="_blank"><img src="https://knwler.com/images/ColumnsTemplate.jpg" style="height:200px;"/></a>
-<a href="https://knwler.com/images/DefaultTemplate.jpg" target="_blank"><img src="https://knwler.com/images/DefaultTemplate.jpg" style="height:200px;"/></a>
-<a href="https://knwler.com/images/Disambiguation.jpg" target="_blank"><img src="https://knwler.com/images/Disambiguation.jpg" style="height:200px;"/></a>
-<a href="https://knwler.com/images/BurgerlijkRaw.jpg" target="_blank"><img src="https://knwler.com/images/BurgerlijkRaw.jpg" style="height:200px;"/></a>
+<a href="https://knwler.com/examples/ogma/index.html" target="_blank"><img src="https://knwler.com/images/ogma.jpg" style="height:200px;"/></a>
+<a href="https://knwler.com/docs/surreal.html" target="_blank"><img src="https://knwler.com/images/SurrealExport.jpg" style="height:200px;"/></a>
+<a href="https://knwler.com/docs/visualization.html" target="_blank"><img src="https://knwler.com/images/yEd.png" style="height:200px;"/></a>
+<a href="https://knwler.com/examples/yfiles/index.html" target="_blank"><img src="https://knwler.com/images/yFilesKnwler.jpg" style="height:200px;"/></a>
+<a href="https://knwler.com/examples/yfiles/index.html" target="_blank"><img src="https://knwler.com/images/yFilesKnwlerDark.jpg" style="height:200px;"/></a>
+<a href="https://knwler.com/examples/ogma/index.html" target="_blank"><img src="https://knwler.com/images/OgmaKnwler.jpg" style="height:200px;"/></a>
+<a href="https://knwler.com/docs/neo4j.html" target="_blank"><img src="https://knwler.com/images/Neo4jExport.jpg" style="height:200px;"/></a>
+<a href="https://knwler.com/examples/HRCustom/index.html" target="_blank"><img src="https://knwler.com/images/HumanRightsFancy.jpg" style="height:200px;"/></a>
+<a href="https://knwler.com/docs/graphdb.html" target="_blank"><img src="https://knwler.com/images/GraphDBVisualGraph.jpg" style="height:200px;"/></a>
+<a href="https://knwler.com/examples/NIST/index.html" target="_blank"><img src="https://knwler.com/images/ColumnsTemplate.jpg" style="height:200px;"/></a>
+<a href="https://knwler.com/examples/Deloitte/index.html" target="_blank"><img src="https://knwler.com/images/DefaultTemplate.jpg" style="height:200px;"/></a>
+<a href="https://knwler.com/examples/3d/index.html" target="_blank"><img src="https://knwler.com/images/3d.png" style="height:200px;"/></a>
+
 </div>
 
 ---

@@ -13,7 +13,7 @@ import typer
 from knwler.config import console
 from knwler.export import export_html
 
-_TEMPLATES = ["default", "columns", "research", "cypher", "blank"]
+_TEMPLATES = ["default", "columns", "research", "cypher", "blank", "graphchat"]
 
 
 def render_command(

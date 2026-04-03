@@ -1,6 +1,18 @@
 {
     "ollama": [
         {
+            "discovery_model": "glm-ocr:latest",
+            "extraction_model": "glm-ocr:latest"
+        },
+        {
+            "discovery_model": "gemma4:e2b",
+            "extraction_model": "gemma4:e2b"
+        },
+        {
+            "discovery_model": "gemma4:latest",
+            "extraction_model": "gemma4:latest"
+        },
+        {
             "discovery_model": "qwen2.5:14b",
             "extraction_model": "qwen2.5:3b"
         },

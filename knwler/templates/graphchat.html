@@ -1,0 +1,1471 @@
+<!doctype html>
+<html lang="{{ lang }}">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ title }} — Graph Chat</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <meta
+      name="keywords"
+      content="knowledge graph, document intelligence, NLP, entity extraction, compliance, legal tech, regulatory analysis, AI document processing, on-premise AI, knowledge management"
+    />
+    <meta name="author" content="Knwler — Orbifold Consulting" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://knwler.com/" />
+    <style>
+      :root {
+        --ob-dark: #141413;
+        --ob-light: #faf9f5;
+        --ob-mid-gray: #b0aea5;
+        --ob-light-gray: #e8e6dc;
+        --ob-blue: #0a3a78;
+        --ob-green: #2b8c3f;
+        --ob-orange: #e36a1c;
+        --ob-font: "Nunito", -apple-system, BlinkMacSystemFont, sans-serif;
+        --bg-body: #141413;
+        --bg-navbar: #0d0d0c;
+        --bg-sidebar: #1a1a18;
+        --bg-chat-input: #1a1a18;
+        --bg-input: #252522;
+        --bg-message-assistant: #1e1e1c;
+        --bg-setup-card: #1e1e1c;
+        --bg-chunk: #171715;
+        --border-main: #2e2e2b;
+        --border-light: #3a3a36;
+        --border-chunk: #2a2a27;
+        --text-primary: #faf9f5;
+        --text-secondary: #b0aea5;
+        --text-muted: #5a5a55;
+        --text-chunk: #c8c6bc;
+        --scrollbar-thumb: #3a3a36;
+        --scrollbar-hover: #5a5a55;
+      }
+      [data-theme="light"] {
+        --bg-body: #faf9f5;
+        --bg-navbar: #fff;
+        --bg-sidebar: #f0eee6;
+        --bg-chat-input: #f0eee6;
+        --bg-input: #fff;
+        --bg-message-assistant: #fff;
+        --bg-setup-card: #fff;
+        --bg-chunk: #f5f4ef;
+        --border-main: #e0ddd2;
+        --border-light: #d4d1c6;
+        --border-chunk: #e0ddd2;
+        --text-primary: #141413;
+        --text-secondary: #6a685f;
+        --text-muted: #9a988f;
+        --text-chunk: #4a4940;
+        --scrollbar-thumb: #d4d1c6;
+        --scrollbar-hover: #b0aea5;
+      }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: var(--ob-font);
+        font-size: 15px;
+        line-height: 1.6;
+        background: var(--bg-body);
+        color: var(--text-primary);
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .navbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.6rem 1.25rem;
+        background: var(--bg-navbar);
+        border-bottom: 1px solid var(--border-main);
+        flex-shrink: 0;
+        position: relative;
+      }
+      .navbar .logo {
+        font-size: 1.1rem;
+        font-weight: 800;
+        color: var(--text-primary);
+        letter-spacing: -0.02em;
+        cursor: pointer;
+      }
+      .navbar .logo span {
+        color: var(--ob-orange);
+      }
+      .navbar-title {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 50%;
+        text-align: center;
+      }
+      .navbar-right {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.72rem;
+        font-weight: 600;
+        padding: 0.2rem 0.65rem;
+        border-radius: 999px;
+        letter-spacing: 0.02em;
+      }
+      .status-pill.loading {
+        background: #3d2210;
+        color: #f0a06a;
+      }
+      .status-pill.ready {
+        background: #1a3d22;
+        color: #5ec97a;
+      }
+      .status-pill.error {
+        background: #3d1010;
+        color: #f0806a;
+      }
+      .status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        display: inline-block;
+      }
+      .status-pill.loading .status-dot {
+        background: var(--ob-orange);
+        animation: pulse 1.5s infinite;
+      }
+      .status-pill.ready .status-dot {
+        background: var(--ob-green);
+      }
+      .status-pill.error .status-dot {
+        background: #e05050;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.3;
+        }
+      }
+      .main-layout {
+        display: flex;
+        flex: 1;
+        min-height: 0;
+      }
+      .sidebar {
+        width: 280px;
+        background: var(--bg-sidebar);
+        border-right: 1px solid var(--border-main);
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+        overflow: hidden;
+      }
+      .sidebar-header {
+        padding: 0.75rem 1rem;
+        font-weight: 700;
+        font-size: 0.6rem;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        border-bottom: 1px solid var(--border-main);
+        cursor: pointer;
+      }
+      .sidebar-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0.5rem;
+      }
+      .sidebar-section {
+        margin-bottom: 0.75rem;
+      }
+      .sidebar-section-title {
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: var(--text-secondary);
+        padding: 0.3rem 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .entity-chip {
+        display: inline-block;
+        font-size: 0.72rem;
+        font-weight: 600;
+        padding: 0.15rem 0.5rem;
+        border-radius: 4px;
+        margin: 0.15rem;
+        cursor: pointer;
+        transition: opacity 0.15s;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .entity-chip:hover {
+        opacity: 0.8;
+      }
+      .entity-chip.type-company {
+        background: #0e2a50;
+        color: #7ab3e8;
+      }
+      .entity-chip.type-software {
+        background: #1a3d22;
+        color: #5ec97a;
+      }
+      .entity-chip.type-service {
+        background: #3d2210;
+        color: #f0a06a;
+      }
+      .entity-chip.type-hardware {
+        background: #2a1a3d;
+        color: #b08ae8;
+      }
+      .entity-chip.type-data {
+        background: #3d3210;
+        color: #e8d06a;
+      }
+      .entity-chip.type-default {
+        background: #2e2e2b;
+        color: var(--ob-mid-gray);
+      }
+      .graph-stats {
+        padding: 0.75rem 1rem;
+        border-top: 1px solid var(--border-main);
+        font-size: 0.78rem;
+        color: var(--text-secondary);
+      }
+      .graph-stats div {
+        margin-bottom: 0.2rem;
+      }
+      .graph-stats strong {
+        color: var(--text-primary);
+        font-weight: 700;
+      }
+      #entity-detail {
+        width: 300px;
+        background: var(--bg-sidebar);
+        border-right: 1px solid var(--border-main);
+        overflow-y: auto;
+        padding: 0.75rem;
+        font-size: 0.8rem;
+        flex-shrink: 0;
+      }
+      #entity-detail .ed-back {
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: var(--ob-blue);
+        cursor: pointer;
+        margin-bottom: 0.5rem;
+        display: inline-block;
+      }
+      #entity-detail .ed-back:hover {
+        text-decoration: underline;
+      }
+      #entity-detail .ed-name {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 0.2rem;
+      }
+      #entity-detail .ed-type {
+        font-size: 0.7rem;
+        font-weight: 600;
+        padding: 0.1rem 0.4rem;
+        border-radius: 3px;
+        background: #0e2a50;
+        color: #7ab3e8;
+        display: inline-block;
+        margin-bottom: 0.4rem;
+      }
+      #entity-detail .ed-desc {
+        color: var(--text-secondary);
+        margin-bottom: 0.5rem;
+        line-height: 1.45;
+      }
+      #entity-detail .ed-section {
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin: 0.5rem 0 0.25rem;
+      }
+      #entity-detail .ed-rel {
+        font-size: 0.78rem;
+        color: var(--text-chunk);
+        padding: 0.15rem 0;
+        line-height: 1.4;
+      }
+      #entity-detail .ed-chunk {
+        background: var(--bg-chunk);
+        border: 1px solid var(--border-chunk);
+        border-radius: 5px;
+        padding: 0.5rem;
+        margin-bottom: 0.35rem;
+        font-size: 0.75rem;
+        color: var(--text-chunk);
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        max-height: 150px;
+        overflow-y: auto;
+        line-height: 1.45;
+      }
+      .chat-area {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+      .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+      .message {
+        max-width: 80%;
+        padding: 0.75rem 1rem;
+        border-radius: 12px;
+        font-size: 0.92rem;
+        line-height: 1.55;
+        word-wrap: break-word;
+      }
+      .message.user {
+        align-self: flex-end;
+        background: var(--ob-blue);
+        color: #fff;
+        border-bottom-right-radius: 4px;
+      }
+      .message.assistant {
+        align-self: flex-start;
+        background: var(--bg-message-assistant);
+        border: 1px solid var(--border-main);
+        border-bottom-left-radius: 4px;
+      }
+      .message.system {
+        align-self: center;
+        background: transparent;
+        color: var(--text-secondary);
+        font-size: 0.82rem;
+        text-align: center;
+        max-width: 90%;
+      }
+      .message .sources {
+        margin-top: 0.5rem;
+        padding-top: 0.5rem;
+        border-top: 1px solid var(--border-light);
+        font-size: 0.78rem;
+        color: var(--text-secondary);
+      }
+      .message .sources .source-entity {
+        display: inline-block;
+        font-size: 0.7rem;
+        font-weight: 600;
+        padding: 0.1rem 0.4rem;
+        border-radius: 3px;
+        margin: 0.1rem;
+        background: #0e2a50;
+        color: #7ab3e8;
+        cursor: pointer;
+        transition: background 0.15s;
+      }
+      .message .sources .source-entity:hover {
+        background: #153a6a;
+      }
+      .message .provenance {
+        margin-top: 0.5rem;
+      }
+      .prov-toggle {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        cursor: pointer;
+        user-select: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.2rem 0;
+        transition: color 0.15s;
+      }
+      .prov-toggle:hover {
+        color: var(--text-primary);
+      }
+      .prov-toggle .arrow {
+        display: inline-block;
+        transition: transform 0.2s;
+        font-size: 0.6rem;
+      }
+      .prov-toggle.open .arrow {
+        transform: rotate(90deg);
+      }
+      .prov-chunks {
+        display: none;
+        margin-top: 0.4rem;
+      }
+      .prov-chunks.open {
+        display: block;
+      }
+      .prov-chunk {
+        background: var(--bg-chunk);
+        border: 1px solid var(--border-chunk);
+        border-radius: 6px;
+        padding: 0.6rem 0.75rem;
+        margin-bottom: 0.4rem;
+        font-size: 0.78rem;
+        line-height: 1.5;
+        color: var(--text-primary);
+        position: relative;
+      }
+      .prov-chunk-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.3rem;
+      }
+      .prov-chunk-label {
+        font-size: 0.68rem;
+        font-weight: 700;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .prov-chunk-idx {
+        font-size: 0.68rem;
+        color: var(--text-muted);
+      }
+      .prov-chunk-text {
+        color: var(--text-chunk);
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        max-height: 200px;
+        overflow-y: auto;
+      }
+      .prov-chunk-entities {
+        margin-top: 0.35rem;
+        padding-top: 0.35rem;
+        border-top: 1px solid var(--border-chunk);
+      }
+      .prov-chunk-entities span {
+        display: inline-block;
+        font-size: 0.65rem;
+        font-weight: 600;
+        padding: 0.1rem 0.35rem;
+        border-radius: 3px;
+        margin: 0.1rem;
+        background: #1a3d22;
+        color: #5ec97a;
+      }
+      .thinking-indicator {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0;
+        font-size: 0.82rem;
+        color: var(--text-secondary);
+      }
+      .thinking-dots span {
+        display: inline-block;
+        width: 5px;
+        height: 5px;
+        background: var(--text-secondary);
+        border-radius: 50%;
+        animation: bounce 1.4s infinite;
+      }
+      .thinking-dots span:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+      .thinking-dots span:nth-child(3) {
+        animation-delay: 0.4s;
+      }
+      @keyframes bounce {
+        0%,
+        80%,
+        100% {
+          transform: translateY(0);
+        }
+        40% {
+          transform: translateY(-6px);
+        }
+      }
+      .chat-input-area {
+        padding: 0.75rem 1.25rem;
+        border-top: 1px solid var(--border-main);
+        background: var(--bg-chat-input);
+        flex-shrink: 0;
+      }
+      .chat-input-row {
+        display: flex;
+        gap: 0.5rem;
+      }
+      .chat-input {
+        flex: 1;
+        background: var(--bg-input);
+        border: 1px solid var(--border-light);
+        border-radius: 8px;
+        padding: 0.6rem 0.9rem;
+        color: var(--text-primary);
+        font-family: var(--ob-font);
+        font-size: 0.9rem;
+        outline: none;
+        resize: none;
+        max-height: 120px;
+      }
+      .chat-input:focus {
+        border-color: var(--ob-blue);
+      }
+      .chat-input::placeholder {
+        color: var(--text-muted);
+      }
+      .send-btn {
+        font-family: var(--ob-font);
+        font-weight: 700;
+        font-size: 0.85rem;
+        padding: 0.6rem 1.1rem;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+        background: var(--ob-blue);
+        color: #fff;
+        transition: opacity 0.15s;
+        white-space: nowrap;
+      }
+      .send-btn:hover:not(:disabled) {
+        opacity: 0.88;
+      }
+      .send-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      .input-hint {
+        font-size: 0.72rem;
+        color: var(--text-muted);
+        margin-top: 0.35rem;
+        padding-left: 0.2rem;
+      }
+      .setup-screen {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+      }
+      .setup-card {
+        background: var(--bg-setup-card);
+        border: 1px solid var(--border-main);
+        border-radius: 12px;
+        padding: 2rem;
+        max-width: 640px;
+        width: 100%;
+        text-align: center;
+      }
+      .setup-card h2 {
+        font-size: 1.4rem;
+        margin-bottom: 0.5rem;
+        color: var(--text-primary);
+      }
+      .setup-card p {
+        color: var(--text-secondary);
+        margin-bottom: 1.25rem;
+        font-size: 0.9rem;
+      }
+      .progress-section {
+        margin-top: 1rem;
+        text-align: left;
+      }
+      .progress-step {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.35rem 0;
+        font-size: 0.82rem;
+        color: var(--text-secondary);
+      }
+      .progress-step.active {
+        color: var(--text-primary);
+      }
+      .progress-step.done {
+        color: var(--ob-green);
+      }
+      .progress-step .step-icon {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7rem;
+        font-weight: 700;
+        flex-shrink: 0;
+        background: var(--border-main);
+        color: var(--text-muted);
+      }
+      .progress-step.active .step-icon {
+        background: var(--ob-blue);
+        color: #fff;
+      }
+      .progress-step.done .step-icon {
+        background: var(--ob-green);
+        color: #fff;
+      }
+      .progress-bar-track {
+        width: 100%;
+        height: 4px;
+        background: var(--border-main);
+        border-radius: 2px;
+        margin-top: 0.75rem;
+        overflow: hidden;
+      }
+      .progress-bar-fill {
+        height: 100%;
+        background: var(--ob-blue);
+        border-radius: 2px;
+        transition: width 0.3s;
+        width: 0%;
+      }
+      .model-select-section {
+        margin-bottom: 1rem;
+        text-align: left;
+      }
+      .model-select-section label {
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        display: block;
+        margin-bottom: 0.3rem;
+      }
+      .model-select {
+        width: 100%;
+        background: var(--bg-input);
+        border: 1px solid var(--border-light);
+        border-radius: 6px;
+        padding: 0.5rem 0.75rem;
+        color: var(--text-primary);
+        font-family: var(--ob-font);
+        font-size: 0.85rem;
+      }
+      .model-select option {
+        background: var(--bg-input);
+      }
+      .mode-toggle {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+      }
+      .mode-btn {
+        flex: 1;
+        padding: 0.5rem;
+        border-radius: 6px;
+        border: 1px solid var(--border-light);
+        background: transparent;
+        color: var(--text-secondary);
+        font-family: var(--ob-font);
+        font-size: 0.82rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .mode-btn.active {
+        background: var(--ob-blue);
+        border-color: var(--ob-blue);
+        color: #fff;
+      }
+      .mode-btn:hover:not(.active):not(:disabled) {
+        border-color: var(--ob-blue);
+        color: var(--text-primary);
+      }
+      ::-webkit-scrollbar {
+        width: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--scrollbar-thumb);
+        border-radius: 3px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: var(--scrollbar-hover);
+      }
+      .theme-toggle {
+        background: none;
+        border: 1px solid var(--border-light);
+        border-radius: 6px;
+        padding: 0.25rem 0.5rem;
+        cursor: pointer;
+        color: var(--text-secondary);
+        font-size: 1rem;
+        line-height: 1;
+        transition:
+          color 0.15s,
+          border-color 0.15s;
+        display: flex;
+        align-items: center;
+      }
+      .theme-toggle:hover {
+        color: var(--text-primary);
+        border-color: var(--text-secondary);
+      }
+      @media (max-width: 768px) {
+        .sidebar {
+          display: none;
+        }
+        #entity-detail {
+          display: none !important;
+        }
+        .message {
+          max-width: 95%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="navbar">
+      <div class="logo" onclick="window.location.reload()">
+        knwler<span> graph chat</span>
+      </div>
+      <div class="navbar-title" id="navbar-title"></div>
+      <div class="navbar-right">
+        <button
+          class="theme-toggle"
+          id="theme-toggle"
+          onclick="toggleTheme()"
+          title="Toggle light/dark mode"
+        >
+          &#9790;
+        </button>
+        <div id="llm-status" class="status-pill loading">
+          <span class="status-dot"></span>
+          <span id="llm-status-text">Waiting</span>
+        </div>
+        <div id="db-status" class="status-pill loading">
+          <span class="status-dot"></span>
+          <span id="db-status-text">No graph</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-layout">
+      <div class="sidebar" id="sidebar" style="display: none">
+        <div
+          class="sidebar-header"
+          onclick="window.open('https://knwler.com', '_blank')"
+        >
+          knwler.com
+        </div>
+        <div class="sidebar-content" id="sidebar-entities"></div>
+        <div class="graph-stats" id="graph-stats"></div>
+      </div>
+
+      <div id="entity-detail" style="display: none"></div>
+
+      <div class="chat-area">
+        <div class="setup-screen" id="setup-screen">
+          <div class="setup-card">
+            <h2>{{ title }}</h2>
+            <p>{{ summary }}</p>
+
+            <div class="mode-toggle">
+              <button
+                class="mode-btn active"
+                id="mode-webllm"
+                onclick="setMode('webllm')"
+              >
+                WebLLM (full local)
+              </button>
+              <button
+                class="mode-btn"
+                id="mode-embedonly"
+                onclick="setMode('embedonly')"
+              >
+                Retrieval only (no LLM)
+              </button>
+            </div>
+
+            <div id="model-section" class="model-select-section">
+              <label>WebLLM model</label>
+              <select class="model-select" id="model-select">
+                <option value="Phi-3.5-mini-instruct-q4f16_1-MLC">
+                  Phi-3.5 mini (3.8B) — recommended
+                </option>
+                <option value="SmolLM2-1.7B-Instruct-q4f16_1-MLC">
+                  SmolLM2 (1.7B) — lighter
+                </option>
+                <option value="Llama-3.2-3B-Instruct-q4f16_1-MLC">
+                  Llama 3.2 (3B)
+                </option>
+                <option value="gemma-2-2b-it-q4f16_1-MLC">Gemma 2 (2B)</option>
+              </select>
+            </div>
+
+            <div class="progress-section" id="progress-section">
+              <div class="progress-step" id="step-parse">
+                <span class="step-icon">1</span><span>Parse graph data</span>
+              </div>
+              <div class="progress-step" id="step-embed">
+                <span class="step-icon">2</span
+                ><span>Embed entities &amp; chunks</span>
+              </div>
+              <div class="progress-step" id="step-llm">
+                <span class="step-icon">3</span
+                ><span
+                  >Load WebLLM model (once loaded, it stays in memory, cached
+                  thereafter)</span
+                >
+              </div>
+              <div class="progress-bar-track">
+                <div class="progress-bar-fill" id="progress-bar"></div>
+              </div>
+              <div
+                id="progress-detail"
+                style="
+                  font-size: 0.78rem;
+                  color: var(--text-muted);
+                  margin-top: 0.4rem;
+                "
+              ></div>
+            </div>
+          </div>
+        </div>
+
+        <div
+          id="chat-screen"
+          style="display: none; flex-direction: column; min-height: 0"
+        >
+          <div class="chat-messages" id="chat-messages"></div>
+          <div class="chat-input-area">
+            <div class="chat-input-row">
+              <textarea
+                class="chat-input"
+                id="chat-input"
+                rows="1"
+                placeholder="Ask about your knowledge graph..."
+                onkeydown="
+                  if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault();
+                    sendMessage();
+                  }
+                "
+              ></textarea>
+              <button class="send-btn" id="send-btn" onclick="sendMessage()">
+                Send
+              </button>
+            </div>
+            <div class="input-hint" id="input-hint">
+              Graph-RAG retrieval + WebLLM generation — fully offline
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      // ═══════════════════════════════════════════════════════════
+      // Knwler Graph Chat — Client-Side Graph-RAG
+      // Transformers.js (embeddings) + WebLLM (generation)
+      // Graph data supplied via knwler export
+      // ═══════════════════════════════════════════════════════════
+
+      // ── Theme ──
+      function applyTheme(theme) {
+        document.documentElement.setAttribute("data-theme", theme);
+        const btn = document.getElementById("theme-toggle");
+        btn.innerHTML = theme === "light" ? "&#9728;" : "&#9790;";
+        btn.title =
+          theme === "light" ? "Switch to dark mode" : "Switch to light mode";
+      }
+      window.toggleTheme = function () {
+        const next =
+          document.documentElement.getAttribute("data-theme") === "light"
+            ? "dark"
+            : "light";
+        localStorage.setItem("knwler-theme", next);
+        applyTheme(next);
+      };
+      applyTheme(localStorage.getItem("knwler-theme") || "dark");
+
+      // ── Graph data injected by knwler export ──
+      const graphData = {{ rawData | safe }};
+
+      // ── State ──
+      let allEmbeddings = [];
+      let chunkMap = {};
+      let llmEngine = null;
+      let embeddingPipeline = null;
+      let mode = "webllm";
+      let isProcessing = false;
+      let hasWebGPU = false;
+
+      // ── WebGPU check ──
+      async function checkWebGPU() {
+        if (!navigator.gpu) return false;
+        try {
+          const adapter = await navigator.gpu.requestAdapter();
+          return !!adapter;
+        } catch {
+          return false;
+        }
+      }
+
+      // ── Mode toggle ──
+      window.setMode = function (m) {
+        mode = m;
+        document
+          .getElementById("mode-webllm")
+          .classList.toggle("active", m === "webllm");
+        document
+          .getElementById("mode-embedonly")
+          .classList.toggle("active", m === "embedonly");
+        document.getElementById("model-section").style.display =
+          m === "webllm" ? "block" : "none";
+        document.getElementById("step-llm").style.display =
+          m === "webllm" ? "flex" : "none";
+      };
+
+      // ── Init: check GPU + auto-start embedding pipeline ──
+      (async () => {
+        hasWebGPU = await checkWebGPU();
+        if (!hasWebGPU) {
+          setMode("embedonly");
+          const btn = document.getElementById("mode-webllm");
+          btn.disabled = true;
+          btn.textContent = "WebLLM (no WebGPU)";
+          btn.style.opacity = "0.4";
+          btn.style.cursor = "not-allowed";
+          updateLlmStatus("error", "No WebGPU");
+        }
+        // Auto-start the pipeline with injected graph data
+        await initPipeline();
+      })();
+
+      // ── Transformers.js embeddings (jsdelivr CDN) ──
+      async function loadEmbeddingModel() {
+        const { pipeline } =
+          await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.4.1");
+        embeddingPipeline = await pipeline(
+          "feature-extraction",
+          "Xenova/all-MiniLM-L6-v2",
+          { dtype: "fp32" },
+        );
+      }
+
+      async function embed(text) {
+        const out = await embeddingPipeline(text, {
+          pooling: "mean",
+          normalize: true,
+        });
+        return Array.from(out.data);
+      }
+
+      function cosineSim(a, b) {
+        let dot = 0,
+          na = 0,
+          nb = 0;
+        for (let i = 0; i < a.length; i++) {
+          dot += a[i] * b[i];
+          na += a[i] * a[i];
+          nb += b[i] * b[i];
+        }
+        return dot / (Math.sqrt(na) * Math.sqrt(nb) + 1e-8);
+      }
+
+      // ── Graph-aware retrieval ──
+      function retrieveContext(queryVec, topK = 8) {
+        const scored = allEmbeddings.map((e) => ({
+          ...e,
+          score: cosineSim(queryVec, e.vector),
+        }));
+        scored.sort((a, b) => b.score - a.score);
+        const topResults = scored.slice(0, topK);
+
+        const entityNames = new Set(
+          topResults.filter((r) => r.type === "entity").map((r) => r.meta.name),
+        );
+        const relevantRelations = [];
+        for (const rel of graphData.graph.relations || []) {
+          if (entityNames.has(rel.source) || entityNames.has(rel.target)) {
+            relevantRelations.push(rel);
+            entityNames.add(rel.source);
+            entityNames.add(rel.target);
+          }
+        }
+        const neighborEntities = (graphData.graph.entities || []).filter(
+          (ent) =>
+            entityNames.has(ent.name) &&
+            !topResults.find(
+              (r) => r.type === "entity" && r.meta.name === ent.name,
+            ),
+        );
+
+        // Collect all source chunk_ids for provenance
+        const sourceChunkIds = new Set();
+        for (const r of topResults) {
+          if (r.type === "entity" && r.meta.chunk_ids)
+            r.meta.chunk_ids.forEach((id) => sourceChunkIds.add(id));
+          if (r.type === "chunk") sourceChunkIds.add(r.meta.id);
+        }
+        for (const rel of relevantRelations) {
+          if (rel.chunk_ids)
+            rel.chunk_ids.forEach((id) => sourceChunkIds.add(id));
+        }
+
+        return {
+          topResults,
+          relevantRelations,
+          neighborEntities,
+          sourceChunkIds: [...sourceChunkIds],
+        };
+      }
+
+      function buildContextPrompt(retrieval) {
+        let ctx = "";
+        const entities = retrieval.topResults.filter(
+          (r) => r.type === "entity",
+        );
+        if (entities.length) {
+          ctx += "ENTITIES:\n";
+          for (const e of entities)
+            ctx += `- ${e.meta.name} (${e.meta.type}): ${e.meta.description}\n`;
+          ctx += "\n";
+        }
+        if (retrieval.neighborEntities.length) {
+          ctx += "CONNECTED ENTITIES:\n";
+          for (const e of retrieval.neighborEntities.slice(0, 6))
+            ctx += `- ${e.name} (${e.type}): ${e.description}\n`;
+          ctx += "\n";
+        }
+        if (retrieval.relevantRelations.length) {
+          ctx += "RELATIONSHIPS:\n";
+          for (const r of retrieval.relevantRelations.slice(0, 12))
+            ctx += `- ${r.source} —[${r.type}]→ ${r.target}: ${r.description}\n`;
+          ctx += "\n";
+        }
+        const chunks = retrieval.topResults.filter((r) => r.type === "chunk");
+        if (chunks.length) {
+          ctx += "RELEVANT TEXT:\n";
+          for (const c of chunks) ctx += `---\n${c.meta.text.slice(0, 600)}\n`;
+        }
+        return ctx;
+      }
+
+      // ── WebLLM (esm.run = jsdelivr-backed, official CDN) ──
+      async function loadWebLLM(modelId, progressCb) {
+        const webllm = await import("https://esm.run/@mlc-ai/web-llm");
+        return await webllm.CreateMLCEngine(modelId, {
+          initProgressCallback: (info) => {
+            if (progressCb) progressCb(info.text || "");
+          },
+        });
+      }
+
+      // ── Pipeline init ──
+      async function initPipeline() {
+        const progressBar = document.getElementById("progress-bar");
+        const progressDetail = document.getElementById("progress-detail");
+
+        try {
+          setStep("step-parse", "active");
+          progressBar.style.width = "5%";
+          progressDetail.textContent = "Parsing graph data...";
+          await sleep(100);
+
+          const entities = graphData.graph.entities || [];
+          const chunks = graphData.chunks || [];
+
+          // Build chunk lookup for provenance
+          chunkMap = {};
+          for (const c of chunks) chunkMap[c.id] = c;
+
+          setStep("step-parse", "done");
+          progressBar.style.width = "15%";
+          progressDetail.textContent = `${entities.length} entities, ${(graphData.graph.relations || []).length} relations, ${chunks.length} chunks`;
+          await sleep(300);
+
+          // Embed
+          setStep("step-embed", "active");
+          progressBar.style.width = "20%";
+
+          progressDetail.textContent =
+            "Loading embedding model (all-MiniLM-L6-v2 via WASM)...";
+          await loadEmbeddingModel();
+          progressBar.style.width = "30%";
+          progressDetail.textContent = "Embedding entities...";
+
+          allEmbeddings = [];
+          const total = entities.length + chunks.length;
+          let n = 0;
+
+          for (const ent of entities) {
+            const text = `${ent.name} (${ent.type}): ${ent.description || ""}`;
+            allEmbeddings.push({
+              id: ent.id,
+              type: "entity",
+              text,
+              vector: await embed(text),
+              meta: ent,
+            });
+            if (++n % 5 === 0) {
+              progressBar.style.width = 30 + (n / total) * 40 + "%";
+              progressDetail.textContent = `Embedding ${n}/${total}...`;
+            }
+          }
+          progressDetail.textContent = "Embedding chunks...";
+          for (const chunk of chunks) {
+            const text = (chunk.rephrase || chunk.text || "").slice(0, 512);
+            if (!text) continue;
+            allEmbeddings.push({
+              id: chunk.id,
+              type: "chunk",
+              text,
+              vector: await embed(text),
+              meta: chunk,
+            });
+            if (++n % 3 === 0) {
+              progressBar.style.width = 30 + (n / total) * 40 + "%";
+              progressDetail.textContent = `Embedding ${n}/${total}...`;
+            }
+          }
+
+          setStep("step-embed", "done");
+          progressBar.style.width = "70%";
+          updateDbStatus("ready", `${allEmbeddings.length} vectors`);
+
+          // WebLLM
+          if (mode === "webllm" && hasWebGPU) {
+            setStep("step-llm", "active");
+            progressDetail.textContent =
+              "Loading LLM (first run downloads weights ~2GB)...";
+            const modelId = document.getElementById("model-select").value;
+            try {
+              llmEngine = await loadWebLLM(modelId, (txt) => {
+                progressDetail.textContent = txt || "Loading...";
+              });
+              setStep("step-llm", "done");
+              updateLlmStatus(
+                "ready",
+                modelId.split("-").slice(0, 2).join(" "),
+              );
+            } catch (e) {
+              console.error("WebLLM failed:", e);
+              progressDetail.textContent =
+                "WebLLM failed — using retrieval-only. Error: " + e.message;
+              mode = "embedonly";
+              updateLlmStatus("error", "Failed");
+              await sleep(2000);
+            }
+          } else {
+            updateLlmStatus("ready", "Retrieval only");
+          }
+
+          progressBar.style.width = "100%";
+          progressDetail.textContent = "Ready!";
+          await sleep(400);
+          showChat();
+        } catch (err) {
+          progressDetail.textContent = "Error: " + err.message;
+          updateLlmStatus("error", "Failed");
+          console.error(err);
+        }
+      }
+
+      // ── Chat ──
+      function showChat() {
+        document.getElementById("setup-screen").style.display = "none";
+        document.getElementById("chat-screen").style.display = "flex";
+        document.getElementById("sidebar").style.display = "flex";
+        document.getElementById("navbar-title").textContent =
+          graphData.title || "Untitled";
+        populateSidebar();
+        const modeLabel = llmEngine ? "WebLLM generation" : "retrieval-only";
+        // addMessage(
+        //   "system",
+        //   `${allEmbeddings.length} vectors. Mode: ${modeLabel}.`,
+        // );
+        if (!llmEngine)
+          document.getElementById("input-hint").textContent =
+            "Graph-RAG retrieval — entities, relations, passages";
+        document.getElementById("chat-input").focus();
+      }
+
+      function populateSidebar() {
+        const byType = {};
+        for (const e of graphData.graph.entities || []) {
+          const t = e.type || "other";
+          (byType[t] = byType[t] || []).push(e);
+        }
+        let html = "";
+        for (const [type, ents] of Object.entries(byType).sort(
+          (a, b) => b[1].length - a[1].length,
+        )) {
+          const cls = [
+            "company",
+            "software",
+            "service",
+            "hardware",
+            "data",
+          ].includes(type)
+            ? `type-${type}`
+            : "type-default";
+          html += `<div class="sidebar-section"><div class="sidebar-section-title">${type} (${ents.length})</div><div>`;
+          for (const e of ents.slice(0, 20)) {
+            const sn = e.name.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+            html += `<span class="entity-chip ${cls}" title="${(e.description || "").replace(/"/g, "&quot;")}" onclick="showEntityDetail('${sn}')">${e.name}</span>`;
+          }
+          if (ents.length > 20)
+            html += `<span class="entity-chip type-default">+${ents.length - 20} more</span>`;
+          html += "</div></div>";
+        }
+        document.getElementById("sidebar-entities").innerHTML = html;
+        const g = graphData.graph;
+        document.getElementById("graph-stats").innerHTML =
+          `<div><strong>${(g.entities || []).length}</strong> entities</div>` +
+          `<div><strong>${(g.relations || []).length}</strong> relations</div>` +
+          // `<div><strong>${(g.clusters || []).length}</strong> clusters</div>` +
+          `<div><strong>${(graphData.chunks || []).length}</strong> chunks</div>`;
+      }
+
+      window.askAbout = function (name) {
+        document.getElementById("chat-input").value =
+          `What is ${name} and how does it relate to other entities?`;
+        sendMessage();
+      };
+
+      window.showEntityDetail = function (name) {
+        const ent = (graphData.graph.entities || []).find(
+          (e) => e.name === name,
+        );
+        if (!ent) return;
+        const panel = document.getElementById("entity-detail");
+        panel.style.display = "block";
+
+        // Find relations involving this entity
+        const rels = (graphData.graph.relations || []).filter(
+          (r) => r.source === name || r.target === name,
+        );
+
+        // Resolve source chunks
+        const chunks = (ent.chunk_ids || [])
+          .map((id) => chunkMap[id])
+          .filter(Boolean);
+
+        let html = `<span class="ed-back" onclick="document.getElementById('entity-detail').style.display='none'">&#8592; back</span>`;
+        html += `<div class="ed-name">${escHtml(ent.name)}</div>`;
+        html += `<span class="ed-type">${ent.type}</span>`;
+        html += `<div class="ed-desc">${escHtml(ent.description || "")}</div>`;
+        html += `<div style="margin-top:.5rem"><span class="ed-back" style="color:var(--ob-orange)" onclick="askAbout('${name.replace(/'/g, "\\'")}')">Ask about this entity →</span></div>`;
+
+        if (rels.length) {
+          html += `<div class="ed-section">Relations (${rels.length})</div>`;
+          for (const r of rels) {
+            const direction =
+              r.source === name
+                ? `→ <strong>${escHtml(r.target)}</strong>`
+                : `← <strong>${escHtml(r.source)}</strong>`;
+            html += `<div class="ed-rel">[${escHtml(r.type)}] ${direction}</div>`;
+          }
+        }
+
+        if (chunks.length) {
+          html += `<div class="ed-section">Source chunks (${chunks.length})</div>`;
+          for (const ch of chunks) {
+            html += `<div class="ed-chunk">${escHtml(ch.text || "")}</div>`;
+          }
+        }
+
+        panel.innerHTML = html;
+      };
+
+      window.sendMessage = async function () {
+        const input = document.getElementById("chat-input");
+        const query = input.value.trim();
+        if (!query || isProcessing) return;
+        input.value = "";
+        isProcessing = true;
+        document.getElementById("send-btn").disabled = true;
+        addMessage("user", query);
+        const thinkEl = addThinking();
+
+        try {
+          const qv = await embed(query);
+          const ret = retrieveContext(qv);
+          const srcEnts = ret.topResults
+            .filter((r) => r.type === "entity")
+            .map((r) => r.meta.name);
+          let answer;
+
+          if (llmEngine) {
+            const ctx = buildContextPrompt(ret);
+            const sys = `You are a helpful assistant answering questions about a knowledge graph from: "${graphData.title || "a document"}".\nSummary: ${(graphData.summary || "").slice(0, 300)}\n\nUse this context. Be concise, cite entities/relations.\n\n${ctx}`;
+            const resp = await llmEngine.chat.completions.create({
+              messages: [
+                { role: "system", content: sys },
+                { role: "user", content: query },
+              ],
+              temperature: 0.4,
+              max_tokens: 512,
+            });
+            answer = resp.choices[0].message.content;
+          } else {
+            answer = fmtRetrieval(ret);
+          }
+          removeEl(thinkEl);
+          addMessage("assistant", answer, srcEnts, ret.sourceChunkIds);
+        } catch (err) {
+          removeEl(thinkEl);
+          addMessage("assistant", "Error: " + err.message);
+          console.error(err);
+        }
+        isProcessing = false;
+        document.getElementById("send-btn").disabled = false;
+        input.focus();
+      };
+
+      function fmtRetrieval(r) {
+        const parts = [];
+        const ents = r.topResults.filter((x) => x.type === "entity");
+        if (ents.length) {
+          parts.push("**Matching entities:**");
+          ents
+            .slice(0, 5)
+            .forEach((e) =>
+              parts.push(
+                `  ${e.meta.name} (${e.meta.type}, ${e.score.toFixed(3)}) — ${e.meta.description}`,
+              ),
+            );
+        }
+        if (r.relevantRelations.length) {
+          parts.push("\n**Connections:**");
+          r.relevantRelations
+            .slice(0, 8)
+            .forEach((x) =>
+              parts.push(`  ${x.source} —[${x.type}]→ ${x.target}`),
+            );
+        }
+        const chs = r.topResults.filter((x) => x.type === "chunk");
+        if (chs.length) {
+          parts.push("\n**Passages:**");
+          chs
+            .slice(0, 3)
+            .forEach((c) =>
+              parts.push(
+                `  (${c.score.toFixed(3)}) "${c.meta.text.slice(0, 200)}..."`,
+              ),
+            );
+        }
+        return parts.join("\n") || "No relevant results found.";
+      }
+
+      // ── UI ──
+      function addMessage(role, text, sources, sourceChunkIds) {
+        const c = document.getElementById("chat-messages");
+        const d = document.createElement("div");
+        d.className = `message ${role}`;
+        d.innerHTML = text
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+          .replace(/\n/g, "<br>");
+
+        if (sources?.length) {
+          const s = document.createElement("div");
+          s.className = "sources";
+          s.innerHTML =
+            "Sources: " +
+            sources
+              .map((n) => `<span class="source-entity">${n}</span>`)
+              .join(" ");
+          d.appendChild(s);
+        }
+
+        // Provenance: show source chunks
+        if (sourceChunkIds?.length) {
+          const resolvedChunks = sourceChunkIds
+            .map((id) => chunkMap[id])
+            .filter(Boolean)
+            .sort((a, b) => (a.chunk_idx || 0) - (b.chunk_idx || 0));
+
+          if (resolvedChunks.length) {
+            const provDiv = document.createElement("div");
+            provDiv.className = "provenance";
+            const uid = "prov-" + Date.now();
+            let provHtml = `<span class="prov-toggle" onclick="this.classList.toggle('open');document.getElementById('${uid}').classList.toggle('open')"><span class="arrow">&#9654;</span> ${resolvedChunks.length} source chunk${resolvedChunks.length > 1 ? "s" : ""}</span>`;
+            provHtml += `<div class="prov-chunks" id="${uid}">`;
+            for (const ch of resolvedChunks) {
+              const chunkEntities = (ch.entities || []).map((e) => e.name);
+              provHtml += `<div class="prov-chunk">`;
+              provHtml += `<div class="prov-chunk-header"><span class="prov-chunk-label">Chunk ${ch.chunk_idx != null ? ch.chunk_idx : "?"}</span><span class="prov-chunk-idx">${ch.chunk_tokens || "?"} tokens</span></div>`;
+              provHtml += `<div class="prov-chunk-text">${escHtml(ch.text || "")}</div>`;
+              if (chunkEntities.length) {
+                provHtml += `<div class="prov-chunk-entities">${chunkEntities.map((n) => `<span>${escHtml(n)}</span>`).join("")}</div>`;
+              }
+              provHtml += `</div>`;
+            }
+            provHtml += "</div>";
+            provDiv.innerHTML = provHtml;
+            d.appendChild(provDiv);
+          }
+        }
+
+        c.appendChild(d);
+        c.scrollTop = c.scrollHeight;
+      }
+
+      function escHtml(s) {
+        return s
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      }
+      function addThinking() {
+        const c = document.getElementById("chat-messages");
+        const d = document.createElement("div");
+        d.className = "thinking-indicator";
+        d.innerHTML =
+          '<div class="thinking-dots"><span></span><span></span><span></span></div><span>Retrieving &amp; generating...</span>';
+        c.appendChild(d);
+        c.scrollTop = c.scrollHeight;
+        return d;
+      }
+      function removeEl(el) {
+        el?.parentNode?.removeChild(el);
+      }
+      function setStep(id, state) {
+        const el = document.getElementById(id);
+        el.className = `progress-step ${state}`;
+        if (state === "done") el.querySelector(".step-icon").textContent = "✓";
+      }
+      function updateLlmStatus(s, t) {
+        document.getElementById("llm-status").className = `status-pill ${s}`;
+        document.getElementById("llm-status-text").textContent = t;
+      }
+      function updateDbStatus(s, t) {
+        document.getElementById("db-status").className = `status-pill ${s}`;
+        document.getElementById("db-status-text").textContent = t;
+      }
+      function sleep(ms) {
+        return new Promise((r) => setTimeout(r, ms));
+      }
+    </script>
+  </body>
+</html>
